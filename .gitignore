@@ -1,32 +1,92 @@
-# Prerequisites
+# ============================================
+# Prerequisites & Dependencies
+# ============================================
 *.d
 *.bak
 *.TMP
-desktop.ini
 
+# ============================================
+# Build Output
+# ============================================
 # Object files
-#Objects/
-objects/
-objects
 *.o
 *.ko
 *.obj
+objects/
+objects
+
+# Compilation artifacts
 *.crf
 *.dep
-*.sct
-# Added-for
 *.__i
+*.coproj
+*.elf
+*.axf
+*.out
+
+# Hex & Binary files
 *.hex
+*.bin
 *.htm
 
 # Linker output
-listings/
-listings
 *.lst
 *.map
 *.exp
+listings/
+listings
 
-#mdk
+# Build directories
+build/
+dist/
+Debug/
+Release/
+
+# ============================================
+# IDE & Editor Files
+# ============================================
+# IAR Embedded Workbench
+*.eww
+*.ewp
+*.ewd
+*.ewl
+*.ewo
+*.lib
+*.pbd
+*.browse
+settings/
+
+# Keil MDK / uVision
+*.uvproj
+*.uvprojx
+*.scvd
+*.sct
 *.user1
 *.joseph
 *.uvoptx
+
+# VS Code
+.vscode/
+.vs/
+
+# Other editors
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# ============================================
+# System Files
+# ============================================
+desktop.ini
+.DS_Store
+Thumbs.db
+
+# ============================================
+# Temporary Files
+# ============================================
+*.tmp
+*.temp
+*.log
