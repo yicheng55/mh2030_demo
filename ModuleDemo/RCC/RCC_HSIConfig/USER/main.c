@@ -7,11 +7,11 @@
 // #define USART2_RAW_TEST
 
 #ifdef USART2_RAW_TEST
-extern int SER_PutChar(int ch);
+extern int UART_PutChar(int ch);
 static void UART_SendString(const char *text)
 {
 	while (*text != '\0')
-		SER_PutChar((uint8_t)*text++);
+		UART_PutChar((uint8_t)*text++);
 }
 #define PRINTF_LOG(fmt, ...)  /* 停用 */
 #else

@@ -2,7 +2,7 @@
 
 USART_TypeDef* USART_TEST = USART2;
 
-void UART_Configuration(uint32_t bound)
+void UART_Configuration(uint32_t BaudRate)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	USART_InitTypeDef USART_InitStructure;
@@ -27,7 +27,7 @@ void UART_Configuration(uint32_t bound)
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-	USART_InitStructure.USART_BaudRate            = bound;
+	USART_InitStructure.USART_BaudRate            = BaudRate;
 	USART_InitStructure.USART_WordLength          = USART_WordLength_8b;
 	USART_InitStructure.USART_StopBits            = USART_StopBits_1;
 	USART_InitStructure.USART_Parity              = USART_Parity_No;
@@ -52,7 +52,7 @@ uint8_t GetCmd(void)
 	return tmp;
 }
 
-int SER_PutChar(int ch)
+int UART_PutChar(int ch)
 {
 	while (!USART_GetFlagStatus(USART_TEST, USART_FLAG_TC));
 	USART_SendData(USART_TEST, (uint8_t)ch);
@@ -63,7 +63,7 @@ int fputc(int c, FILE *f)
 {
 	if (c == '\n')
 	{
-		SER_PutChar('\r');
+		UART_PutChar('\r');
 	}
-	return SER_PutChar(c);
+	return UART_PutChar(c);
 }
