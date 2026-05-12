@@ -61,12 +61,13 @@ int main(void)
 	while(1);
 }
 
+
 void CLK_Configuration(void)
 {
 	RCC_DeInit();
 	
-	RCC_HSEConfig(RCC_HSE_ON);
-	while(RCC_GetFlagStatus(RCC_FLAG_HSERDY) == RESET);
+	RCC_HSICmd(ENABLE);
+	while(RCC_GetFlagStatus(RCC_FLAG_HSIRDY) == RESET);
 	
 	RCC_PLLCmd(DISABLE);
 	
@@ -74,7 +75,7 @@ void CLK_Configuration(void)
 	FLASH_SetLatency(FLASH_Latency_2);
 	FLASH_Lock();
 	
-	RCC_PLLConfig(RCC_PLLSource_HSE,RCC_PLLMul_9);
+	RCC_PLLConfig(RCC_PLLSource_HSI,RCC_PLLMul_9);
 	
 	RCC_PLLCmd(ENABLE);
 	while(RCC_GetFlagStatus(RCC_FLAG_PLLRDY) == RESET);
@@ -83,6 +84,30 @@ void CLK_Configuration(void)
 	RCC_HCLKConfig(RCC_SYSCLK_Div1);
 	RCC_PCLKConfig(RCC_HCLK_Div1);
 }
+
+
+//void CLK_Configuration(void)
+//{
+//	RCC_DeInit();
+//	
+//	RCC_HSEConfig(RCC_HSE_ON);
+//	while(RCC_GetFlagStatus(RCC_FLAG_HSERDY) == RESET);
+//	
+//	RCC_PLLCmd(DISABLE);
+//	
+//	FLASH_Unlock();
+//	FLASH_SetLatency(FLASH_Latency_2);
+//	FLASH_Lock();
+//	
+//	RCC_PLLConfig(RCC_PLLSource_HSE,RCC_PLLMul_9);
+//	
+//	RCC_PLLCmd(ENABLE);
+//	while(RCC_GetFlagStatus(RCC_FLAG_PLLRDY) == RESET);
+//	
+//	RCC_SYSCLKConfig(RCC_SYSCLKSource_PLLCLK);
+//	RCC_HCLKConfig(RCC_SYSCLK_Div1);
+//	RCC_PCLKConfig(RCC_HCLK_Div1);
+//}
 
 void DMA_Configuration(void)
 {

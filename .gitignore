@@ -49,6 +49,7 @@ listings
 *.lst
 *.map
 *.exp
+*.txt
 listings/
 listings
 
