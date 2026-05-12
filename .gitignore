@@ -2,12 +2,18 @@
 *.d
 *.bak
 *.TMP
+*.tmp
+*.temp
+*.log
 desktop.ini
 
 # Object files
 #Objects/
 objects/
 objects
+**/OBJ/
+**/obj/
+**/Objects/
 *.o
 *.ko
 *.obj
@@ -22,6 +28,10 @@ objects
 # Linker output
 listings/
 listings
+**/List/
+**/LIST/
+**/Listings/
+**/listing/
 *.lst
 *.map
 *.exp
@@ -30,3 +40,19 @@ listings
 *.user1
 *.joseph
 *.uvoptx
+*.uvguix.*
+*.uvgui.*
+
+# IAR user files
+*.ewd
+*.ewt
+
+# Build outputs
+**/Debug/
+**/Release/
+**/Output/
+**/Build/
+
+# VS Code / Visual Studio workspace settings
+.vscode/
+.vs/
