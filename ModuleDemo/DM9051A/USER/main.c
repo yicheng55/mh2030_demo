@@ -51,6 +51,8 @@ int fputc(int ch, FILE *f)
 int main(void)
 {
     uint16_t vid, pid;
+    uint8_t vidl, vidh, pidl, pidh;
+    uint8_t chipr, ncr, nsr;
     DM9051A_Status status;
     RCC_ClocksTypeDef clocks;
 
@@ -94,6 +96,24 @@ int main(void)
         }
     }
     PRINTF_LOG("VID = 0x%04X, PID = 0x%04X\r\n", vid, pid);
+
+    vidl  = DM9051A_ReadReg(DM9051A_VIDL);
+    vidh  = DM9051A_ReadReg(DM9051A_VIDH);
+    pidl  = DM9051A_ReadReg(DM9051A_PIDL);
+    pidh  = DM9051A_ReadReg(DM9051A_PIDH);
+    chipr = DM9051A_ReadReg(DM9051A_CHIPR);
+    ncr   = DM9051A_ReadReg(DM9051A_NCR);
+    nsr   = DM9051A_ReadReg(DM9051A_NSR);
+
+    PRINTF_LOG("RAW ID bytes: VIDL=0x%02X VIDH=0x%02X PIDL=0x%02X PIDH=0x%02X CHIPR=0x%02X\r\n",
+               vidl, vidh, pidl, pidh, chipr);
+    PRINTF_LOG("Basic regs: NCR=0x%02X NSR=0x%02X\r\n", ncr, nsr);
+
+    if ((vid == 0x0000u) && (pid == 0x0000u)) {
+        PRINTF_LOG("Diagnosis: SPI RX is all zero. Check SCK/MOSI output, CS wiring, RST high, power, and SPI2 pin remap/AF.\r\n");
+    } else if ((vid == 0xFFFFu) && (pid == 0xFFFFu)) {
+        PRINTF_LOG("Diagnosis: SPI RX is all one. MISO is likely floating, pulled high, or DM9051A is not driving it.\r\n");
+    }
 
     /* Verify chip ID */
     status = DM9051A_CheckID();
