@@ -5,7 +5,7 @@
  * Peripheral mapping
  * ──────────────────
  *  SPI2  APB1  (max 36 MHz @ PCLK=72 MHz, prescaler≥2)
- *  GPIOA AHB   PA9=CS  PA11=SCK  PA12=MISO  PA8=MOSI  (AF0)
+ *  GPIOA AHB   PA9=CS  PA11=SCK  PA12=MISO  PA8=MOSI  (AF8)
  *  GPIOF AHB   PF7=RST  PF6=INT
  *  DMA1  AHB   CH4=SPI2_RX (remap)   CH5=SPI2_TX (remap)
  *  SYSCFG APB2  for EXTI mapping and DMA remap
@@ -46,17 +46,29 @@ void MH2030A_SPI2_Init(void)
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 
     /* ------------------------------------------------------------------
-    * 2. GPIO – SPI2 pins (PA8/11/12 → AF0)
+    * 2. GPIO – SPI2 pins on GPIOA
+     *    Vendor SPI2 examples use PB12-15/AF0; GPIO_AF_8 also lists SPI2
+     *    and appears to be the remap for PA pins.  Try AF8 here.
+     *    MISO (PA12) gets a pull-up so the line isn't floating.
      * ------------------------------------------------------------------ */
-    GPIO_PinAFConfig(GPIOA, GPIO_PinSource8,  GPIO_AF_0);
-    GPIO_PinAFConfig(GPIOA, GPIO_PinSource11, GPIO_AF_0);
-    GPIO_PinAFConfig(GPIOA, GPIO_PinSource12, GPIO_AF_0);
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource8,  GPIO_AF_8); /* MOSI */
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource11, GPIO_AF_8); /* SCK  */
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource12, GPIO_AF_8); /* MISO */
 
-    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_8 | GPIO_Pin_11 | GPIO_Pin_12;
+    /* MOSI + SCK: push-pull output, no pull */
+    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_8 | GPIO_Pin_11;
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
     GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+    /* MISO (PA12): AF input with pull-up */
+    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_12;
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;  /* pull-up on MISO */
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 
     /* ------------------------------------------------------------------
