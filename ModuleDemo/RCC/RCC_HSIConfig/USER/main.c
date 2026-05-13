@@ -35,6 +35,7 @@ int main(void)
 	}
 #else
 	/* 不切 PLL，直接使用開機預設 HSI 8 MHz */
+	SystemCoreClock = 8000000;
 	Delay_Init();
 	UART_Configuration(115200);
 	RCC_GetClocksFreq(&clocks);
