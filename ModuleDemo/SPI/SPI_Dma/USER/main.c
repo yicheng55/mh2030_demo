@@ -6,7 +6,7 @@
 
 #define PRINTF_LOG 	printf
 
-USART_TypeDef* USART_TEST = USART1;
+USART_TypeDef* USART_TEST = USART2;
 
 void CLK_Configuration(void);
 void UART_Configuration(uint32_t bound);
@@ -20,66 +20,76 @@ uint8_t SPI_RX_BUFF[SPI_BUFF_SIZE];
 
 RCC_ClocksTypeDef clocks;
 int main(void)
-{	
+{
 	uint16_t i;
-	
+
 	CLK_Configuration();
 	Delay_Init();
 	UART_Configuration(115200);
 	RCC_GetClocksFreq(&clocks);
-	
+
+	PRINTF_LOG("Clock mode: HSI/2 + PLL (72MHz target)\n");
+	PRINTF_LOG("\n");
+	PRINTF_LOG("PLL source: HSI/2, PLL mul: x18\n");
 	PRINTF_LOG("\n");
 	PRINTF_LOG("SYSCLK: %3.1fMhz, HCLK: %3.1fMhz, PCLK: %3.1fMhz\n", \
 	(float)clocks.SYSCLK_Frequency/1000000, (float)clocks.HCLK_Frequency/1000000, \
 	(float)clocks.PCLK_Frequency/1000000);
-	
+
 	PRINTF_LOG("SPI DMA Test.\n");
 	PRINTF_LOG("please connect mo(PA7) and mi(PA6)\n");
-	
+
 	for(i = 0; i < SPI_BUFF_SIZE; i++)
 	{
 		SPI_TX_BUFF[i] = i+1;
 	}
 	memset(SPI_RX_BUFF,0, sizeof(SPI_RX_BUFF));
-	
+
 	SPI_Configuration();
 	DMA_Configuration();
-	
-	DMA_Cmd(DMA1_Channel2,ENABLE);  
-	DMA_Cmd(DMA1_Channel3,ENABLE);   
-	
+
+	DMA_Cmd(DMA1_Channel2,ENABLE);
+	DMA_Cmd(DMA1_Channel3,ENABLE);
+
 	while(!DMA_GetFlagStatus(DMA1_FLAG_TC3)); //等待发送完成
-	DMA_ClearFlag(DMA1_FLAG_TC3);              
-	DMA_Cmd(DMA1_Channel3,DISABLE);    	
+	DMA_ClearFlag(DMA1_FLAG_TC3);
+	DMA_Cmd(DMA1_Channel3,DISABLE);
 
 	Delay_Ms(100);
 	if(memcmp(SPI_RX_BUFF,SPI_TX_BUFF,SPI_BUFF_SIZE) == 0) //对比结果
 		PRINTF_LOG("SUCCESS\n");
 	else
 		PRINTF_LOG("FAIL\n");
-	
-	while(1);
+
+	while(1)
+	{
+		RCC_GetClocksFreq(&clocks);
+		PRINTF_LOG("SYSCLK: %3.1fMhz, HCLK: %3.1fMhz, PCLK: %3.1fMhz\n", \
+		(float)clocks.SYSCLK_Frequency/1000000, (float)clocks.HCLK_Frequency/1000000, \
+		(float)clocks.PCLK_Frequency/1000000);
+		Delay_Ms(500);
+	}
 }
 
 
 void CLK_Configuration(void)
 {
 	RCC_DeInit();
-	
+
 	RCC_HSICmd(ENABLE);
 	while(RCC_GetFlagStatus(RCC_FLAG_HSIRDY) == RESET);
-	
+
 	RCC_PLLCmd(DISABLE);
-	
+
 	FLASH_Unlock();
 	FLASH_SetLatency(FLASH_Latency_2);
 	FLASH_Lock();
-	
-	RCC_PLLConfig(RCC_PLLSource_HSI,RCC_PLLMul_9);
-	
+
+	RCC_PLLConfig(RCC_PLLSource_HSI_Div2,RCC_PLLMul_18);
+
 	RCC_PLLCmd(ENABLE);
 	while(RCC_GetFlagStatus(RCC_FLAG_PLLRDY) == RESET);
-	
+
 	RCC_SYSCLKConfig(RCC_SYSCLKSource_PLLCLK);
 	RCC_HCLKConfig(RCC_SYSCLK_Div1);
 	RCC_PCLKConfig(RCC_HCLK_Div1);
@@ -89,21 +99,21 @@ void CLK_Configuration(void)
 //void CLK_Configuration(void)
 //{
 //	RCC_DeInit();
-//	
+//
 //	RCC_HSEConfig(RCC_HSE_ON);
 //	while(RCC_GetFlagStatus(RCC_FLAG_HSERDY) == RESET);
-//	
+//
 //	RCC_PLLCmd(DISABLE);
-//	
+//
 //	FLASH_Unlock();
 //	FLASH_SetLatency(FLASH_Latency_2);
 //	FLASH_Lock();
-//	
+//
 //	RCC_PLLConfig(RCC_PLLSource_HSE,RCC_PLLMul_9);
-//	
+//
 //	RCC_PLLCmd(ENABLE);
 //	while(RCC_GetFlagStatus(RCC_FLAG_PLLRDY) == RESET);
-//	
+//
 //	RCC_SYSCLKConfig(RCC_SYSCLKSource_PLLCLK);
 //	RCC_HCLKConfig(RCC_SYSCLK_Div1);
 //	RCC_PCLKConfig(RCC_HCLK_Div1);
@@ -114,13 +124,13 @@ void DMA_Configuration(void)
 	DMA_InitTypeDef DMA_InitStructure;
 
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1,ENABLE);
-	
+
 	/* DMA1 Channel2 (triggered by SPI1 Rx event) Config */
-	DMA_DeInit(DMA1_Channel2);  
-	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&SPI1->DR;                         
-	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)SPI_RX_BUFF;                    
-	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;                                
-	DMA_InitStructure.DMA_BufferSize = SPI_BUFF_SIZE;                         
+	DMA_DeInit(DMA1_Channel2);
+	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&SPI1->DR;
+	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)SPI_RX_BUFF;
+	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralSRC;
+	DMA_InitStructure.DMA_BufferSize = SPI_BUFF_SIZE;
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
 	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
@@ -131,27 +141,27 @@ void DMA_Configuration(void)
 	DMA_Init(DMA1_Channel2, &DMA_InitStructure);
 
 	/* Enable SPI1 DMA RX request */
-	SPI_I2S_DMACmd(SPI1,SPI_I2S_DMAReq_Rx,ENABLE);                                                               
+	SPI_I2S_DMACmd(SPI1,SPI_I2S_DMAReq_Rx,ENABLE);
 	DMA_Cmd(DMA1_Channel2, DISABLE);
 
 
 	/* DMA1 Channel3 (triggered by SPI1 Tx event) Config */
-	DMA_DeInit(DMA1_Channel3);  
-	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&SPI1->DR;                           
-	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)SPI_TX_BUFF;                    
-	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;                               
-	DMA_InitStructure.DMA_BufferSize = SPI_BUFF_SIZE;                         
-	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;                 
-	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;                           
-	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;          
-	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;                  
-	DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;                                     
-	DMA_InitStructure.DMA_Priority = DMA_Priority_VeryHigh;                           
-	DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;                                      
+	DMA_DeInit(DMA1_Channel3);
+	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&SPI1->DR;
+	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)SPI_TX_BUFF;
+	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
+	DMA_InitStructure.DMA_BufferSize = SPI_BUFF_SIZE;
+	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+	DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
+	DMA_InitStructure.DMA_Priority = DMA_Priority_VeryHigh;
+	DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
 	DMA_Init(DMA1_Channel3, &DMA_InitStructure);
-                              
+
 	/* Enable SPI1 DMA TX request */
-	SPI_I2S_DMACmd(SPI1,SPI_I2S_DMAReq_Tx,ENABLE);                                                         
+	SPI_I2S_DMACmd(SPI1,SPI_I2S_DMAReq_Tx,ENABLE);
 	DMA_Cmd(DMA1_Channel3, DISABLE);
 }
 
@@ -159,17 +169,17 @@ void SPI_Configuration(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	SPI_InitTypeDef  SPI_InitStructure;
-	
+
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE );
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE );
-	
+
 	GPIO_PinAFConfig(GPIOA,GPIO_PinSource4,GPIO_AF_0);
 	GPIO_PinAFConfig(GPIOA,GPIO_PinSource5,GPIO_AF_0);
 	GPIO_PinAFConfig(GPIOA,GPIO_PinSource6,GPIO_AF_0);
 	GPIO_PinAFConfig(GPIOA,GPIO_PinSource7,GPIO_AF_0);
-	
+
 	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4 | GPIO_Pin_5 | GPIO_Pin_6| GPIO_Pin_7;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;  
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
@@ -194,23 +204,23 @@ void UART_Configuration(uint32_t bound)
 	GPIO_InitTypeDef GPIO_InitStructure;
 	USART_InitTypeDef USART_InitStructure;
 
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1,ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2,ENABLE);
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA,ENABLE);
 
-	GPIO_PinAFConfig(GPIOA,GPIO_PinSource9,GPIO_AF_1);
-	GPIO_PinAFConfig(GPIOA,GPIO_PinSource10,GPIO_AF_1);
-	
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9; 
+	GPIO_PinAFConfig(GPIOA,GPIO_PinSource2,GPIO_AF_1);
+	GPIO_PinAFConfig(GPIOA,GPIO_PinSource3,GPIO_AF_1);
+
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;	
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
-	
+
 	USART_InitStructure.USART_BaudRate = bound;
 	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
 	USART_InitStructure.USART_StopBits = USART_StopBits_1;
@@ -222,7 +232,7 @@ void UART_Configuration(uint32_t bound)
 	USART_Cmd(USART_TEST, ENABLE);
 }
 
-void USART1_IRQHandler(void)
+void USART2_IRQHandler(void)
 {
 	uint16_t cmd;
 	if(USART_GetITStatus(USART_TEST, USART_IT_RXNE) != RESET)
