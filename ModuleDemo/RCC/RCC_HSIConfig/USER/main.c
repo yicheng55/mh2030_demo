@@ -25,9 +25,9 @@ static void UART_SendString(const char *text)
 /* 切換此巨集以選擇時鐘模式 */
 #define SYSCLK_MODE             SYSCLK_MODE_HSI_PLL
 
-/* HSI(8 MHz) 經 PLL 倍頻到 72 MHz */
+/* 實測 PLL 輸入為 HSI/2，因此需 x18 才能到 72 MHz */
 #define HSI_PLL_SOURCE          RCC_PLLSource_HSI
-#define HSI_PLL_MUL             RCC_PLLMul_9
+#define HSI_PLL_MUL             RCC_PLLMul_18
 
 static void CLK_Configuration(void);
 static void Clock_UpdateCoreClock(void);
@@ -97,7 +97,7 @@ static void Clock_PrintConfig(void)
 	Clock_UpdateCoreClock();
 	Clock_Log("Clock mode: %s\r\n",
 #if SYSCLK_MODE == SYSCLK_MODE_HSI_PLL
-		"HSI + PLL (72MHz target)"
+		"HSI/2 + PLL (72MHz target)"
 #else
 		"HSI 8MHz"
 #endif
@@ -147,7 +147,7 @@ static void CLK_Configuration(void)
 	RCC_PCLKConfig(RCC_HCLK_Div1);
 
 #if SYSCLK_MODE == SYSCLK_MODE_HSI_PLL
-	/* HSI 8 MHz x 9 = 72 MHz */
+	/* 實測 PLL 輸入為 HSI/2，故以 4 MHz x 18 = 72 MHz */
 	RCC_PLLCmd(DISABLE);
 	while(RCC_GetFlagStatus(RCC_FLAG_PLLRDY) != RESET);
 
