@@ -10,7 +10,7 @@
  *  DMA1  AHB   CH4=SPI2_RX (remap)   CH5=SPI2_TX (remap)
  *  SYSCFG APB2  for EXTI mapping and DMA remap
  *
- * SPI mode: CPOL=Low, CPHA=2Edge.
+ * SPI mode: CPOL=Low, CPHA=1Edge (Mode 0).
  */
 
 #include <stddef.h>
@@ -49,7 +49,8 @@ void MH2030A_SPI2_Init(void)
     * 2. GPIO – SPI2 pins on GPIOA
      *    Vendor SPI2 examples use PB12-15/AF0; GPIO_AF_8 also lists SPI2
      *    and appears to be the remap for PA pins.  Try AF8 here.
-     *    MISO (PA12) gets a pull-up so the line isn't floating.
+     *    MISO (PA12) is left without an internal pull so a disconnected
+     *    or non-driving DM9051A line does not get masked as 0xFF.
      * ------------------------------------------------------------------ */
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource8,  GPIO_AF_8); /* MOSI */
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource11, GPIO_AF_8); /* SCK  */
@@ -63,12 +64,12 @@ void MH2030A_SPI2_Init(void)
     GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-    /* MISO (PA12): AF input with pull-up */
+    /* MISO (PA12): AF input, no internal pull */
     GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_12;
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;  /* pull-up on MISO */
+    GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
 
     /* ------------------------------------------------------------------
@@ -100,14 +101,14 @@ void MH2030A_SPI2_Init(void)
     GPIO_Init(GPIOF, &GPIO_InitStructure);
 
     /* ------------------------------------------------------------------
-    * 5. SPI2 – CPOL=Low, CPHA=2Edge, 8-bit, MSB-first
+    * 5. SPI2 – Mode 0 (CPOL=Low, CPHA=1Edge), 8-bit, MSB-first
      *    Start slow (prescaler 256 ≈ 281 kHz), speed up after ID check.
      * ------------------------------------------------------------------ */
     SPI_InitStructure.SPI_Direction         = SPI_Direction_2Lines_FullDuplex;
     SPI_InitStructure.SPI_Mode              = SPI_Mode_Master;
     SPI_InitStructure.SPI_DataSize          = SPI_DataSize_8b;
     SPI_InitStructure.SPI_CPOL              = SPI_CPOL_Low;
-    SPI_InitStructure.SPI_CPHA              = SPI_CPHA_2Edge;
+    SPI_InitStructure.SPI_CPHA              = SPI_CPHA_1Edge;
     SPI_InitStructure.SPI_NSS               = SPI_NSS_Soft;
     SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_256;
     SPI_InitStructure.SPI_FirstBit          = SPI_FirstBit_MSB;

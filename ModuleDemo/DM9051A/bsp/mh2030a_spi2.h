@@ -4,9 +4,9 @@
  *
  * Pin assignment:
  *   PA9   – CS  (GPIO output, software-controlled)
- *   PA11  – SCK (SPI2 AF0)
- *   PA12  – MISO(SPI2 AF0)
- *   PA8   – MOSI(SPI2 AF0)
+ *   PA11  – SCK (SPI2 AF8)
+ *   PA12  – MISO(SPI2 AF8)
+ *   PA8   – MOSI(SPI2 AF8)
  *   PF7   – RST (GPIO output, active-low)
  *   PF6   – INT (GPIO input, EXTI falling edge)
  */

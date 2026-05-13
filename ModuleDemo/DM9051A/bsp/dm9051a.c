@@ -26,7 +26,7 @@ static DM9051A_Status DM9051A_ReadRegChecked(uint8_t reg, uint8_t *pVal)
         return DM9051A_SPI_ERR;
     }
 
-    spi_status = MH2030A_SPI2_ReadWriteByteChecked(0xFFu, pVal);
+    spi_status = MH2030A_SPI2_ReadWriteByteChecked(0x00u, pVal);
     DM9051A_CS_H();
 
     return (spi_status == MH2030A_SPI2_OK) ? DM9051A_OK : DM9051A_SPI_ERR;

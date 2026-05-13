@@ -68,7 +68,7 @@ int main(void)
 
     /* SPI2 / GPIO / DMA / EXTI initialisation */
     MH2030A_SPI2_Init();
-    PRINTF_LOG("SPI2 initialised (CPOL=Low, CPHA=2Edge, prescaler=256)\r\n");
+    PRINTF_LOG("SPI2 initialised (CPOL=Low, CPHA=1Edge, prescaler=256)\r\n");
 
     /* DM9051A hardware + software reset */
     MH2030A_SPI2_ClearLastStatus();
