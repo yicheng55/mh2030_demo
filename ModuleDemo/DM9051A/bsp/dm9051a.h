@@ -17,8 +17,9 @@ extern "C" {
  * Return codes
  * ----------------------------------------------------------------------- */
 typedef enum {
-    DM9051A_OK   = 0,
-    DM9051A_ERR  = 1
+    DM9051A_OK      = 0,
+    DM9051A_ERR     = 1,
+    DM9051A_SPI_ERR = 2
 } DM9051A_Status;
 
 /* -----------------------------------------------------------------------
@@ -30,7 +31,7 @@ typedef enum {
  *        Caller must have called MH2030A_SPI2_Init() first.
  * @param delay_ms  Function pointer to a millisecond delay, e.g. Delay_Ms.
  */
-void DM9051A_Reset(void (*delay_ms)(uint16_t));
+DM9051A_Status DM9051A_Reset(void (*delay_ms)(uint16_t));
 
 /**
  * @brief Read one register byte.
@@ -47,7 +48,7 @@ void DM9051A_WriteReg(uint8_t reg, uint8_t val);
  * @param pVid  Pointer to store 16-bit VID (little-endian, LSB first).
  * @param pPid  Pointer to store 16-bit PID.
  */
-void DM9051A_ReadVidPid(uint16_t *pVid, uint16_t *pPid);
+DM9051A_Status DM9051A_ReadVidPid(uint16_t *pVid, uint16_t *pPid);
 
 /**
  * @brief Verify VID/PID against expected values.
@@ -59,7 +60,7 @@ DM9051A_Status DM9051A_CheckID(void);
  * @brief Minimal initialisation: power-on PHY, configure RX, clear ISR,
  *        set interrupt mask.  Call after DM9051A_Reset().
  */
-void DM9051A_BasicInit(void);
+DM9051A_Status DM9051A_BasicInit(void);
 
 #ifdef __cplusplus
 }

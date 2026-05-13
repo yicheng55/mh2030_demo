@@ -4,7 +4,7 @@
  *
  * Hardware connections
  * ────────────────────
- *  SPI2  PB12=CS  PB13=SCK  PB14=MISO  PB15=MOSI
+ *  SPI2  PA9=CS  PA11=SCK  PA12=MISO  PA8=MOSI
  *  RST   PF7  (active-low output)
  *  INT   PF6  (active-low EXTI input)
  *  UART2 PA2=TX  PA3=RX  (115200 8N1, console log)
@@ -32,6 +32,7 @@ USART_TypeDef * const USART_TEST = USART2;
  * ----------------------------------------------------------------------- */
 static void CLK_Configuration(void);
 static void UART_Configuration(uint32_t baud);
+static const char *SPI2_StatusString(MH2030A_SPI2_Status status);
 
 /* -----------------------------------------------------------------------
  * printf retarget (fputc)
@@ -67,14 +68,31 @@ int main(void)
 
     /* SPI2 / GPIO / DMA / EXTI initialisation */
     MH2030A_SPI2_Init();
-    PRINTF_LOG("SPI2 initialised (CPOL=Low, CPHA=1Edge, prescaler=256)\r\n");
+    PRINTF_LOG("SPI2 initialised (CPOL=Low, CPHA=2Edge, prescaler=256)\r\n");
 
     /* DM9051A hardware + software reset */
-    DM9051A_Reset(Delay_Ms);
+    MH2030A_SPI2_ClearLastStatus();
+    status = DM9051A_Reset(Delay_Ms);
+    if (status != DM9051A_OK) {
+        PRINTF_LOG("DM9051A reset failed: SPI status=%s\r\n",
+                   SPI2_StatusString(MH2030A_SPI2_GetLastStatus()));
+        PRINTF_LOG("=== Entering idle loop ===\r\n");
+        while (1) {
+            Delay_Ms(1000);
+        }
+    }
     PRINTF_LOG("DM9051A reset done.\r\n");
 
     /* Read and print VID / PID */
-    DM9051A_ReadVidPid(&vid, &pid);
+    status = DM9051A_ReadVidPid(&vid, &pid);
+    if (status == DM9051A_SPI_ERR) {
+        PRINTF_LOG("DM9051A read VID/PID failed: SPI status=%s\r\n",
+                   SPI2_StatusString(MH2030A_SPI2_GetLastStatus()));
+        PRINTF_LOG("=== Entering idle loop ===\r\n");
+        while (1) {
+            Delay_Ms(1000);
+        }
+    }
     PRINTF_LOG("VID = 0x%04X, PID = 0x%04X\r\n", vid, pid);
 
     /* Verify chip ID */
@@ -86,8 +104,19 @@ int main(void)
         MH2030A_SPI2_SetSpeed(SPI_BaudRatePrescaler_4);
 
         /* Minimal peripheral init */
-        DM9051A_BasicInit();
+        status = DM9051A_BasicInit();
+        if (status != DM9051A_OK) {
+            PRINTF_LOG("DM9051A basic init failed: SPI status=%s\r\n",
+                       SPI2_StatusString(MH2030A_SPI2_GetLastStatus()));
+            PRINTF_LOG("=== Entering idle loop ===\r\n");
+            while (1) {
+                Delay_Ms(1000);
+            }
+        }
         PRINTF_LOG("DM9051A basic init done.\r\n");
+    } else if (status == DM9051A_SPI_ERR) {
+        PRINTF_LOG("DM9051A ID check failed during SPI transfer: status=%s\r\n",
+                   SPI2_StatusString(MH2030A_SPI2_GetLastStatus()));
     } else {
         PRINTF_LOG("DM9051A ID check: FAIL  (expected VID=0x0A46 PID=0x9051)\r\n");
     }
@@ -95,6 +124,20 @@ int main(void)
     PRINTF_LOG("=== Entering idle loop ===\r\n");
     while (1) {
         Delay_Ms(1000);
+    }
+}
+
+static const char *SPI2_StatusString(MH2030A_SPI2_Status status)
+{
+    switch (status) {
+    case MH2030A_SPI2_OK:
+        return "OK";
+    case MH2030A_SPI2_ERR_TXE_TIMEOUT:
+        return "TXE_TIMEOUT";
+    case MH2030A_SPI2_ERR_RX_TIMEOUT:
+        return "RX_TIMEOUT";
+    default:
+        return "UNKNOWN";
     }
 }
 

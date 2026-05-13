@@ -5,23 +5,26 @@
  * Peripheral mapping
  * ──────────────────
  *  SPI2  APB1  (max 36 MHz @ PCLK=72 MHz, prescaler≥2)
- *  GPIOB AHB   PB12=CS  PB13=SCK  PB14=MISO  PB15=MOSI  (AF0)
+ *  GPIOA AHB   PA9=CS  PA11=SCK  PA12=MISO  PA8=MOSI  (AF0)
  *  GPIOF AHB   PF7=RST  PF6=INT
  *  DMA1  AHB   CH4=SPI2_RX (remap)   CH5=SPI2_TX (remap)
  *  SYSCFG APB2  for EXTI mapping and DMA remap
  *
- * SPI mode: CPOL=Low (idle low), CPHA=1Edge (capture on rising) → Mode 0.
+ * SPI mode: CPOL=Low, CPHA=2Edge.
  */
 
 #include <stddef.h>
 #include "mh2030a_spi2.h"
 #include "mh20xx_dma.h"
 
+#define MH2030A_SPI2_XFER_TIMEOUT   (1000000u)
+
 /* -----------------------------------------------------------------------
  * Internal DMA dummy buffers (used when caller passes NULL)
  * ----------------------------------------------------------------------- */
 static uint8_t  s_dma_dummy_tx = 0xFFu;
 static uint8_t  s_dma_dummy_rx;
+static MH2030A_SPI2_Status s_spi2_last_status = MH2030A_SPI2_OK;
 
 /* -----------------------------------------------------------------------
  * MH2030A_SPI2_Init
@@ -37,34 +40,34 @@ void MH2030A_SPI2_Init(void)
     /* ------------------------------------------------------------------
      * 1. Enable clocks
      * ------------------------------------------------------------------ */
-    RCC_AHBPeriphClockCmd (RCC_AHBPeriph_GPIOB | RCC_AHBPeriph_GPIOF |
+    RCC_AHBPeriphClockCmd (RCC_AHBPeriph_GPIOA | RCC_AHBPeriph_GPIOF |
                            RCC_AHBPeriph_DMA1, ENABLE);
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 
     /* ------------------------------------------------------------------
-     * 2. GPIO – SPI2 pins (PB13/14/15 → AF0)
+    * 2. GPIO – SPI2 pins (PA8/11/12 → AF0)
      * ------------------------------------------------------------------ */
-    GPIO_PinAFConfig(GPIOB, GPIO_PinSource13, GPIO_AF_0);
-    GPIO_PinAFConfig(GPIOB, GPIO_PinSource14, GPIO_AF_0);
-    GPIO_PinAFConfig(GPIOB, GPIO_PinSource15, GPIO_AF_0);
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource8,  GPIO_AF_0);
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource11, GPIO_AF_0);
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource12, GPIO_AF_0);
 
-    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15;
+    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_8 | GPIO_Pin_11 | GPIO_Pin_12;
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
     GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
-    GPIO_Init(GPIOB, &GPIO_InitStructure);
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
 
     /* ------------------------------------------------------------------
-     * 3. GPIO – CS (PB12) output, initially de-asserted (high)
+    * 3. GPIO – CS (PA9) output, initially de-asserted (high)
      * ------------------------------------------------------------------ */
-    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_12;
+    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_9;
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_OUT;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
     GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
-    GPIO_Init(GPIOB, &GPIO_InitStructure);
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
     DM9051A_CS_H();
 
     /* ------------------------------------------------------------------
@@ -85,14 +88,14 @@ void MH2030A_SPI2_Init(void)
     GPIO_Init(GPIOF, &GPIO_InitStructure);
 
     /* ------------------------------------------------------------------
-     * 5. SPI2 – Mode 0 (CPOL=Low, CPHA=1Edge), 8-bit, MSB-first
+    * 5. SPI2 – CPOL=Low, CPHA=2Edge, 8-bit, MSB-first
      *    Start slow (prescaler 256 ≈ 281 kHz), speed up after ID check.
      * ------------------------------------------------------------------ */
     SPI_InitStructure.SPI_Direction         = SPI_Direction_2Lines_FullDuplex;
     SPI_InitStructure.SPI_Mode              = SPI_Mode_Master;
     SPI_InitStructure.SPI_DataSize          = SPI_DataSize_8b;
     SPI_InitStructure.SPI_CPOL              = SPI_CPOL_Low;
-    SPI_InitStructure.SPI_CPHA              = SPI_CPHA_1Edge;
+    SPI_InitStructure.SPI_CPHA              = SPI_CPHA_2Edge;
     SPI_InitStructure.SPI_NSS               = SPI_NSS_Soft;
     SPI_InitStructure.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_256;
     SPI_InitStructure.SPI_FirstBit          = SPI_FirstBit_MSB;
@@ -155,10 +158,42 @@ void MH2030A_SPI2_Init(void)
  * ----------------------------------------------------------------------- */
 uint8_t MH2030A_SPI2_ReadWriteByte(uint8_t data)
 {
-    while (SPI_I2S_GetFlagStatus(SPI2, SPI_I2S_FLAG_TXE) == RESET) {}
+    uint8_t rx_data = 0xFFu;
+
+    (void)MH2030A_SPI2_ReadWriteByteChecked(data, &rx_data);
+    return rx_data;
+}
+
+MH2030A_SPI2_Status MH2030A_SPI2_ReadWriteByteChecked(uint8_t data, uint8_t *pRx)
+{
+    uint32_t timeout;
+
+    timeout = MH2030A_SPI2_XFER_TIMEOUT;
+    while (SPI_I2S_GetFlagStatus(SPI2, SPI_I2S_FLAG_TXE) == RESET) {
+        if (--timeout == 0u) {
+            s_spi2_last_status = MH2030A_SPI2_ERR_TXE_TIMEOUT;
+            return s_spi2_last_status;
+        }
+    }
+
     SPI_SendData8(SPI2, data);
-    while (SPI_GetReceptionFIFOStatus(SPI2) == SPI_ReceptionFIFOStatus_Empty) {}
-    return SPI_ReceiveData8(SPI2);
+
+    timeout = MH2030A_SPI2_XFER_TIMEOUT;
+    while (SPI_GetReceptionFIFOStatus(SPI2) == SPI_ReceptionFIFOStatus_Empty) {
+        if (--timeout == 0u) {
+            s_spi2_last_status = MH2030A_SPI2_ERR_RX_TIMEOUT;
+            return s_spi2_last_status;
+        }
+    }
+
+    if (pRx != NULL) {
+        *pRx = SPI_ReceiveData8(SPI2);
+    } else {
+        (void)SPI_ReceiveData8(SPI2);
+    }
+
+    s_spi2_last_status = MH2030A_SPI2_OK;
+    return s_spi2_last_status;
 }
 
 /* -----------------------------------------------------------------------
@@ -217,4 +252,14 @@ void MH2030A_SPI2_SetSpeed(uint8_t prescaler)
     SPI_Cmd(SPI2, DISABLE);
     SPI2->CR1 = (SPI2->CR1 & ~SPI_CR1_BR) | (prescaler & SPI_CR1_BR);
     SPI_Cmd(SPI2, ENABLE);
+}
+
+MH2030A_SPI2_Status MH2030A_SPI2_GetLastStatus(void)
+{
+    return s_spi2_last_status;
+}
+
+void MH2030A_SPI2_ClearLastStatus(void)
+{
+    s_spi2_last_status = MH2030A_SPI2_OK;
 }

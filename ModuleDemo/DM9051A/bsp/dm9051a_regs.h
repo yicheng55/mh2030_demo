@@ -80,7 +80,7 @@
  * ----------------------------------------------------------------------- */
 #define DM9051A_GPCR    0x1Eu   /* General-Purpose Control */
 #define DM9051A_GPR     0x1Fu   /* General-Purpose Register (PHY power down bit1) */
-#define GPR_PHY_PWROFF  (1u<<1) /* 1=PHY power off */
+#define GPR_PHY_PWROFF  (1u<<0) /* 1=PHY power off */
 
 /* -----------------------------------------------------------------------
  * TX/RX FIFO pointers, counter
@@ -89,8 +89,8 @@
 #define DM9051A_TRPAH   0x23u
 #define DM9051A_RWPAL   0x24u
 #define DM9051A_RWPAH   0x25u
-#define DM9051A_TXPLL   0x20u
-#define DM9051A_TXPLH   0x21u
+#define DM9051A_TXPLL   0x7Cu
+#define DM9051A_TXPLH   0x7Du
 
 /* -----------------------------------------------------------------------
  * Vendor / Product ID
@@ -117,8 +117,8 @@
 /* -----------------------------------------------------------------------
  * Interrupt mask / status
  * ----------------------------------------------------------------------- */
-#define DM9051A_IMR     0xFFu   /* Interrupt Mask Register */
-#define DM9051A_ISR     0xFEu   /* Interrupt Status Register */
+#define DM9051A_IMR     0x7Fu   /* Interrupt Mask Register */
+#define DM9051A_ISR     0x7Eu   /* Interrupt Status Register */
 #define IMR_PAR         (1u<<7) /* Pointer auto-return (set this bit!) */
 #define IMR_LNKCHGI     (1u<<5)
 #define IMR_UDRUN       (1u<<4)
@@ -142,11 +142,10 @@
 #define DM9051A_MRCMD   0x72u   /* Memory Read Command */
 #define DM9051A_MRRL    0x74u
 #define DM9051A_MRRH    0x75u
-#define DM9051A_MWCMDX  0x78u   /* Memory Write Command w/o address incr */
-#define DM9051A_MWCMD   0x7Au   /* Memory Write Command */
-#define DM9051A_MWRL    0x7Cu
-#define DM9051A_MWRH    0x7Du
-#define DM9051A_TXPLL2  0x7Eu
-#define DM9051A_TXPLH2  0x7Fu
+#define DM9051A_MWCMD   0x78u   /* Memory Write Command */
+#define DM9051A_MWRL    0x7Au
+#define DM9051A_MWRH    0x7Bu
+#define DM9051A_TXPLL2  0x7Cu
+#define DM9051A_TXPLH2  0x7Du
 
 #endif /* __DM9051A_REGS_H */
