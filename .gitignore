@@ -74,8 +74,8 @@ Release/
 settings/
 
 # Keil MDK / uVision
-*.uvproj
-*.uvprojx
+# *.uvproj
+# *.uvprojx
 *.scvd
 *.sct
 *.user1
