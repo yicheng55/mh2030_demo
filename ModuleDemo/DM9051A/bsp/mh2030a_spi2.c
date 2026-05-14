@@ -29,7 +29,7 @@ void MH2030A_SPI2_Init(void)
     GPIO_StructInit(&gpio);
     gpio.GPIO_Pin = DM9058_PIN_MOSI | DM9058_PIN_SCK | DM9058_PIN_MISO;
     gpio.GPIO_Mode = GPIO_Mode_AF;
-    gpio.GPIO_Speed = GPIO_Speed_50MHz;
+    gpio.GPIO_Speed = GPIO_Speed_10MHz;             // GPIO_Speed_50MHz, GPIO_Speed_10MHz
     gpio.GPIO_OType = GPIO_OType_PP;
     gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
     GPIO_Init(DM9058_GPIO_PORT, &gpio);
@@ -37,7 +37,7 @@ void MH2030A_SPI2_Init(void)
     GPIO_StructInit(&gpio);
     gpio.GPIO_Pin = DM9058_PIN_CS;
     gpio.GPIO_Mode = GPIO_Mode_OUT;
-    gpio.GPIO_Speed = GPIO_Speed_50MHz;
+    gpio.GPIO_Speed = GPIO_Speed_10MHz;             // GPIO_Speed_50MHz, GPIO_Speed_10MHz
     gpio.GPIO_OType = GPIO_OType_PP;
     gpio.GPIO_PuPd = GPIO_PuPd_UP;
     GPIO_Init(DM9058_GPIO_PORT, &gpio);
