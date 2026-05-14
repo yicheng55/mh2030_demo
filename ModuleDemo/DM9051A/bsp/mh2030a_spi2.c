@@ -30,16 +30,31 @@ static void DM9058_DebugPrintPinState(void)
                      GPIOA->MODER, GPIOA->IDR, GPIOA->ODR, GPIOA->AFR[1]);
     DM9058_DBG_PRINT("[DM9058 DBG] GPIOF MODER=0x%08lX IDR=0x%04X ODR=0x%04X\r\n",
                      GPIOF->MODER, GPIOF->IDR, GPIOF->ODR);
-    DM9058_DBG_PRINT("[DM9058 DBG] Pins CS(PA9)=%u RST(PF7)=%u MISO(PA12)=%u\r\n",
-                     (GPIOA->IDR & DM9058_PIN_CS) ? 1u : 0u,
-                     (GPIOF->IDR & DM9058_RST_PIN) ? 1u : 0u,
-                     (GPIOA->IDR & DM9058_PIN_MISO) ? 1u : 0u);
+    DM9058_DBG_PRINT("[DM9058 DBG] Pins MOSI(PA8)=%u CS(PA9)=%u SCK(PA11)=%u MISO(PA12)=%u RST(PF7)=%u\r\n",
+                     (GPIOA->ODR & DM9058_PIN_MOSI) ? 1u : 0u,
+                     (GPIOA->IDR & DM9058_PIN_CS)   ? 1u : 0u,
+                     (GPIOA->IDR & DM9058_PIN_SCK)  ? 1u : 0u,
+                     (GPIOA->IDR & DM9058_PIN_MISO) ? 1u : 0u,
+                     (GPIOF->IDR & DM9058_RST_PIN)  ? 1u : 0u);
 }
 
 static void DM9058_DebugPrintSpiState(void)
 {
+    uint32_t br;
+    uint32_t pclk;
+    uint32_t spi_clk;
+    RCC_ClocksTypeDef clks;
+
+    RCC_GetClocksFreq(&clks);
+    pclk = clks.PCLK_Frequency;
+
+    br = ((uint32_t)DM9058_SPI->CR1 >> 3u) & 0x7u;   /* CR1[5:3] = BR[2:0] */
+    spi_clk = pclk >> (br + 1u);                       /* PCLK / 2^(BR+1)   */
+
     DM9058_DBG_PRINT("[DM9058 DBG] SPI2 CR1=0x%04X CR2=0x%04X SR=0x%04X I2SCFGR=0x%04X\r\n",
                      DM9058_SPI->CR1, DM9058_SPI->CR2, DM9058_SPI->SR, DM9058_SPI->I2SCFGR);
+    DM9058_DBG_PRINT("[DM9058 DBG] SPI2 clock: PCLK=%lu Hz, BR=%lu (div=%lu), SPI_CLK=%lu Hz (%lu kHz)\r\n",
+                     pclk, br, 1ul << (br + 1u), spi_clk, spi_clk / 1000ul);
 }
 #endif
 
