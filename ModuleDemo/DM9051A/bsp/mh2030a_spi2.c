@@ -1,4 +1,5 @@
 #include "mh2030a_spi2.h"
+#include "delay.h"
 
 #define DM9058_SPI               SPI2
 
@@ -14,13 +15,35 @@
 #define DM9058_PIN_SCK           GPIO_Pin_11
 #define DM9058_PIN_MISO          GPIO_Pin_12
 
+#define DM9058_RST_PORT          GPIOF
+#define DM9058_RST_PIN           GPIO_Pin_7
+
 void MH2030A_SPI2_Init(void)
 {
     GPIO_InitTypeDef gpio;
     SPI_InitTypeDef spi;
 
     RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
+    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOF, ENABLE);
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
+
+    GPIO_StructInit(&gpio);
+    gpio.GPIO_Pin = DM9058_PIN_CS;
+    gpio.GPIO_Mode = GPIO_Mode_OUT;
+    gpio.GPIO_Speed = GPIO_Speed_10MHz;             // GPIO_Speed_50MHz, GPIO_Speed_10MHz
+    gpio.GPIO_OType = GPIO_OType_PP;
+    gpio.GPIO_PuPd = GPIO_PuPd_UP;
+    GPIO_Init(DM9058_GPIO_PORT, &gpio);
+    DM9058_CS_High();
+
+    GPIO_StructInit(&gpio);
+    gpio.GPIO_Pin = DM9058_RST_PIN;
+    gpio.GPIO_Mode = GPIO_Mode_OUT;
+    gpio.GPIO_Speed = GPIO_Speed_10MHz;             // GPIO_Speed_50MHz, GPIO_Speed_10MHz
+    gpio.GPIO_OType = GPIO_OType_PP;
+    gpio.GPIO_PuPd = GPIO_PuPd_UP;
+    GPIO_Init(DM9058_RST_PORT, &gpio);
+    DM9058_HardwareReset();
 
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource8, GPIO_AF_8);
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource11, GPIO_AF_8);
@@ -34,15 +57,6 @@ void MH2030A_SPI2_Init(void)
     gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
     GPIO_Init(DM9058_GPIO_PORT, &gpio);
 
-    GPIO_StructInit(&gpio);
-    gpio.GPIO_Pin = DM9058_PIN_CS;
-    gpio.GPIO_Mode = GPIO_Mode_OUT;
-    gpio.GPIO_Speed = GPIO_Speed_10MHz;             // GPIO_Speed_50MHz, GPIO_Speed_10MHz
-    gpio.GPIO_OType = GPIO_OType_PP;
-    gpio.GPIO_PuPd = GPIO_PuPd_UP;
-    GPIO_Init(DM9058_GPIO_PORT, &gpio);
-    DM9058_CS_High();
-
     SPI_I2S_DeInit(DM9058_SPI);
     SPI_StructInit(&spi);
     spi.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
@@ -55,6 +69,7 @@ void MH2030A_SPI2_Init(void)
     spi.SPI_FirstBit = SPI_FirstBit_MSB;
     spi.SPI_CRCPolynomial = 7;
     SPI_Init(DM9058_SPI, &spi);
+    SPI_RxFIFOThresholdConfig(DM9058_SPI, SPI_RxFIFOThreshold_QF);
     SPI_Cmd(DM9058_SPI, ENABLE);
 }
 
@@ -77,6 +92,14 @@ void DM9058_CS_Low(void)
 void DM9058_CS_High(void)
 {
     GPIO_SetBits(DM9058_GPIO_PORT, DM9058_PIN_CS);
+}
+
+void DM9058_HardwareReset(void)
+{
+    GPIO_ResetBits(DM9058_RST_PORT, DM9058_RST_PIN);
+    Delay_Ms(2);
+    GPIO_SetBits(DM9058_RST_PORT, DM9058_RST_PIN);
+    Delay_Ms(10);
 }
 
 uint8_t DM9058_ReadReg(uint8_t reg)
