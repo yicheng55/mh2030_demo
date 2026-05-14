@@ -26,6 +26,9 @@ int main(void)
 
     DM9051A_Init();
     Delay_Ms(10);
+#if DM9058_SPI_DEBUG
+    DM9058_DebugDump("after init");
+#endif
     DM9058_PrintProbe();
 
     while (1) {

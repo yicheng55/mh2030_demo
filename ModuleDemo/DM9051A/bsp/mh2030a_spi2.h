@@ -24,12 +24,17 @@ extern "C" {
 #define DM9058_MRCMD             0x72u
 #define DM9058_MWCMD             0x78u
 
+#ifndef DM9058_SPI_DEBUG
+#define DM9058_SPI_DEBUG         1
+#endif
+
 void MH2030A_SPI2_Init(void);
 uint8_t MH2030A_SPI2_Transfer(uint8_t tx);
 
 void DM9058_CS_Low(void);
 void DM9058_CS_High(void);
 void DM9058_HardwareReset(void);
+void DM9058_DebugDump(const char *tag);
 
 uint8_t DM9058_ReadReg(uint8_t reg);
 void DM9058_WriteReg(uint8_t reg, uint8_t val);

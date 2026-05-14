@@ -1,5 +1,8 @@
 #include "mh2030a_spi2.h"
 #include "delay.h"
+#if DM9058_SPI_DEBUG
+#include <stdio.h>
+#endif
 
 #define DM9058_SPI               SPI2
 
@@ -17,6 +20,28 @@
 
 #define DM9058_RST_PORT          GPIOF
 #define DM9058_RST_PIN           GPIO_Pin_7
+
+#if DM9058_SPI_DEBUG
+#define DM9058_DBG_PRINT         printf
+
+static void DM9058_DebugPrintPinState(void)
+{
+    DM9058_DBG_PRINT("[DM9058 DBG] GPIOA MODER=0x%08lX IDR=0x%04X ODR=0x%04X AFRH=0x%08lX\r\n",
+                     GPIOA->MODER, GPIOA->IDR, GPIOA->ODR, GPIOA->AFR[1]);
+    DM9058_DBG_PRINT("[DM9058 DBG] GPIOF MODER=0x%08lX IDR=0x%04X ODR=0x%04X\r\n",
+                     GPIOF->MODER, GPIOF->IDR, GPIOF->ODR);
+    DM9058_DBG_PRINT("[DM9058 DBG] Pins CS(PA9)=%u RST(PF7)=%u MISO(PA12)=%u\r\n",
+                     (GPIOA->IDR & DM9058_PIN_CS) ? 1u : 0u,
+                     (GPIOF->IDR & DM9058_RST_PIN) ? 1u : 0u,
+                     (GPIOA->IDR & DM9058_PIN_MISO) ? 1u : 0u);
+}
+
+static void DM9058_DebugPrintSpiState(void)
+{
+    DM9058_DBG_PRINT("[DM9058 DBG] SPI2 CR1=0x%04X CR2=0x%04X SR=0x%04X I2SCFGR=0x%04X\r\n",
+                     DM9058_SPI->CR1, DM9058_SPI->CR2, DM9058_SPI->SR, DM9058_SPI->I2SCFGR);
+}
+#endif
 
 void MH2030A_SPI2_Init(void)
 {
@@ -71,15 +96,38 @@ void MH2030A_SPI2_Init(void)
     SPI_Init(DM9058_SPI, &spi);
     SPI_RxFIFOThresholdConfig(DM9058_SPI, SPI_RxFIFOThreshold_QF);
     SPI_Cmd(DM9058_SPI, ENABLE);
+
+#if DM9058_SPI_DEBUG
+    DM9058_DBG_PRINT("[DM9058 DBG] SPI2 init done\r\n");
+    DM9058_DebugPrintPinState();
+    DM9058_DebugPrintSpiState();
+#endif
 }
 
 uint8_t MH2030A_SPI2_Transfer(uint8_t tx)
 {
+    uint32_t timeout;
+
+    timeout = 1000000u;
     while (SPI_I2S_GetFlagStatus(DM9058_SPI, SPI_I2S_FLAG_TXE) == RESET) {
+        if (--timeout == 0u) {
+#if DM9058_SPI_DEBUG
+            DM9058_DBG_PRINT("[DM9058 DBG] TXE timeout, SR=0x%04X\r\n", DM9058_SPI->SR);
+#endif
+            return 0x00u;
+        }
     }
     SPI_SendData8(DM9058_SPI, tx);
 
+    timeout = 1000000u;
     while (SPI_I2S_GetFlagStatus(DM9058_SPI, SPI_I2S_FLAG_RXNE) == RESET) {
+        if (--timeout == 0u) {
+#if DM9058_SPI_DEBUG
+            DM9058_DBG_PRINT("[DM9058 DBG] RXNE timeout, tx=0x%02X SR=0x%04X CR1=0x%04X CR2=0x%04X\r\n",
+                             tx, DM9058_SPI->SR, DM9058_SPI->CR1, DM9058_SPI->CR2);
+#endif
+            return 0x00u;
+        }
     }
     return SPI_ReceiveData8(DM9058_SPI);
 }
@@ -96,10 +144,60 @@ void DM9058_CS_High(void)
 
 void DM9058_HardwareReset(void)
 {
+#if DM9058_SPI_DEBUG
+    DM9058_DBG_PRINT("[DM9058 DBG] Hardware reset start\r\n");
+#endif
     GPIO_ResetBits(DM9058_RST_PORT, DM9058_RST_PIN);
     Delay_Ms(2);
     GPIO_SetBits(DM9058_RST_PORT, DM9058_RST_PIN);
     Delay_Ms(10);
+#if DM9058_SPI_DEBUG
+    DM9058_DBG_PRINT("[DM9058 DBG] Hardware reset done, RST(PF7)=%u\r\n",
+                     (GPIOF->IDR & DM9058_RST_PIN) ? 1u : 0u);
+#endif
+}
+
+void DM9058_DebugDump(const char *tag)
+{
+#if DM9058_SPI_DEBUG
+    uint8_t raw1;
+    uint8_t raw2;
+    uint8_t ncr;
+    uint8_t nsr;
+    uint8_t vidl;
+    uint8_t vidh;
+    uint8_t pidl;
+    uint8_t pidh;
+    uint8_t chipr;
+    uint8_t isr;
+    uint8_t imr;
+
+    DM9058_DBG_PRINT("\r\n[DM9058 DBG] dump: %s\r\n", tag ? tag : "");
+    DM9058_DebugPrintPinState();
+    DM9058_DebugPrintSpiState();
+
+    DM9058_CS_Low();
+    raw1 = MH2030A_SPI2_Transfer(0xFFu);
+    raw2 = MH2030A_SPI2_Transfer(0x00u);
+    DM9058_CS_High();
+    DM9058_DBG_PRINT("[DM9058 DBG] raw CS-low xfer FF->0x%02X 00->0x%02X\r\n", raw1, raw2);
+
+    ncr = DM9058_ReadReg(DM9058_NCR);
+    nsr = DM9058_ReadReg(0x01u);
+    vidl = DM9058_ReadReg(DM9058_VIDL);
+    vidh = DM9058_ReadReg(DM9058_VIDH);
+    pidl = DM9058_ReadReg(DM9058_PIDL);
+    pidh = DM9058_ReadReg(DM9058_PIDH);
+    chipr = DM9058_ReadReg(DM9058_CHIPR);
+    isr = DM9058_ReadReg(0x7Eu);
+    imr = DM9058_ReadReg(0x7Fu);
+
+    DM9058_DBG_PRINT("[DM9058 DBG] regs NCR=0x%02X NSR=0x%02X VIDL=0x%02X VIDH=0x%02X PIDL=0x%02X PIDH=0x%02X CHIPR=0x%02X ISR=0x%02X IMR=0x%02X\r\n",
+                     ncr, nsr, vidl, vidh, pidl, pidh, chipr, isr, imr);
+    DM9058_DebugPrintSpiState();
+#else
+    (void)tag;
+#endif
 }
 
 uint8_t DM9058_ReadReg(uint8_t reg)
