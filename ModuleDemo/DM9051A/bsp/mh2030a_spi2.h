@@ -1,0 +1,48 @@
+#ifndef __MH2030A_SPI2_H
+#define __MH2030A_SPI2_H
+
+#include <stdint.h>
+#ifndef USE_STDPERIPH_DRIVER
+#define USE_STDPERIPH_DRIVER
+#endif
+#include "mh20xx.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define DM9058_OP_REG_R          0x00u
+#define DM9058_OP_REG_W          0x80u
+
+#define DM9058_NCR               0x00u
+#define DM9058_VIDL              0x28u
+#define DM9058_VIDH              0x29u
+#define DM9058_PIDL              0x2Au
+#define DM9058_PIDH              0x2Bu
+#define DM9058_CHIPR             0x2Cu
+#define DM9058_PAR               0x10u
+#define DM9058_MRCMD             0x72u
+#define DM9058_MWCMD             0x78u
+
+void MH2030A_SPI2_Init(void);
+uint8_t MH2030A_SPI2_Transfer(uint8_t tx);
+
+void DM9058_CS_Low(void);
+void DM9058_CS_High(void);
+
+uint8_t DM9058_ReadReg(uint8_t reg);
+void DM9058_WriteReg(uint8_t reg, uint8_t val);
+void DM9058_ReadRegBuf(uint8_t reg, uint8_t *buf, uint16_t len);
+void DM9058_WriteRegBuf(uint8_t reg, const uint8_t *buf, uint16_t len);
+void DM9058_ReadMem(uint8_t *buf, uint16_t len);
+void DM9058_WriteMem(const uint8_t *buf, uint16_t len);
+uint16_t DM9058_ReadVID(void);
+uint16_t DM9058_ReadPID(void);
+void DM9058_ReadMac(uint8_t mac[6]);
+void DM9058_WriteMac(const uint8_t mac[6]);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
