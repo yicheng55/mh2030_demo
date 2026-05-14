@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdarg.h>
 #ifndef USE_STDPERIPH_DRIVER
 #define USE_STDPERIPH_DRIVER
 #endif
@@ -14,6 +15,9 @@ static USART_TypeDef *USART_TEST = USART2;
 static void CLK_Configuration(void);
 static void UART_Configuration(uint32_t baud);
 static void DM9058_PrintProbe(void);
+static void Clock_Log(const char *fmt, ...);
+static void Clock_PrintConfig(void);
+int SER_PutChar(int ch);
 
 int main(void)
 {
@@ -21,14 +25,7 @@ int main(void)
     Delay_Init();
     UART_Configuration(115200);
 
-    {
-        RCC_ClocksTypeDef clocks;
-        RCC_GetClocksFreq(&clocks);
-        PRINTF_LOG("\r\nSYSCLK: %3.1fMhz, HCLK: %3.1fMhz, PCLK: %3.1fMhz\r\n",
-            (float)clocks.SYSCLK_Frequency / 1000000,
-            (float)clocks.HCLK_Frequency   / 1000000,
-            (float)clocks.PCLK_Frequency   / 1000000);
-    }
+    Clock_PrintConfig();
 
     PRINTF_LOG("\r\nDM9058 SPI2 probe start\r\n");
     PRINTF_LOG("Pins: PA8 MOSI, PA9 CS(GPIO), PA11 SCK, PA12 MISO\r\n");
@@ -62,6 +59,38 @@ static void DM9058_PrintProbe(void)
     } else {
         PRINTF_LOG("DM9058 SPI read abnormal, check PA8/PA9/PA11/PA12 wiring and CS polarity\r\n");
     }
+}
+
+static void Clock_Log(const char *fmt, ...)
+{
+    char buffer[96];
+    va_list args;
+    int i;
+
+    va_start(args, fmt);
+    vsnprintf(buffer, sizeof(buffer), fmt, args);
+    va_end(args);
+
+#ifdef USART2_RAW_TEST
+    for (i = 0; buffer[i] != '\0'; ++i) {
+        SER_PutChar(buffer[i]);
+    }
+#else
+    printf("%s", buffer);
+#endif
+}
+
+static void Clock_PrintConfig(void)
+{
+    RCC_ClocksTypeDef clocks;
+
+    RCC_GetClocksFreq(&clocks);
+    Clock_Log("Clock mode: HSI/2 + PLL (72MHz target)\r\n");
+    Clock_Log("PLL source: HSI/2, PLL mul: x18\r\n");
+    Clock_Log("SYSCLK: %3.1fMhz, HCLK: %3.1fMhz, PCLK: %3.1fMhz\r\n",
+        (float)clocks.SYSCLK_Frequency / 1000000,
+        (float)clocks.HCLK_Frequency   / 1000000,
+        (float)clocks.PCLK_Frequency   / 1000000);
 }
 
 static void CLK_Configuration(void)
