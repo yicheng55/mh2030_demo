@@ -19,6 +19,94 @@
 #define DM9058_RST_PORT          GPIOF
 #define DM9058_RST_PIN           GPIO_Pin_7
 
+/* DM9051A SPI M0 timing (datasheet AC Electrical Characteristics):
+ *   T1: SCK <= 50MHz
+ *   T2: CSN low  -> first SCK high >= 10ns
+ *   T3: last SCK low -> CSN high >= 10ns
+ *   T4: MOSI setup before SCK high >= 3ns
+ *   T5: MOSI hold  after SCK high >= 3ns
+ *   T6: MISO output delay after SCK low <= 7ns
+ *
+ * The GPIO access and function call overhead on MH2030A already exceed these
+ * ns-level limits at 72MHz. Keep this small delay hook so timing can be widened
+ * from one place if the GPIO path is later optimized or moved to inline code.
+ */
+#ifndef DM9058_SPI_TIMING_DELAY_TICKS
+#define DM9058_SPI_TIMING_DELAY_TICKS   1u
+#endif
+
+#define DM9058_SPI_CSN_SETUP_TICKS      DM9058_SPI_TIMING_DELAY_TICKS
+#define DM9058_SPI_CSN_HOLD_TICKS       DM9058_SPI_TIMING_DELAY_TICKS
+#define DM9058_SPI_MOSI_SETUP_TICKS     DM9058_SPI_TIMING_DELAY_TICKS
+#define DM9058_SPI_MOSI_HOLD_TICKS      DM9058_SPI_TIMING_DELAY_TICKS
+#define DM9058_SPI_SCK_LOW_TICKS        DM9058_SPI_TIMING_DELAY_TICKS
+
+static void DM9058_SpiDelayTicks(uint8_t ticks)
+{
+    volatile uint8_t i;
+
+    for (i = 0u; i < ticks; i++) {
+    }
+}
+
+static void DM9058_SpiSetPin(uint16_t pin)
+{
+    DM9058_GPIO_PORT->BSRR = pin;
+}
+
+static void DM9058_SpiResetPin(uint16_t pin)
+{
+    DM9058_GPIO_PORT->BRR = pin;
+}
+
+static void DM9058_SpiSetMosi(uint8_t level)
+{
+    if (level) {
+        DM9058_SpiSetPin(DM9058_PIN_MOSI);
+    } else {
+        DM9058_SpiResetPin(DM9058_PIN_MOSI);
+    }
+}
+
+static uint8_t DM9058_SpiReadMiso(void)
+{
+    return (DM9058_GPIO_PORT->IDR & DM9058_PIN_MISO) ? 1u : 0u;
+}
+
+static void DM9058_SpiClockHigh(void)
+{
+    DM9058_SpiSetPin(DM9058_PIN_SCK);
+}
+
+static void DM9058_SpiClockLow(void)
+{
+    DM9058_SpiResetPin(DM9058_PIN_SCK);
+    DM9058_SpiDelayTicks(DM9058_SPI_SCK_LOW_TICKS);
+}
+
+static uint8_t DM9058_SpiTransferByte(uint8_t tx)
+{
+    uint8_t rx = 0u;
+    uint8_t i;
+
+    /* SPI Mode 0: SCK idle low, data changes while low, samples on rising edge. */
+    for (i = 0u; i < 8u; i++) {
+        DM9058_SpiSetMosi((tx & 0x80u) ? 1u : 0u);
+        tx = (uint8_t)(tx << 1u);
+
+        DM9058_SpiDelayTicks(DM9058_SPI_MOSI_SETUP_TICKS);
+        DM9058_SpiClockHigh();
+
+        rx = (uint8_t)(rx << 1u);
+        rx |= DM9058_SpiReadMiso();
+
+        DM9058_SpiDelayTicks(DM9058_SPI_MOSI_HOLD_TICKS);
+        DM9058_SpiClockLow();
+    }
+
+    return rx;
+}
+
 #if DM9058_SPI_DEBUG
 #define DM9058_DBG_PRINT         printf
 
@@ -38,7 +126,8 @@ static void DM9058_DebugPrintPinState(void)
 
 static void DM9058_DebugPrintSpiState(void)
 {
-    DM9058_DBG_PRINT("[DM9058 DBG] SPI: bit-bang mode (PA8=MOSI, PA9=CS, PA11=SCK, PA12=MISO)\r\n");
+    DM9058_DBG_PRINT("[DM9058 DBG] SPI: bit-bang M0 (CPOL=0 CPHA=0 MSB, timing ticks=%u)\r\n",
+                     DM9058_SPI_TIMING_DELAY_TICKS);
 }
 #endif
 
@@ -77,8 +166,8 @@ void MH2030A_SPI2_Init(void)
     gpio.GPIO_OType = GPIO_OType_PP;
     gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
     GPIO_Init(DM9058_GPIO_PORT, &gpio);
-    GPIO_ResetBits(DM9058_GPIO_PORT, DM9058_PIN_SCK);  /* SCK idle = LOW (Mode 0) */
-    GPIO_ResetBits(DM9058_GPIO_PORT, DM9058_PIN_MOSI);
+    DM9058_SpiResetPin(DM9058_PIN_SCK);  /* SCK idle = LOW (Mode 0) */
+    DM9058_SpiResetPin(DM9058_PIN_MOSI);
 
     /* MISO: input with pull-up */
     GPIO_StructInit(&gpio);
@@ -96,40 +185,20 @@ void MH2030A_SPI2_Init(void)
 
 uint8_t MH2030A_SPI2_Transfer(uint8_t tx)
 {
-    uint8_t rx = 0u;
-    uint8_t i;
-
-    /* Bit-bang SPI Mode 0: CPOL=0 (SCK idle LOW), CPHA=0 (sample on rising edge), MSB first */
-    for (i = 0u; i < 8u; i++) {
-        /* Set MOSI before rising edge */
-        if (tx & 0x80u) {
-            GPIO_SetBits(DM9058_GPIO_PORT, DM9058_PIN_MOSI);
-        } else {
-            GPIO_ResetBits(DM9058_GPIO_PORT, DM9058_PIN_MOSI);
-        }
-        tx = (uint8_t)(tx << 1u);
-
-        /* Rising edge: DM9058 samples MOSI, MCU samples MISO */
-        GPIO_SetBits(DM9058_GPIO_PORT, DM9058_PIN_SCK);
-        rx = (uint8_t)(rx << 1u);
-        if (GPIO_ReadInputDataBit(DM9058_GPIO_PORT, DM9058_PIN_MISO)) {
-            rx |= 0x01u;
-        }
-
-        /* Falling edge */
-        GPIO_ResetBits(DM9058_GPIO_PORT, DM9058_PIN_SCK);
-    }
-    return rx;
+    return DM9058_SpiTransferByte(tx);
 }
 
 void DM9058_CS_Low(void)
 {
-    GPIO_ResetBits(DM9058_GPIO_PORT, DM9058_PIN_CS);
+    DM9058_SpiClockLow();
+    DM9058_SpiResetPin(DM9058_PIN_CS);
+    DM9058_SpiDelayTicks(DM9058_SPI_CSN_SETUP_TICKS);
 }
 
 void DM9058_CS_High(void)
 {
-    GPIO_SetBits(DM9058_GPIO_PORT, DM9058_PIN_CS);
+    DM9058_SpiDelayTicks(DM9058_SPI_CSN_HOLD_TICKS);
+    DM9058_SpiSetPin(DM9058_PIN_CS);
 }
 
 void DM9058_HardwareReset(void)
@@ -173,28 +242,28 @@ static void DM9058_DebugVerboseRegRead(uint8_t reg)
     DM9058_DBG_PRINT("[DM9058 DBG]   cmd phase  MOSI MISO per bit (b7..b0):\r\n");
     for (i = 0u; i < 8u; i++) {
         uint8_t mosi_bit = (cmd & 0x80u) ? 1u : 0u;
-        if (mosi_bit) {
-            GPIO_SetBits(DM9058_GPIO_PORT, DM9058_PIN_MOSI);
-        } else {
-            GPIO_ResetBits(DM9058_GPIO_PORT, DM9058_PIN_MOSI);
-        }
+        DM9058_SpiSetMosi(mosi_bit);
         cmd = (uint8_t)(cmd << 1u);
-        GPIO_SetBits(DM9058_GPIO_PORT, DM9058_PIN_SCK);
-        miso = GPIO_ReadInputDataBit(DM9058_GPIO_PORT, DM9058_PIN_MISO) ? 1u : 0u;
+        DM9058_SpiDelayTicks(DM9058_SPI_MOSI_SETUP_TICKS);
+        DM9058_SpiClockHigh();
+        miso = DM9058_SpiReadMiso();
         DM9058_DBG_PRINT("[DM9058 DBG]     bit%u  MOSI=%u MISO=%u\r\n", 7u - i, mosi_bit, miso);
-        GPIO_ResetBits(DM9058_GPIO_PORT, DM9058_PIN_SCK);
+        DM9058_SpiDelayTicks(DM9058_SPI_MOSI_HOLD_TICKS);
+        DM9058_SpiClockLow();
     }
 
     /* Data byte: clock in 8 bits from MISO (MOSI=0) */
     DM9058_DBG_PRINT("[DM9058 DBG]   data phase MISO per bit (b7..b0):\r\n");
     for (i = 0u; i < 8u; i++) {
-        GPIO_ResetBits(DM9058_GPIO_PORT, DM9058_PIN_MOSI);
-        GPIO_SetBits(DM9058_GPIO_PORT, DM9058_PIN_SCK);
-        miso = GPIO_ReadInputDataBit(DM9058_GPIO_PORT, DM9058_PIN_MISO) ? 1u : 0u;
+        DM9058_SpiSetMosi(0u);
+        DM9058_SpiDelayTicks(DM9058_SPI_MOSI_SETUP_TICKS);
+        DM9058_SpiClockHigh();
+        miso = DM9058_SpiReadMiso();
         data = (uint8_t)((data << 1u) | miso);
         DM9058_DBG_PRINT("[DM9058 DBG]     bit%u  MISO=%u  IDR=0x%04X\r\n",
                          7u - i, miso, GPIOA->IDR);
-        GPIO_ResetBits(DM9058_GPIO_PORT, DM9058_PIN_SCK);
+        DM9058_SpiDelayTicks(DM9058_SPI_MOSI_HOLD_TICKS);
+        DM9058_SpiClockLow();
     }
 
     DM9058_CS_High();
@@ -254,18 +323,20 @@ void DM9058_DebugDump(const char *tag)
 
         DM9058_CS_High();   /* keep PA9=1 (our de-asserted state) during transfer */
         for (j = 0u; j < 8u; j++) {
-            if (cs_cmd & 0x80u) GPIO_SetBits(DM9058_GPIO_PORT, DM9058_PIN_MOSI);
-            else                GPIO_ResetBits(DM9058_GPIO_PORT, DM9058_PIN_MOSI);
+            DM9058_SpiSetMosi((cs_cmd & 0x80u) ? 1u : 0u);
             cs_cmd = (uint8_t)(cs_cmd << 1u);
-            GPIO_SetBits(DM9058_GPIO_PORT, DM9058_PIN_SCK);
-            GPIO_ResetBits(DM9058_GPIO_PORT, DM9058_PIN_SCK);
+            DM9058_SpiDelayTicks(DM9058_SPI_MOSI_SETUP_TICKS);
+            DM9058_SpiClockHigh();
+            DM9058_SpiDelayTicks(DM9058_SPI_MOSI_HOLD_TICKS);
+            DM9058_SpiClockLow();
         }
         for (j = 0u; j < 8u; j++) {
-            GPIO_ResetBits(DM9058_GPIO_PORT, DM9058_PIN_MOSI);
-            GPIO_SetBits(DM9058_GPIO_PORT, DM9058_PIN_SCK);
-            cs_inv_result = (uint8_t)((cs_inv_result << 1u) |
-                            (GPIO_ReadInputDataBit(DM9058_GPIO_PORT, DM9058_PIN_MISO) ? 1u : 0u));
-            GPIO_ResetBits(DM9058_GPIO_PORT, DM9058_PIN_SCK);
+            DM9058_SpiSetMosi(0u);
+            DM9058_SpiDelayTicks(DM9058_SPI_MOSI_SETUP_TICKS);
+            DM9058_SpiClockHigh();
+            cs_inv_result = (uint8_t)((cs_inv_result << 1u) | DM9058_SpiReadMiso());
+            DM9058_SpiDelayTicks(DM9058_SPI_MOSI_HOLD_TICKS);
+            DM9058_SpiClockLow();
         }
         DM9058_CS_High();
         DM9058_DBG_PRINT("[DM9058 DBG] CS polarity test (CS=HIGH): CHIPR=0x%02X  %s\r\n",
