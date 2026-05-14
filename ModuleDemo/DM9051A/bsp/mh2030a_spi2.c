@@ -75,11 +75,19 @@ void MH2030A_SPI2_Init(void)
     GPIO_PinAFConfig(GPIOA, GPIO_PinSource12, GPIO_AF_8);
 
     GPIO_StructInit(&gpio);
-    gpio.GPIO_Pin = DM9058_PIN_MOSI | DM9058_PIN_SCK | DM9058_PIN_MISO;
+    gpio.GPIO_Pin = DM9058_PIN_MOSI | DM9058_PIN_SCK;
     gpio.GPIO_Mode = GPIO_Mode_AF;
     gpio.GPIO_Speed = GPIO_Speed_10MHz;             // GPIO_Speed_50MHz, GPIO_Speed_10MHz
     gpio.GPIO_OType = GPIO_OType_PP;
     gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_Init(DM9058_GPIO_PORT, &gpio);
+
+    GPIO_StructInit(&gpio);
+    gpio.GPIO_Pin = DM9058_PIN_MISO;
+    gpio.GPIO_Mode = GPIO_Mode_AF;
+    gpio.GPIO_Speed = GPIO_Speed_10MHz;
+    gpio.GPIO_OType = GPIO_OType_PP;
+    gpio.GPIO_PuPd = GPIO_PuPd_UP;               // MISO pull-up: detect if DM9058 drives it
     GPIO_Init(DM9058_GPIO_PORT, &gpio);
 
     SPI_I2S_DeInit(DM9058_SPI);
@@ -90,7 +98,7 @@ void MH2030A_SPI2_Init(void)
     spi.SPI_CPOL = SPI_CPOL_Low;
     spi.SPI_CPHA = SPI_CPHA_1Edge;
     spi.SPI_NSS = SPI_NSS_Soft;
-    spi.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16;
+    spi.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_256; // slow down for debug (~280kHz)
     spi.SPI_FirstBit = SPI_FirstBit_MSB;
     spi.SPI_CRCPolynomial = 7;
     SPI_Init(DM9058_SPI, &spi);
@@ -177,10 +185,10 @@ void DM9058_DebugDump(const char *tag)
     DM9058_DebugPrintSpiState();
 
     DM9058_CS_Low();
-    raw1 = MH2030A_SPI2_Transfer(0xFFu);
-    raw2 = MH2030A_SPI2_Transfer(0x00u);
+    raw1 = MH2030A_SPI2_Transfer(DM9058_CHIPR | DM9058_OP_REG_R); // read cmd (bit7=0)
+    raw2 = MH2030A_SPI2_Transfer(0x00u);                           // data phase: expect CHIPR value
     DM9058_CS_High();
-    DM9058_DBG_PRINT("[DM9058 DBG] raw CS-low xfer FF->0x%02X 00->0x%02X\r\n", raw1, raw2);
+    DM9058_DBG_PRINT("[DM9058 DBG] raw CHIPR read: cmd=0x%02X data=0x%02X (expect non-zero if DM9058 responds)\r\n", raw1, raw2);
 
     ncr = DM9058_ReadReg(DM9058_NCR);
     nsr = DM9058_ReadReg(0x01u);

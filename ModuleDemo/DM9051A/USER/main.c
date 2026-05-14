@@ -21,6 +21,15 @@ int main(void)
     Delay_Init();
     UART_Configuration(115200);
 
+    {
+        RCC_ClocksTypeDef clocks;
+        RCC_GetClocksFreq(&clocks);
+        PRINTF_LOG("\r\nSYSCLK: %3.1fMhz, HCLK: %3.1fMhz, PCLK: %3.1fMhz\r\n",
+            (float)clocks.SYSCLK_Frequency / 1000000,
+            (float)clocks.HCLK_Frequency   / 1000000,
+            (float)clocks.PCLK_Frequency   / 1000000);
+    }
+
     PRINTF_LOG("\r\nDM9058 SPI2 probe start\r\n");
     PRINTF_LOG("Pins: PA8 MOSI, PA9 CS(GPIO), PA11 SCK, PA12 MISO\r\n");
 
