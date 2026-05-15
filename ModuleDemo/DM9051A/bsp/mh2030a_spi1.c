@@ -135,7 +135,7 @@ void MH2030A_SPI1_Init(void)
     SPI_Cmd(DM9058_SPI, ENABLE);
 
 #if DM9058_SPI_DEBUG
-    DM9058_DBG_PRINT("[DM9058 DBG] SPI1 init done\r\n");
+    DM9058_DBG_PRINT("[DM9058 DBG] SPI1 polling init done\r\n");
     DM9058_DebugPrintPinState();
     DM9058_DebugPrintSpiState();
 #endif
