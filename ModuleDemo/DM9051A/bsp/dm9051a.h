@@ -2,7 +2,7 @@
 #define __DM9051A_H
 
 #include <stdint.h>
-#include "mh2030a_spi2.h"
+#include "mh2030a_spi1.h"
 
 #ifdef __cplusplus
 extern "C" {

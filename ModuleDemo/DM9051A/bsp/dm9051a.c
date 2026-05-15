@@ -2,7 +2,7 @@
 
 void DM9051A_Init(void)
 {
-    MH2030A_SPI2_Init();
+    MH2030A_SPI1_Init();
 }
 
 uint8_t DM9051A_ReadReg(uint8_t reg)

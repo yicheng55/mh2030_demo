@@ -5,7 +5,7 @@
 #endif
 #include "mh20xx.h"
 #include "delay.h"
-#include "mh2030a_spi2.h"
+#include "mh2030a_spi1.h"
 #include "dm9051a.h"
 
 #define PRINTF_LOG               printf

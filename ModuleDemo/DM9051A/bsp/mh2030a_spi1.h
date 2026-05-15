@@ -1,5 +1,5 @@
-#ifndef __MH2030A_SPI2_H
-#define __MH2030A_SPI2_H
+#ifndef __MH2030A_SPI1_H
+#define __MH2030A_SPI1_H
 
 #include <stdint.h>
 #ifndef USE_STDPERIPH_DRIVER
@@ -28,8 +28,8 @@ extern "C" {
 #define DM9058_SPI_DEBUG         1
 #endif
 
-void MH2030A_SPI2_Init(void);
-uint8_t MH2030A_SPI2_Transfer(uint8_t tx);
+void MH2030A_SPI1_Init(void);
+uint8_t MH2030A_SPI1_Transfer(uint8_t tx);
 
 void DM9058_CS_Low(void);
 void DM9058_CS_High(void);
