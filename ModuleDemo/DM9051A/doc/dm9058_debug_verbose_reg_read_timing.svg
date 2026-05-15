@@ -50,10 +50,10 @@
   <text class="phase" x="884" y="206">Data phase: MISO returns data</text>
   <text class="phase" x="1216" y="206">CS high</text>
 
-  <text class="label" x="58" y="262">CSN PA9</text>
-  <text class="label" x="58" y="352">SCK PA11</text>
-  <text class="label" x="58" y="442">MOSI PA8</text>
-  <text class="label" x="58" y="532">MISO PA12</text>
+  <text class="label" x="58" y="262">CSN PA15</text>
+  <text class="label" x="58" y="352">SCK PB3</text>
+  <text class="label" x="58" y="442">MOSI PB5</text>
+  <text class="label" x="58" y="532">MISO PB4</text>
 
   <text class="tiny" x="112" y="237">H</text>
   <text class="tiny" x="112" y="282">L</text>

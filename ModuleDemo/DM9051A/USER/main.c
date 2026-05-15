@@ -27,8 +27,8 @@ int main(void)
 
     Clock_PrintConfig();
 
-    PRINTF_LOG("\r\nDM9058 SPI2 probe start\r\n");
-    PRINTF_LOG("Pins: PA8 MOSI, PA9 CS(GPIO), PA11 SCK, PA12 MISO\r\n");
+    PRINTF_LOG("\r\nDM9058 SPI bit-bang probe start\r\n");
+    PRINTF_LOG("Pins: PA15 CS(GPIO), PB3 SCK, PB5 MOSI, PB4 MISO\r\n");
 
     DM9051A_Init();
     Delay_Ms(10);
@@ -57,7 +57,7 @@ static void DM9058_PrintProbe(void)
     if (vid == 0x0A46u) {
         PRINTF_LOG("DM9058 SPI read OK\r\n");
     } else {
-        PRINTF_LOG("DM9058 SPI read abnormal, check PA8/PA9/PA11/PA12 wiring and CS polarity\r\n");
+        PRINTF_LOG("DM9058 SPI read abnormal, check PB5/PA15/PB3/PB4 wiring and CS polarity\r\n");
     }
 }
 
