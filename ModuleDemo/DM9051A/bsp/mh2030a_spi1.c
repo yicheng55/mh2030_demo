@@ -1,4 +1,4 @@
-#include "mh2030a_spi2.h"
+#include "mh2030a_spi1.h"
 #include "delay.h"
 #if DM9058_SPI_DEBUG
 #include <stdio.h>
@@ -63,7 +63,7 @@ static void DM9058_DebugPrintSpiState(void)
 }
 #endif
 
-void MH2030A_SPI2_Init(void)
+void MH2030A_SPI1_Init(void)
 {
     GPIO_InitTypeDef gpio;
     SPI_InitTypeDef spi;
@@ -141,7 +141,7 @@ void MH2030A_SPI2_Init(void)
 #endif
 }
 
-uint8_t MH2030A_SPI2_Transfer(uint8_t tx)
+uint8_t MH2030A_SPI1_Transfer(uint8_t tx)
 {
     uint32_t timeout;
 
@@ -214,8 +214,8 @@ void DM9058_DebugDump(const char *tag)
     DM9058_DebugPrintSpiState();
 
     DM9058_CS_Low();
-    raw1 = MH2030A_SPI2_Transfer(DM9058_CHIPR | DM9058_OP_REG_R); // read cmd (bit7=0)
-    raw2 = MH2030A_SPI2_Transfer(0x00u);                           // data phase: expect CHIPR value
+    raw1 = MH2030A_SPI1_Transfer(DM9058_CHIPR | DM9058_OP_REG_R); // read cmd (bit7=0)
+    raw2 = MH2030A_SPI1_Transfer(0x00u);                           // data phase: expect CHIPR value
     DM9058_CS_High();
     DM9058_DBG_PRINT("[DM9058 DBG] raw CHIPR read: cmd=0x%02X data=0x%02X (expect non-zero if DM9058 responds)\r\n", raw1, raw2);
 
@@ -242,8 +242,8 @@ uint8_t DM9058_ReadReg(uint8_t reg)
     uint8_t val;
 
     DM9058_CS_Low();
-    MH2030A_SPI2_Transfer((uint8_t)(reg | DM9058_OP_REG_R));
-    val = MH2030A_SPI2_Transfer(0x00u);
+    MH2030A_SPI1_Transfer((uint8_t)(reg | DM9058_OP_REG_R));
+    val = MH2030A_SPI1_Transfer(0x00u);
     DM9058_CS_High();
 
     return val;
@@ -252,8 +252,8 @@ uint8_t DM9058_ReadReg(uint8_t reg)
 void DM9058_WriteReg(uint8_t reg, uint8_t val)
 {
     DM9058_CS_Low();
-    MH2030A_SPI2_Transfer((uint8_t)(reg | DM9058_OP_REG_W));
-    MH2030A_SPI2_Transfer(val);
+    MH2030A_SPI1_Transfer((uint8_t)(reg | DM9058_OP_REG_W));
+    MH2030A_SPI1_Transfer(val);
     DM9058_CS_High();
 }
 
@@ -262,9 +262,9 @@ void DM9058_ReadRegBuf(uint8_t reg, uint8_t *buf, uint16_t len)
     uint16_t i;
 
     DM9058_CS_Low();
-    MH2030A_SPI2_Transfer((uint8_t)(reg | DM9058_OP_REG_R));
+    MH2030A_SPI1_Transfer((uint8_t)(reg | DM9058_OP_REG_R));
     for (i = 0; i < len; i++) {
-        buf[i] = MH2030A_SPI2_Transfer(0x00u);
+        buf[i] = MH2030A_SPI1_Transfer(0x00u);
     }
     DM9058_CS_High();
 }
@@ -274,9 +274,9 @@ void DM9058_WriteRegBuf(uint8_t reg, const uint8_t *buf, uint16_t len)
     uint16_t i;
 
     DM9058_CS_Low();
-    MH2030A_SPI2_Transfer((uint8_t)(reg | DM9058_OP_REG_W));
+    MH2030A_SPI1_Transfer((uint8_t)(reg | DM9058_OP_REG_W));
     for (i = 0; i < len; i++) {
-        MH2030A_SPI2_Transfer(buf[i]);
+        MH2030A_SPI1_Transfer(buf[i]);
     }
     DM9058_CS_High();
 }
@@ -286,9 +286,9 @@ void DM9058_ReadMem(uint8_t *buf, uint16_t len)
     uint16_t i;
 
     DM9058_CS_Low();
-    MH2030A_SPI2_Transfer((uint8_t)(DM9058_MRCMD | DM9058_OP_REG_R));
+    MH2030A_SPI1_Transfer((uint8_t)(DM9058_MRCMD | DM9058_OP_REG_R));
     for (i = 0; i < len; i++) {
-        buf[i] = MH2030A_SPI2_Transfer(0x00u);
+        buf[i] = MH2030A_SPI1_Transfer(0x00u);
     }
     DM9058_CS_High();
 }
@@ -298,9 +298,9 @@ void DM9058_WriteMem(const uint8_t *buf, uint16_t len)
     uint16_t i;
 
     DM9058_CS_Low();
-    MH2030A_SPI2_Transfer((uint8_t)(DM9058_MWCMD | DM9058_OP_REG_W));
+    MH2030A_SPI1_Transfer((uint8_t)(DM9058_MWCMD | DM9058_OP_REG_W));
     for (i = 0; i < len; i++) {
-        MH2030A_SPI2_Transfer(buf[i]);
+        MH2030A_SPI1_Transfer(buf[i]);
     }
     DM9058_CS_High();
 }

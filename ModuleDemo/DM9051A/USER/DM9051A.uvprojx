@@ -434,9 +434,9 @@
           <GroupName>BSP</GroupName>
           <Files>
             <File>
-              <FileName>mh2030a_spi2.c</FileName>
+              <FileName>mh2030a_spi1.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\bsp\mh2030a_spi2.c</FilePath>
+              <FilePath>..\bsp\mh2030a_spi1.c</FilePath>
             </File>
             <File>
               <FileName>dm9051a.c</FileName>
