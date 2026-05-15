@@ -1,0 +1,172 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <title>DM9058_DebugVerboseRegRead GPIO Timing</title>
+  <desc>Timing diagram for DM9058_DebugVerboseRegRead(uint8_t reg), showing CSN, SCK, MOSI, and MISO during one verbose register read. Example command uses reg=0x2C, read command 0x2C.</desc>
+
+  <defs>
+    <style>
+      .bg { fill: #ffffff; }
+      .title { font: 700 26px Arial, sans-serif; fill: #101820; }
+      .subtitle { font: 15px Arial, sans-serif; fill: #334155; }
+      .label { font: 700 16px Arial, sans-serif; fill: #111827; }
+      .small { font: 13px Arial, sans-serif; fill: #334155; }
+      .tiny { font: 11px Arial, sans-serif; fill: #475569; }
+      .phase { font: 700 14px Arial, sans-serif; fill: #0f172a; }
+      .wave { fill: none; stroke: #111827; stroke-width: 3; stroke-linejoin: round; stroke-linecap: square; }
+      .mosi { stroke: #1d4ed8; }
+      .miso { stroke: #047857; }
+      .cs { stroke: #b91c1c; }
+      .sck { stroke: #111827; }
+      .grid { stroke: #cbd5e1; stroke-width: 1; stroke-dasharray: 4 6; }
+      .sample { stroke: #f59e0b; stroke-width: 2; }
+      .boundary { stroke: #64748b; stroke-width: 1.5; stroke-dasharray: 7 6; }
+      .arrow { fill: none; stroke: #475569; stroke-width: 1.5; marker-end: url(#arrowHead); }
+      .box { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1; rx: 6; }
+      .cmdBox { fill: #eff6ff; stroke: #93c5fd; stroke-width: 1; rx: 5; }
+      .dataBox { fill: #ecfdf5; stroke: #86efac; stroke-width: 1; rx: 5; }
+      .warn { fill: #fff7ed; stroke: #fdba74; stroke-width: 1; rx: 6; }
+    </style>
+    <marker id="arrowHead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1280" height="720"/>
+
+  <text class="title" x="50" y="46">DM9058_DebugVerboseRegRead(uint8_t reg) GPIO Timing</text>
+  <text class="subtitle" x="50" y="74">SPI Mode 0 bit-bang: CPOL=0, CPHA=0, MSB first. Example: reg=0x2C, read command cmd=(reg | 0x00)=0x2C.</text>
+
+  <rect class="box" x="50" y="94" width="1180" height="74"/>
+  <text class="small" x="68" y="121">Function sequence:</text>
+  <text class="small" x="68" y="145">print pre-CS -> CS low -> send 8 command bits and sample MISO on each SCK rising edge -> read 8 data bits with MOSI=0 -> CS high -> print result</text>
+
+  <line class="boundary" x1="150" y1="188" x2="150" y2="610"/>
+  <line class="boundary" x1="250" y1="188" x2="250" y2="610"/>
+  <line class="boundary" x1="730" y1="188" x2="730" y2="610"/>
+  <line class="boundary" x1="1210" y1="188" x2="1210" y2="610"/>
+
+  <text class="phase" x="65" y="206">pre-CS</text>
+  <text class="phase" x="168" y="206">CS low setup</text>
+  <text class="phase" x="400" y="206">Command phase: MOSI sends 0x2C</text>
+  <text class="phase" x="884" y="206">Data phase: MISO returns data</text>
+  <text class="phase" x="1216" y="206">CS high</text>
+
+  <text class="label" x="58" y="262">CSN PA9</text>
+  <text class="label" x="58" y="352">SCK PA11</text>
+  <text class="label" x="58" y="442">MOSI PA8</text>
+  <text class="label" x="58" y="532">MISO PA12</text>
+
+  <text class="tiny" x="112" y="237">H</text>
+  <text class="tiny" x="112" y="282">L</text>
+  <text class="tiny" x="112" y="327">H</text>
+  <text class="tiny" x="112" y="372">L</text>
+  <text class="tiny" x="112" y="417">H</text>
+  <text class="tiny" x="112" y="462">L</text>
+  <text class="tiny" x="112" y="507">H</text>
+  <text class="tiny" x="112" y="552">L</text>
+
+  <line class="grid" x1="150" y1="236" x2="1210" y2="236"/>
+  <line class="grid" x1="150" y1="281" x2="1210" y2="281"/>
+  <line class="grid" x1="150" y1="326" x2="1210" y2="326"/>
+  <line class="grid" x1="150" y1="371" x2="1210" y2="371"/>
+  <line class="grid" x1="150" y1="416" x2="1210" y2="416"/>
+  <line class="grid" x1="150" y1="461" x2="1210" y2="461"/>
+  <line class="grid" x1="150" y1="506" x2="1210" y2="506"/>
+  <line class="grid" x1="150" y1="551" x2="1210" y2="551"/>
+
+  <!-- CSN: idle high, active low during command + data phases. -->
+  <polyline class="wave cs" points="150,236 250,236 250,281 1210,281 1210,236 1228,236"/>
+
+  <!-- SCK: idle low, 16 rising-edge samples. Bit cells are 60 px wide. -->
+  <polyline class="wave sck" points="
+    150,371 250,371
+    265,371 265,326 295,326 295,371
+    325,371 325,326 355,326 355,371
+    385,371 385,326 415,326 415,371
+    445,371 445,326 475,326 475,371
+    505,371 505,326 535,326 535,371
+    565,371 565,326 595,326 595,371
+    625,371 625,326 655,326 655,371
+    685,371 685,326 715,326 715,371
+    745,371 745,326 775,326 775,371
+    805,371 805,326 835,326 835,371
+    865,371 865,326 895,326 895,371
+    925,371 925,326 955,326 955,371
+    985,371 985,326 1015,326 1015,371
+    1045,371 1045,326 1075,326 1075,371
+    1105,371 1105,326 1135,326 1135,371
+    1165,371 1165,326 1195,326 1195,371
+    1210,371 1228,371"/>
+
+  <!-- MOSI: command 0x2C = 0 0 1 0 1 1 0 0, then held low during data phase. -->
+  <polyline class="wave mosi" points="
+    150,461 250,461
+    250,461 310,461
+    310,461 370,461
+    370,416 430,416
+    430,461 490,461
+    490,416 550,416
+    550,416 610,416
+    610,461 670,461
+    670,461 730,461
+    730,461 1210,461 1228,461"/>
+
+  <!-- MISO: unknown during command; data phase shows sampled bits D7..D0. Example drawn high/floating to match 0xFF log. -->
+  <polyline class="wave miso" points="150,506 250,506 250,506 730,506"/>
+  <polyline class="wave miso" points="730,506 1210,506 1228,506"/>
+
+  <!-- MISO unknown marker during command phase. -->
+  <path d="M 280 528 l 22 -22 l 22 22 l 22 -22 l 22 22 l 22 -22 l 22 22 l 22 -22 l 22 22 l 22 -22 l 22 22 l 22 -22 l 22 22 l 22 -22 l 22 22 l 22 -22 l 22 22 l 22 -22 l 22 22 l 22 -22 l 22 22" fill="none" stroke="#047857" stroke-width="2" opacity="0.55"/>
+  <text class="tiny" x="440" y="565">MISO is printed during command phase too, but the returned register byte is accumulated in data phase.</text>
+
+  <!-- Sample edges. -->
+  <g>
+    <line class="sample" x1="265" y1="318" x2="265" y2="562"/>
+    <line class="sample" x1="325" y1="318" x2="325" y2="562"/>
+    <line class="sample" x1="385" y1="318" x2="385" y2="562"/>
+    <line class="sample" x1="445" y1="318" x2="445" y2="562"/>
+    <line class="sample" x1="505" y1="318" x2="505" y2="562"/>
+    <line class="sample" x1="565" y1="318" x2="565" y2="562"/>
+    <line class="sample" x1="625" y1="318" x2="625" y2="562"/>
+    <line class="sample" x1="685" y1="318" x2="685" y2="562"/>
+    <line class="sample" x1="745" y1="318" x2="745" y2="562"/>
+    <line class="sample" x1="805" y1="318" x2="805" y2="562"/>
+    <line class="sample" x1="865" y1="318" x2="865" y2="562"/>
+    <line class="sample" x1="925" y1="318" x2="925" y2="562"/>
+    <line class="sample" x1="985" y1="318" x2="985" y2="562"/>
+    <line class="sample" x1="1045" y1="318" x2="1045" y2="562"/>
+    <line class="sample" x1="1105" y1="318" x2="1105" y2="562"/>
+    <line class="sample" x1="1165" y1="318" x2="1165" y2="562"/>
+  </g>
+
+  <text class="tiny" x="244" y="306">sample on rising edge</text>
+  <path class="arrow" d="M 318 304 C 300 304, 279 310, 267 322"/>
+
+  <!-- Command bit labels. -->
+  <g>
+    <rect class="cmdBox" x="252" y="472" width="56" height="28"/><text class="tiny" x="274" y="491">b7=0</text>
+    <rect class="cmdBox" x="312" y="472" width="56" height="28"/><text class="tiny" x="334" y="491">b6=0</text>
+    <rect class="cmdBox" x="372" y="388" width="56" height="28"/><text class="tiny" x="394" y="407">b5=1</text>
+    <rect class="cmdBox" x="432" y="472" width="56" height="28"/><text class="tiny" x="454" y="491">b4=0</text>
+    <rect class="cmdBox" x="492" y="388" width="56" height="28"/><text class="tiny" x="514" y="407">b3=1</text>
+    <rect class="cmdBox" x="552" y="388" width="56" height="28"/><text class="tiny" x="574" y="407">b2=1</text>
+    <rect class="cmdBox" x="612" y="472" width="56" height="28"/><text class="tiny" x="634" y="491">b1=0</text>
+    <rect class="cmdBox" x="672" y="472" width="56" height="28"/><text class="tiny" x="694" y="491">b0=0</text>
+  </g>
+
+  <!-- Data bit labels. -->
+  <g>
+    <rect class="dataBox" x="732" y="472" width="56" height="28"/><text class="tiny" x="754" y="491">D7</text>
+    <rect class="dataBox" x="792" y="472" width="56" height="28"/><text class="tiny" x="814" y="491">D6</text>
+    <rect class="dataBox" x="852" y="472" width="56" height="28"/><text class="tiny" x="874" y="491">D5</text>
+    <rect class="dataBox" x="912" y="472" width="56" height="28"/><text class="tiny" x="934" y="491">D4</text>
+    <rect class="dataBox" x="972" y="472" width="56" height="28"/><text class="tiny" x="994" y="491">D3</text>
+    <rect class="dataBox" x="1032" y="472" width="56" height="28"/><text class="tiny" x="1054" y="491">D2</text>
+    <rect class="dataBox" x="1092" y="472" width="56" height="28"/><text class="tiny" x="1114" y="491">D1</text>
+    <rect class="dataBox" x="1152" y="472" width="56" height="28"/><text class="tiny" x="1174" y="491">D0</text>
+  </g>
+
+  <!-- Timing notes. -->
+  <rect class="warn" x="50" y="622" width="1180" height="58"/>
+  <text class="small" x="68" y="647">Notes: CSN remains low for the full transaction. MOSI changes while SCK is low, then MISO is sampled at each SCK rising edge.</text>
+  <text class="small" x="68" y="669">In your failing log, MISO stayed high for all D7..D0 samples, so the data phase produced 0xFF.</text>
+</svg>
