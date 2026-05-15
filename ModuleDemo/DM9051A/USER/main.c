@@ -14,7 +14,7 @@ static USART_TypeDef *USART_TEST = USART2;
 
 static void CLK_Configuration(void);
 static void UART_Configuration(uint32_t baud);
-static void DM9058_PrintProbe(void);
+static void DM9051A_PrintProbe(void);
 static void Clock_Log(const char *fmt, ...);
 static void Clock_PrintConfig(void);
 int SER_PutChar(int ch);
@@ -27,37 +27,37 @@ int main(void)
 
     Clock_PrintConfig();
 
-    PRINTF_LOG("\r\nDM9058 SPI1 probe start\r\n");
+    PRINTF_LOG("\r\nDM9051A SPI1 probe start\r\n");
     PRINTF_LOG("Pins: PA15 CS(GPIO), PB3 SCK, PB5 MOSI, PB4 MISO\r\n");
 
     DM9051A_Init();
     Delay_Ms(10);
-#if DM9058_SPI_DEBUG
-    DM9058_DebugDump("after init");
+#if DM9051A_SPI_DEBUG
+    DM9051A_DebugDump("after init");
 #endif
-    DM9058_PrintProbe();
+    DM9051A_PrintProbe();
 
     while (1) {
         Delay_Ms(1000);
     }
 }
 
-static void DM9058_PrintProbe(void)
+static void DM9051A_PrintProbe(void)
 {
     uint8_t chipr;
     uint16_t vid;
     uint16_t pid;
 
-    vid = DM9058_ReadVID();
-    pid = DM9058_ReadPID();
-    chipr = DM9058_ReadReg(DM9058_CHIPR);
+    vid = DM9051A_ReadVID();
+    pid = DM9051A_ReadPID();
+    chipr = DM9051A_ReadReg(DM9051A_CHIPR);
 
-    PRINTF_LOG("DM9058 VID=0x%04X PID=0x%04X CHIPR=0x%02X\r\n", vid, pid, chipr);
+    PRINTF_LOG("DM9051A VID=0x%04X PID=0x%04X CHIPR=0x%02X\r\n", vid, pid, chipr);
 
     if (vid == 0x0A46u) {
-        PRINTF_LOG("DM9058 SPI read OK\r\n");
+        PRINTF_LOG("DM9051A SPI read OK\r\n");
     } else {
-        PRINTF_LOG("DM9058 SPI read abnormal, check PA15/PB3/PB5/PB4 wiring and CS polarity\r\n");
+        PRINTF_LOG("DM9051A SPI read abnormal, check PA15/PB3/PB5/PB4 wiring and CS polarity\r\n");
     }
 }
 
