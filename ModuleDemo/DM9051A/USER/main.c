@@ -27,7 +27,7 @@ int main(void)
 
     Clock_PrintConfig();
 
-    PRINTF_LOG("\r\nDM9058 SPI2 probe start\r\n");
+    PRINTF_LOG("\r\nDM9058 SPI1 probe start\r\n");
     PRINTF_LOG("Pins: PA15 CS(GPIO), PB3 SCK, PB5 MOSI, PB4 MISO\r\n");
 
     DM9051A_Init();

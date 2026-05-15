@@ -4,13 +4,13 @@
 #include <stdio.h>
 #endif
 
-#define DM9058_SPI               SPI2
+#define DM9058_SPI               SPI1
 
 /* Schematic:
  *   PA15 -> SPI_CS, driven as GPIO
- *   PB3  -> SPI_SCK
- *   PB5  -> SPI_MOSI
- *   PB4  -> SPI_MISO
+ *   PB3  -> SPI1_SCK
+ *   PB5  -> SPI1_MOSI
+ *   PB4  -> SPI1_MISO
  */
 #define DM9058_CS_PORT           GPIOA
 #define DM9058_CS_PIN            GPIO_Pin_15
@@ -56,9 +56,9 @@ static void DM9058_DebugPrintSpiState(void)
     br = ((uint32_t)DM9058_SPI->CR1 >> 3u) & 0x7u;   /* CR1[5:3] = BR[2:0] */
     spi_clk = pclk >> (br + 1u);                       /* PCLK / 2^(BR+1)   */
 
-    DM9058_DBG_PRINT("[DM9058 DBG] SPI2 CR1=0x%04X CR2=0x%04X SR=0x%04X I2SCFGR=0x%04X\r\n",
+    DM9058_DBG_PRINT("[DM9058 DBG] SPI1 CR1=0x%04X CR2=0x%04X SR=0x%04X I2SCFGR=0x%04X\r\n",
                      DM9058_SPI->CR1, DM9058_SPI->CR2, DM9058_SPI->SR, DM9058_SPI->I2SCFGR);
-    DM9058_DBG_PRINT("[DM9058 DBG] SPI2 clock: PCLK=%lu Hz, BR=%lu (div=%lu), SPI_CLK=%lu Hz (%lu kHz)\r\n",
+    DM9058_DBG_PRINT("[DM9058 DBG] SPI1 clock: PCLK=%lu Hz, BR=%lu (div=%lu), SPI_CLK=%lu Hz (%lu kHz)\r\n",
                      pclk, br, 1ul << (br + 1u), spi_clk, spi_clk / 1000ul);
 }
 #endif
@@ -71,7 +71,7 @@ void MH2030A_SPI2_Init(void)
     RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
     RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOB, ENABLE);
     RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOF, ENABLE);
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
 
     GPIO_StructInit(&gpio);
     gpio.GPIO_Pin = DM9058_CS_PIN;
@@ -91,9 +91,9 @@ void MH2030A_SPI2_Init(void)
     GPIO_Init(DM9058_RST_PORT, &gpio);
     DM9058_HardwareReset();
 
-    GPIO_PinAFConfig(GPIOB, GPIO_PinSource3, GPIO_AF_8);
-    GPIO_PinAFConfig(GPIOB, GPIO_PinSource4, GPIO_AF_8);
-    GPIO_PinAFConfig(GPIOB, GPIO_PinSource5, GPIO_AF_8);
+    GPIO_PinAFConfig(GPIOB, GPIO_PinSource3, GPIO_AF_0);
+    GPIO_PinAFConfig(GPIOB, GPIO_PinSource4, GPIO_AF_0);
+    GPIO_PinAFConfig(GPIOB, GPIO_PinSource5, GPIO_AF_0);
 
     GPIO_StructInit(&gpio);
     gpio.GPIO_Pin = DM9058_SCK_PIN;
@@ -135,7 +135,7 @@ void MH2030A_SPI2_Init(void)
     SPI_Cmd(DM9058_SPI, ENABLE);
 
 #if DM9058_SPI_DEBUG
-    DM9058_DBG_PRINT("[DM9058 DBG] SPI2 init done\r\n");
+    DM9058_DBG_PRINT("[DM9058 DBG] SPI1 init done\r\n");
     DM9058_DebugPrintPinState();
     DM9058_DebugPrintSpiState();
 #endif
