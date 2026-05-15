@@ -320,44 +320,13 @@ void DM9058_DebugDump(const char *tag)
     DM9058_DBG_PRINT("[DM9058 DBG] regs NCR=0x%02X NSR=0x%02X VIDL=0x%02X VIDH=0x%02X PIDL=0x%02X PIDH=0x%02X CHIPR=0x%02X ISR=0x%02X IMR=0x%02X\r\n",
                      ncr, nsr, vidl, vidh, pidl, pidh, chipr, isr, imr);
 
-    /* CS polarity inversion test: clock a full transfer while CS stays HIGH.
-     * If result != 0xFF -> CS is wired inverted (board inverter / active-high chip select). */
-    {
-        uint8_t cs_cmd = (uint8_t)(DM9058_CHIPR | DM9058_OP_REG_R);
-        uint8_t cs_inv_result = 0u;
-        uint8_t j;
-
-        DM9058_CS_High();   /* keep PA15=1 (our de-asserted state) during transfer */
-        for (j = 0u; j < 8u; j++) {
-            DM9058_SpiSetMosi((cs_cmd & 0x80u) ? 1u : 0u);
-            cs_cmd = (uint8_t)(cs_cmd << 1u);
-            DM9058_SpiDelayTicks(DM9058_SPI_MOSI_SETUP_TICKS);
-            DM9058_SpiClockHigh();
-            DM9058_SpiDelayTicks(DM9058_SPI_MOSI_HOLD_TICKS);
-            DM9058_SpiClockLow();
-        }
-        for (j = 0u; j < 8u; j++) {
-            DM9058_SpiSetMosi(0u);
-            DM9058_SpiDelayTicks(DM9058_SPI_MOSI_SETUP_TICKS);
-            DM9058_SpiClockHigh();
-            cs_inv_result = (uint8_t)((cs_inv_result << 1u) | DM9058_SpiReadMiso());
-            DM9058_SpiDelayTicks(DM9058_SPI_MOSI_HOLD_TICKS);
-            DM9058_SpiClockLow();
-        }
-        DM9058_CS_High();
-        DM9058_DBG_PRINT("[DM9058 DBG] CS polarity test (CS=HIGH): CHIPR=0x%02X  %s\r\n",
-                         cs_inv_result,
-                         (cs_inv_result != 0xFFu) ? "<<< CS wired INVERTED! use active-high CS >>>"
-                                                  : "(0xFF = CS polarity OK, problem is elsewhere)");
-    }
-
     /* Diagnosis summary */
     if (chipr == 0xFFu) {
         DM9058_DBG_PRINT("[DM9058 DBG] DIAGNOSIS: MISO stuck HIGH for all 16 clocks.\r\n");
         DM9058_DBG_PRINT("[DM9058 DBG]   -> Check 1: DM9058 VCC/GND power supply\r\n");
         DM9058_DBG_PRINT("[DM9058 DBG]   -> Check 2: MISO wire PB4 <-> DM9058 pin continuity\r\n");
         DM9058_DBG_PRINT("[DM9058 DBG]   -> Check 3: RST (PF7) wiring and active level\r\n");
-        DM9058_DBG_PRINT("[DM9058 DBG]   -> Check 4: see CS polarity test result above\r\n");
+        DM9058_DBG_PRINT("[DM9058 DBG]   -> Check 4: CSN wire PA15 <-> DM9058 pin continuity\r\n");
     } else {
         DM9058_DBG_PRINT("[DM9058 DBG] DIAGNOSIS: CHIPR=0x%02X (DM9058 responding)\r\n", chipr);
     }
