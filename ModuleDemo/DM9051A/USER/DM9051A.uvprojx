@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <Project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="project_projx.xsd">
+
   <SchemaVersion>2.1</SchemaVersion>
+
   <Header>### uVision Project, (C) Keil Software</Header>
+
   <Targets>
     <Target>
       <TargetName>DM9051A</TargetName>
@@ -635,7 +638,7 @@
             <File>
               <FileName>dm9051_beta.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\dm9051_edriver_v1.6.1a_beta\core\dm9051_beta.c</FilePath>
+              <FilePath>..\..\..\drivers\dm9051_edriver_v1.6.1a_beta\core\dm9051_beta.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1348,7 +1351,7 @@
             <File>
               <FileName>dm9051_beta.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\dm9051_edriver_v1.6.1a_beta\core\dm9051_beta.c</FilePath>
+              <FilePath>..\..\..\drivers\dm9051_edriver_v1.6.1a_beta\core\dm9051_beta.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1807,11 +1810,7 @@
         <Group>
           <GroupName>USER</GroupName>
           <Files>
-            <File>
-              <FileName>main.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\main.c</FilePath>
-            </File>
+            
             <File>
               <FileName>mh20xx_it.c</FileName>
               <FileType>1</FileType>
@@ -1832,21 +1831,9 @@
         <Group>
           <GroupName>BSP</GroupName>
           <Files>
-            <File>
-              <FileName>dm9051a.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\bsp\dm9051a.c</FilePath>
-            </File>
-            <File>
-              <FileName>mh2030a_spi1.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\bsp\mh2030a_spi1.c</FilePath>
-            </File>
-            <File>
-              <FileName>mh2030a_spi1_dma.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\bsp\mh2030a_spi1_dma.c</FilePath>
-            </File>
+            
+            
+            
           </Files>
         </Group>
         <Group>
@@ -2092,9 +2079,11 @@
       </Groups>
     </Target>
   </Targets>
+
   <RTE>
     <apis />
     <components />
     <files />
   </RTE>
+
 </Project>

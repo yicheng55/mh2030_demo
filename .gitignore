@@ -19,6 +19,7 @@ objects
 **/OBJ/
 **/obj/
 **/Objects/
+**/OBJ_UIP/
 *.o
 *.ko
 *.obj
