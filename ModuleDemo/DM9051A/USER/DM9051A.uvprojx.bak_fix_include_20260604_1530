@@ -690,6 +690,11 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\..\..\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\uip_dm9051_example_e1\uip_app_src\Eth_app\resolv\resolv.c</FilePath>
             </File>
+            <File>
+              <FileName>main_unix.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\uip_dm9051_example_e1\uip_arch_src\UNIX\main_unix.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -723,8 +728,8 @@
       <TargetName>DM9051A_SPI_DMA</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pArmCC>5050169::V5.05 update 2 (build 169)::ARMCC</pArmCC>
-      <uAC6>8</uAC6>
+      <pCCUsed>5060960::V5.06 update 7 (build 960)::.\ARMCC5.06</pCCUsed>
+      <uAC6>0</uAC6>
       <TargetOption>
         <TargetCommonOption>
           <Device>ARMCM0</Device>
@@ -1403,6 +1408,11 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\..\..\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\uip_dm9051_example_e1\uip_app_src\Eth_app\resolv\resolv.c</FilePath>
             </File>
+            <File>
+              <FileName>main_unix.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\uip_dm9051_example_e1\uip_arch_src\UNIX\main_unix.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1436,8 +1446,8 @@
       <TargetName>MH2030A_DM9051_uIP</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pCCUsed>5060960::V5.06 update 7 (build 960)::.\ARMCC5.06</pCCUsed>
-      <uAC6>0</uAC6>
+      <pArmCC>5050169::V5.05 update 2 (build 169)::ARMCC</pArmCC>
+      <uAC6>8</uAC6>
       <TargetOption>
         <TargetCommonOption>
           <Device>ARMCM0</Device>
@@ -1766,7 +1776,7 @@
               <MiscControls></MiscControls>
               <Define>USE_STDPERIPH_DRIVER,MH2030A_UIP_PORT</Define>
               <Undefine></Undefine>
-              <IncludePath>..\SYSTEM\delay;..\USER;..\bsp;..\port\uip_mh2030a;..\..\..\Libraries\MH20xxLib\inc;..\..\..\Libraries\CMSIS\Include;D:\prg\davicom\mh2030_demo\middlewares\3rd_party\uip\inc;D:\prg\davicom\mh2030_demo\middlewares\3rd_party\uip\port\at32f415_dm9051;D:\prg\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\uip_dm9051_example_e1\example_uip\inc;D:\prg\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\uip_dm9051_example_e1\uip_conf_inc;D:\prg\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\uip_dm9051_example_e1\uip_app_src;D:\prg\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\uip_dm9051_example_e1\uip_app_src\Eth_app\dhcpc;D:\prg\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\uip_dm9051_example_e1\uip_app_src\Eth_app\resolv;D:\prg\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\uip_dm9051_example_e1\uip_app_src\webserver\inc;D:\prg\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\dm9051_edriver_v1.6.1a_beta</IncludePath>
+              <IncludePath>..\SYSTEM\delay;..\USER;..\bsp;..\port\uip_mh2030a;..\..\..\Libraries\MH20xxLib\inc;..\..\..\Libraries\CMSIS\Include;..\..\..\middlewares\3rd_party\uip\inc;..\..\..\middlewares\3rd_party\uip\port\at32f415_dm9051;..\..\..\..\..\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\uip_dm9051_example_e1\example_uip\inc;..\..\..\..\..\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\uip_dm9051_example_e1\uip_conf_inc;..\..\..\..\..\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\uip_dm9051_example_e1\uip_app_src;..\..\..\..\..\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\uip_dm9051_example_e1\uip_app_src\Eth_app\dhcpc;..\..\..\..\..\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\uip_dm9051_example_e1\uip_app_src\Eth_app\resolv;..\..\..\..\..\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\uip_dm9051_example_e1\uip_app_src\webserver\inc;..\..\..\..\..\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\dm9051_edriver_v1.6.1a_beta</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -1849,6 +1859,57 @@
               <FileName>mh2030a_spi1_dma.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\bsp\mh2030a_spi1_dma.c</FilePath>
+              <FileOption>
+                <CommonProperty>
+                  <UseCPPCompiler>2</UseCPPCompiler>
+                  <RVCTCodeConst>0</RVCTCodeConst>
+                  <RVCTZI>0</RVCTZI>
+                  <RVCTOtherData>0</RVCTOtherData>
+                  <ModuleSelection>0</ModuleSelection>
+                  <IncludeInBuild>0</IncludeInBuild>
+                  <AlwaysBuild>0</AlwaysBuild>
+                  <GenerateAssemblyFile>0</GenerateAssemblyFile>
+                  <AssembleAssemblyFile>0</AssembleAssemblyFile>
+                  <PublicsOnly>2</PublicsOnly>
+                  <StopOnExitCode>11</StopOnExitCode>
+                  <CustomArgument></CustomArgument>
+                  <IncludeLibraryModules></IncludeLibraryModules>
+                  <ComprImg>1</ComprImg>
+                </CommonProperty>
+                <FileArmAds>
+                  <Cads>
+                    <interw>2</interw>
+                    <Optim>0</Optim>
+                    <oTime>2</oTime>
+                    <SplitLS>2</SplitLS>
+                    <OneElfS>2</OneElfS>
+                    <Strict>2</Strict>
+                    <EnumInt>2</EnumInt>
+                    <PlainCh>2</PlainCh>
+                    <Ropi>2</Ropi>
+                    <Rwpi>2</Rwpi>
+                    <wLevel>0</wLevel>
+                    <uThumb>2</uThumb>
+                    <uSurpInc>2</uSurpInc>
+                    <uC99>2</uC99>
+                    <uGnu>2</uGnu>
+                    <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>2</v6Lto>
+                    <v6WtE>2</v6WtE>
+                    <v6Rtti>2</v6Rtti>
+                    <VariousControls>
+                      <MiscControls></MiscControls>
+                      <Define></Define>
+                      <Undefine></Undefine>
+                      <IncludePath></IncludePath>
+                    </VariousControls>
+                  </Cads>
+                </FileArmAds>
+              </FileOption>
             </File>
           </Files>
         </Group>
@@ -2064,6 +2125,11 @@
               <FileName>resolv.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\..\..\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\uip_dm9051_example_e1\uip_app_src\Eth_app\resolv\resolv.c</FilePath>
+            </File>
+            <File>
+              <FileName>main_unix.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\arterychip\Davicom\AT32F403a_DM9051_uip_r2507_rc1.1_trace\developer\at32f403a_board_dm\uip_dm9051_example_e1\uip_arch_src\UNIX\main_unix.c</FilePath>
             </File>
           </Files>
         </Group>
