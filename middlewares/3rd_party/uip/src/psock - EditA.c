@@ -33,6 +33,10 @@
  * $Id: psock.c,v 1.2 2006/06/12 08:00:30 adam Exp $
  */
 
+#if defined(__CC_ARM)
+#pragma diag_suppress 550
+#endif
+
 #include <stdio.h>
 #include <string.h>
 

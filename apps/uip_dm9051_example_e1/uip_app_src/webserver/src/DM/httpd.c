@@ -55,6 +55,12 @@
  * $Id: httpd.c,v 1.2 2006/06/11 21:46:38 adam Exp $
  */
 
+#if defined(__CC_ARM)
+#pragma diag_suppress 111
+#pragma diag_suppress 177
+#pragma diag_suppress 550
+#endif
+
 //#include "includes.h"
 
 #include "uip.h"

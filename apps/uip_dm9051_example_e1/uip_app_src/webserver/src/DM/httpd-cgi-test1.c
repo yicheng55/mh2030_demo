@@ -45,6 +45,11 @@
  *
  */
 
+#if defined(__CC_ARM)
+#pragma diag_suppress 550
+#pragma diag_suppress 870
+#endif
+
 #include "uip.h"
 #include "psock.h"
 #include "httpd.h"

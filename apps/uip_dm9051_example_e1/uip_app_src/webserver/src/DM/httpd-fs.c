@@ -32,6 +32,11 @@
  *
  * $Id: httpd-fs.c,v 1.1 2006/06/07 09:13:08 adam Exp $
  */
+#if defined(__CC_ARM)
+#pragma diag_suppress 144
+#pragma diag_suppress 177
+#endif
+
 #include <stdio.h>
 #include "uip.h" //added for "app_call.h" compiled!(httpd.c did include uip.h, firstly.)
 #include "httpd.h"

@@ -12,6 +12,10 @@
 
 #include "mh20xx.h"
 
+#if defined(__CC_ARM)
+#pragma diag_suppress 177
+#endif
+
 /**
   * @}
   */
