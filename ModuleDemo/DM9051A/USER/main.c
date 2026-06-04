@@ -1,3 +1,5 @@
+#ifndef MH2030A_UIP_PORT
+
 #include <stdio.h>
 #include <stdarg.h>
 #ifndef USE_STDPERIPH_DRIVER
@@ -172,3 +174,5 @@ int fputc(int ch, FILE *f)
     }
     return SER_PutChar(ch);
 }
+
+#endif /* MH2030A_UIP_PORT */

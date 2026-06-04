@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <Project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="project_projx.xsd">
 
   <SchemaVersion>2.1</SchemaVersion>
@@ -1810,7 +1810,11 @@
         <Group>
           <GroupName>USER</GroupName>
           <Files>
-            
+            <File>
+              <FileName>main.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\main.c</FilePath>
+            </File>
             <File>
               <FileName>mh20xx_it.c</FileName>
               <FileType>1</FileType>
@@ -1831,9 +1835,21 @@
         <Group>
           <GroupName>BSP</GroupName>
           <Files>
-            
-            
-            
+            <File>
+              <FileName>dm9051a.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\bsp\dm9051a.c</FilePath>
+            </File>
+            <File>
+              <FileName>mh2030a_spi1.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\bsp\mh2030a_spi1.c</FilePath>
+            </File>
+            <File>
+              <FileName>mh2030a_spi1_dma.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\bsp\mh2030a_spi1_dma.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -2081,9 +2097,9 @@
   </Targets>
 
   <RTE>
-    <apis />
-    <components />
-    <files />
+    <apis/>
+    <components/>
+    <files/>
   </RTE>
 
 </Project>
