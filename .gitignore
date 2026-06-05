@@ -20,6 +20,7 @@ objects
 **/obj/
 **/Objects/
 **/OBJ_UIP/
+**/OBJ_UIP_INT/
 *.o
 *.ko
 *.obj

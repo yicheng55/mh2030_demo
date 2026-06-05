@@ -39,11 +39,14 @@ char *dm9051_info(void)
  */
 int dm9051_conf(void)
 {
+#if defined(DMPLUG_INT)
+  void conf_ext_line(uint32_t ext_line);
+  uint32_t ext_line;
+#endif
+
   HAL_boards_initialize_spi();
 #if defined(DMPLUG_INT)
-	void conf_ext_line(uint32_t ext_line);
-	uint32_t ext_line;
-	ext_line = HAL_boards_initialize_int();
+    ext_line = HAL_boards_initialize_int();
     conf_ext_line(ext_line); //lab_inf->ext_line = HAL_boards_initialize_int();
 #endif
   return hal_active_interrupt_mode();
