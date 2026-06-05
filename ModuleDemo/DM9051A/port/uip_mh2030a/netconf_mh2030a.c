@@ -59,6 +59,9 @@ void mh2030a_uip_net_init(void)
     uip_arp_init();
 
     input_mode = dm9051_conf();
+    printf("[MH2030A uIP] INT HAL %s\r\n", hal_int_info(0));
+    printf("[MH2030A uIP] INT HAL %s\r\n", hal_int_info(1));
+
     vid = (uint16_t)hal_read_reg(DM9051_VIDL) | ((uint16_t)hal_read_reg(DM9051_VIDH) << 8);
     pid = (uint16_t)hal_read_reg(DM9051_PIDL) | ((uint16_t)hal_read_reg(DM9051_PIDH) << 8);
     printf("[MH2030A uIP] DM9051 VID=0x%04X PID=0x%04X CHIPR=0x%02X\r\n",
