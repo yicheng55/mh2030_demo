@@ -48,6 +48,8 @@ void mh2030a_uip_net_init(void)
     const uint8_t *mac;
     struct uip_eth_addr ethaddr;
     uip_ipaddr_t ipaddr;
+    uint16_t vid;
+    uint16_t pid;
 
     printf("[MH2030A uIP] network init\r\n");
     timer_set(&periodic_timer, CLOCK_SECOND / 2);
@@ -57,6 +59,11 @@ void mh2030a_uip_net_init(void)
     uip_arp_init();
 
     input_mode = dm9051_conf();
+    vid = (uint16_t)hal_read_reg(DM9051_VIDL) | ((uint16_t)hal_read_reg(DM9051_VIDH) << 8);
+    pid = (uint16_t)hal_read_reg(DM9051_PIDL) | ((uint16_t)hal_read_reg(DM9051_PIDH) << 8);
+    printf("[MH2030A uIP] DM9051 VID=0x%04X PID=0x%04X CHIPR=0x%02X\r\n",
+           vid, pid, hal_read_reg(DM9051_CHIPR));
+
     mac = dm9051_init(NULL);
     if (mac == NULL) {
         printf("[MH2030A uIP] DM9051 init failed: no MAC\r\n");

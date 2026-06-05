@@ -23,7 +23,7 @@
 #endif
 
 static char *spi_info[] = {
-    "MH2030A DM9051 SPI1 polling",
+    "MH2030A DM9051 SPI1 polling transfer",
     "CS PA15, SCK PB3, MOSI PB5, MISO PB4, RST PF7",
 };
 
@@ -148,7 +148,7 @@ void hal_spi_initialize(void)
     SPI_RxFIFOThresholdConfig(DM9051_SPI, SPI_RxFIFOThreshold_QF);
     SPI_Cmd(DM9051_SPI, ENABLE);
 
-    printf("[MH2030A uIP] DM9051 SPI polling initialized\r\n");
+    printf("[MH2030A uIP] DM9051 SPI bus initialized (polling transfer)\r\n");
 }
 
 uint8_t hal_read_reg(uint8_t reg)
