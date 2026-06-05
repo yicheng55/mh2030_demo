@@ -38,9 +38,9 @@ void resolv_found(char *name, u16_t *ipaddr)
 
 void time_update(void)
 {
-    lwip_sys_now += SYSTEMTICK_PERIOD_MS10;
-    g_RunTime += SYSTEMTICK_PERIOD_MS10;
-    all_local_time += SYSTEMTICK_PERIOD_MS10;
+    lwip_sys_now += MH2030A_UIP_TICK_MS;
+    g_RunTime += MH2030A_UIP_TICK_MS;
+    all_local_time += MH2030A_UIP_TICK_MS;
 }
 
 void mh2030a_uip_net_init(void)
