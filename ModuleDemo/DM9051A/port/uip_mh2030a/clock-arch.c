@@ -3,8 +3,8 @@
 #include "developer_conf.h"
 #include <stdio.h>
 
-extern void time_update(void);
-extern uint32_t lwip_sys_now;
+extern void mh2030a_uip_update_time(void);
+extern uint32_t uip_elapsed_ms;
 extern uint32_t g_RunTime;
 
 void mh2030a_uip_tick_init(void)
@@ -16,17 +16,17 @@ void mh2030a_uip_tick_init(void)
 
 void mh2030a_uip_tick_isr(void)
 {
-    time_update();
+    mh2030a_uip_update_time();
 }
 
 uint32_t mh2030a_uip_millis(void)
 {
-    return lwip_sys_now;
+    return uip_elapsed_ms;
 }
 
 clock_time_t clock_time(void)
 {
-    return (clock_time_t)lwip_sys_now;
+    return (clock_time_t)uip_elapsed_ms;
 }
 
 

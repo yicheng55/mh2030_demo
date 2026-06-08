@@ -8,13 +8,13 @@
 #include <stdio.h>
 #include <string.h>
 
-uint32_t lwip_sys_now = 0;
+uint32_t uip_elapsed_ms = 0;
 uint32_t g_RunTime = 0;
 volatile uint32_t all_local_time = 0;
 
 static struct timer periodic_timer;
 static struct timer arp_timer;
-static int input_mode;
+static int dm9051_input_mode;
 
 void uip_log(char *msg)
 {
@@ -36,9 +36,9 @@ void resolv_found(char *name, u16_t *ipaddr)
            (unsigned int)(ntohs(ipaddr[1]) & 0xffu));
 }
 
-void time_update(void)
+void mh2030a_uip_update_time(void)
 {
-    lwip_sys_now += MH2030A_UIP_TICK_MS;
+    uip_elapsed_ms += MH2030A_UIP_TICK_MS;
 //    g_RunTime += MH2030A_UIP_TICK_MS;
 //    all_local_time += MH2030A_UIP_TICK_MS;
 }
@@ -58,7 +58,7 @@ void mh2030a_uip_net_init(void)
     uip_init();
     uip_arp_init();
 
-    input_mode = dm9051_conf();
+    dm9051_input_mode = dm9051_conf();
     printf("[MH2030A uIP] INT HAL %s\r\n", hal_int_info(0));
     printf("[MH2030A uIP] INT HAL %s\r\n", hal_int_info(1));
 
@@ -87,7 +87,7 @@ void mh2030a_uip_net_init(void)
                MH2030A_UIP_MASK_IP2, MH2030A_UIP_MASK_IP3);
     uip_setnetmask(ipaddr);
 
-    printf("[MH2030A uIP] mode=%s\r\n", input_mode == INPUT_MODE_POLL ? "poll" : "interrupt");
+    printf("[MH2030A uIP] mode=%s\r\n", dm9051_input_mode == INPUT_MODE_POLL ? "poll" : "interrupt");
     printf("[MH2030A uIP] MAC %02X:%02X:%02X:%02X:%02X:%02X\r\n",
            uip_ethaddr.addr[0], uip_ethaddr.addr[1], uip_ethaddr.addr[2],
            uip_ethaddr.addr[3], uip_ethaddr.addr[4], uip_ethaddr.addr[5]);
@@ -96,7 +96,7 @@ void mh2030a_uip_net_init(void)
            MH2030A_UIP_STATIC_IP2, MH2030A_UIP_STATIC_IP3);
 }
 
-static void uip_process_input(void)
+static void process_received_ethernet_frame(void)
 {
     uip_len = ethernetif_input();
     if (uip_len == 0) {
@@ -118,7 +118,7 @@ static void uip_process_input(void)
     }
 }
 
-static void uip_process_timers(void)
+static void process_uip_periodic_timers(void)
 {
     int i;
 
@@ -154,8 +154,8 @@ static void uip_process_timers(void)
 void mh2030a_uip_net_loop(void)
 {
     if (dm9051_interrupt_get()) {
-        uip_process_input();
+        process_received_ethernet_frame();
         dm9051_interrupt_reset();
     }
-    uip_process_timers();
+    process_uip_periodic_timers();
 }

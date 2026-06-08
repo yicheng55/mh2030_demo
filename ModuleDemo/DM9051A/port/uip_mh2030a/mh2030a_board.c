@@ -4,7 +4,7 @@
 
 static USART_TypeDef *uip_uart = USART2;
 
-static void uart_config(uint32_t baudrate)
+static void configure_debug_uart(uint32_t baudrate)
 {
     GPIO_InitTypeDef gpio;
     USART_InitTypeDef usart;
@@ -71,7 +71,7 @@ void mh2030a_uip_board_init(uint32_t baudrate)
 
     mh2030a_uip_clock_init();
     Delay_Init();
-    uart_config(baudrate);
+    configure_debug_uart(baudrate);
 
     RCC_GetClocksFreq(&clocks);
     printf("\r\n[MH2030A uIP] board init\r\n");

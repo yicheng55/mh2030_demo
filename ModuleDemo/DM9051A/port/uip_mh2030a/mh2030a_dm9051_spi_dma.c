@@ -26,8 +26,8 @@
 #define OPC_REG_W                0x80u
 #endif
 
-static uint8_t dm9051_dummy_tx = 0x00u;
-static uint8_t dm9051_dummy_rx;
+static uint8_t dm9051_dummy_tx_byte = 0x00u;
+static uint8_t dm9051_dummy_rx_byte;
 
 static char *spi_info[] = {
     "MH2030A DM9051 SPI1 DMA transfer",
@@ -39,17 +39,17 @@ char *hal_spi_info(int index)
     return spi_info[index & 1];
 }
 
-static void dm9051_cs_low(void)
+static void select_dm9051(void)
 {
     GPIO_ResetBits(DM9051_CS_PORT, DM9051_CS_PIN);
 }
 
-static void dm9051_cs_high(void)
+static void deselect_dm9051(void)
 {
     GPIO_SetBits(DM9051_CS_PORT, DM9051_CS_PIN);
 }
 
-static void dm9051_hw_reset(void)
+static void reset_dm9051_hardware(void)
 {
     GPIO_ResetBits(DM9051_RST_PORT, DM9051_RST_PIN);
     Delay_Ms(2);
@@ -57,7 +57,7 @@ static void dm9051_hw_reset(void)
     Delay_Ms(10);
 }
 
-static uint8_t spi_wait_idle(void)
+static uint8_t wait_for_spi_idle(void)
 {
     uint32_t timeout = DM9051_SPI_TIMEOUT;
 
@@ -70,7 +70,7 @@ static uint8_t spi_wait_idle(void)
     return 1u;
 }
 
-static uint8_t spi_xfer(uint8_t tx)
+static uint8_t transfer_spi_byte(uint8_t tx)
 {
     uint32_t timeout;
 
@@ -91,15 +91,15 @@ static uint8_t spi_xfer(uint8_t tx)
     return SPI_ReceiveData8(DM9051_SPI);
 }
 
-static void spi_finish(void)
+static void finish_spi_transfer(void)
 {
-    (void)spi_wait_idle();
+    (void)wait_for_spi_idle();
     while (SPI_I2S_GetFlagStatus(DM9051_SPI, SPI_I2S_FLAG_RXNE) == SET) {
         (void)SPI_ReceiveData8(DM9051_SPI);
     }
 }
 
-static void spi_dma_config(uint8_t *rx, const uint8_t *tx, uint16_t len)
+static void configure_spi_dma_transfer(uint8_t *rx, const uint8_t *tx, uint16_t len)
 {
     DMA_InitTypeDef dma;
 
@@ -114,7 +114,7 @@ static void spi_dma_config(uint8_t *rx, const uint8_t *tx, uint16_t len)
     dma.DMA_DIR = DMA_DIR_PeripheralSRC;
     dma.DMA_BufferSize = len;
     dma.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-    dma.DMA_MemoryInc = (rx == &dm9051_dummy_rx) ? DMA_MemoryInc_Disable : DMA_MemoryInc_Enable;
+    dma.DMA_MemoryInc = (rx == &dm9051_dummy_rx_byte) ? DMA_MemoryInc_Disable : DMA_MemoryInc_Enable;
     dma.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
     dma.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
     dma.DMA_Mode = DMA_Mode_Normal;
@@ -129,7 +129,7 @@ static void spi_dma_config(uint8_t *rx, const uint8_t *tx, uint16_t len)
     dma.DMA_DIR = DMA_DIR_PeripheralDST;
     dma.DMA_BufferSize = len;
     dma.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-    dma.DMA_MemoryInc = (tx == &dm9051_dummy_tx) ? DMA_MemoryInc_Disable : DMA_MemoryInc_Enable;
+    dma.DMA_MemoryInc = (tx == &dm9051_dummy_tx_byte) ? DMA_MemoryInc_Disable : DMA_MemoryInc_Enable;
     dma.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
     dma.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
     dma.DMA_Mode = DMA_Mode_Normal;
@@ -138,7 +138,7 @@ static void spi_dma_config(uint8_t *rx, const uint8_t *tx, uint16_t len)
     DMA_Init(DM9051_SPI_TX_DMA, &dma);
 }
 
-static uint8_t spi_dma_transfer(uint8_t *rx, const uint8_t *tx, uint16_t len)
+static uint8_t transfer_spi_dma_buffer(uint8_t *rx, const uint8_t *tx, uint16_t len)
 {
     uint32_t timeout;
 
@@ -146,11 +146,11 @@ static uint8_t spi_dma_transfer(uint8_t *rx, const uint8_t *tx, uint16_t len)
         return 1u;
     }
 
-    if (!spi_wait_idle()) {
+    if (!wait_for_spi_idle()) {
         return 0u;
     }
 
-    spi_dma_config(rx, tx, len);
+    configure_spi_dma_transfer(rx, tx, len);
     DMA_Cmd(DM9051_SPI_RX_DMA, ENABLE);
     DMA_Cmd(DM9051_SPI_TX_DMA, ENABLE);
 
@@ -176,7 +176,7 @@ static uint8_t spi_dma_transfer(uint8_t *rx, const uint8_t *tx, uint16_t len)
     DMA_Cmd(DM9051_SPI_RX_DMA, DISABLE);
     DMA_ClearFlag(DM9051_SPI_RX_DMA_FLAG | DM9051_SPI_TX_DMA_FLAG);
 
-    return spi_wait_idle();
+    return wait_for_spi_idle();
 }
 
 void hal_spi_initialize(void)
@@ -200,7 +200,7 @@ void hal_spi_initialize(void)
     gpio.GPIO_OType = GPIO_OType_PP;
     gpio.GPIO_PuPd = GPIO_PuPd_UP;
     GPIO_Init(DM9051_CS_PORT, &gpio);
-    dm9051_cs_high();
+    deselect_dm9051();
 
     GPIO_StructInit(&gpio);
     gpio.GPIO_Pin = DM9051_RST_PIN;
@@ -209,7 +209,7 @@ void hal_spi_initialize(void)
     gpio.GPIO_OType = GPIO_OType_PP;
     gpio.GPIO_PuPd = GPIO_PuPd_UP;
     GPIO_Init(DM9051_RST_PORT, &gpio);
-    dm9051_hw_reset();
+    reset_dm9051_hardware();
 
     GPIO_PinAFConfig(GPIOB, GPIO_PinSource3, GPIO_AF_0);
     GPIO_PinAFConfig(GPIOB, GPIO_PinSource4, GPIO_AF_0);
@@ -254,37 +254,37 @@ uint8_t hal_read_reg(uint8_t reg)
 {
     uint8_t val;
 
-    dm9051_cs_low();
-    (void)spi_xfer((uint8_t)(reg | OPC_REG_R));
-    val = spi_xfer(0x00u);
-    spi_finish();
-    dm9051_cs_high();
+    select_dm9051();
+    (void)transfer_spi_byte((uint8_t)(reg | OPC_REG_R));
+    val = transfer_spi_byte(0x00u);
+    finish_spi_transfer();
+    deselect_dm9051();
     return val;
 }
 
 void hal_write_reg(uint8_t reg, uint8_t val)
 {
-    dm9051_cs_low();
-    (void)spi_xfer((uint8_t)(reg | OPC_REG_W));
-    (void)spi_xfer(val);
-    spi_finish();
-    dm9051_cs_high();
+    select_dm9051();
+    (void)transfer_spi_byte((uint8_t)(reg | OPC_REG_W));
+    (void)transfer_spi_byte(val);
+    finish_spi_transfer();
+    deselect_dm9051();
 }
 
 void hal_read_mem(uint8_t *buf, uint16_t len)
 {
-    dm9051_cs_low();
-    (void)spi_xfer((uint8_t)(DM9051_MRCMD | OPC_REG_R));
-    (void)spi_dma_transfer(buf, &dm9051_dummy_tx, len);
-    spi_finish();
-    dm9051_cs_high();
+    select_dm9051();
+    (void)transfer_spi_byte((uint8_t)(DM9051_MRCMD | OPC_REG_R));
+    (void)transfer_spi_dma_buffer(buf, &dm9051_dummy_tx_byte, len);
+    finish_spi_transfer();
+    deselect_dm9051();
 }
 
 void hal_write_mem(uint8_t *buf, uint16_t len)
 {
-    dm9051_cs_low();
-    (void)spi_xfer((uint8_t)(DM9051_MWCMD | OPC_REG_W));
-    (void)spi_dma_transfer(&dm9051_dummy_rx, buf, len);
-    spi_finish();
-    dm9051_cs_high();
+    select_dm9051();
+    (void)transfer_spi_byte((uint8_t)(DM9051_MWCMD | OPC_REG_W));
+    (void)transfer_spi_dma_buffer(&dm9051_dummy_rx_byte, buf, len);
+    finish_spi_transfer();
+    deselect_dm9051();
 }

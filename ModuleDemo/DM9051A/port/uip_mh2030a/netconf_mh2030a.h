@@ -20,6 +20,6 @@
 
 void mh2030a_uip_net_init(void);
 void mh2030a_uip_net_loop(void);
-void time_update(void);
+void mh2030a_uip_update_time(void);
 
 #endif
