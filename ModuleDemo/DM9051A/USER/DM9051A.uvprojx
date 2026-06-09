@@ -774,7 +774,7 @@
             <File>
               <FileName>mh2030a_board.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_board.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_board.c</FilePath>
             </File>
             <File>
               <FileName>mh2030a_dm9051_spi.c</FileName>
@@ -794,7 +794,7 @@
             <File>
               <FileName>clock-arch.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\clock-arch.c</FilePath>
+              <FilePath>..\port\uip\clock-arch.c</FilePath>
             </File>
             <File>
               <FileName>netconf_mh2030a.c</FileName>
@@ -805,11 +805,6 @@
               <FileName>dm9051_uip_adapter.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\port\uip\dm9051_uip_adapter.c</FilePath>
-            </File>
-            <File>
-              <FileName>ethernetif_mh2030a.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\ethernetif_mh2030a.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1944,7 +1939,7 @@
             <File>
               <FileName>mh2030a_board.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_board.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_board.c</FilePath>
             </File>
             <File>
               <FileName>mh2030a_dm9051_spi.c</FileName>
@@ -2015,7 +2010,7 @@
             <File>
               <FileName>clock-arch.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\clock-arch.c</FilePath>
+              <FilePath>..\port\uip\clock-arch.c</FilePath>
             </File>
             <File>
               <FileName>netconf_mh2030a.c</FileName>
@@ -2026,11 +2021,6 @@
               <FileName>dm9051_uip_adapter.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\port\uip\dm9051_uip_adapter.c</FilePath>
-            </File>
-            <File>
-              <FileName>ethernetif_mh2030a.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\ethernetif_mh2030a.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -2731,7 +2721,7 @@
               <MiscControls></MiscControls>
               <Define>USE_STDPERIPH_DRIVER,MH2030A_UIP_PORT</Define>
               <Undefine></Undefine>
-              <IncludePath>..\SYSTEM\delay;..\USER;..\bsp;..\port\uip_mh2030a;..\..\..\Libraries\MH20xxLib\inc;..\..\..\Libraries\CMSIS\Include;..\..\..\middlewares\3rd_party\uip\inc;..\..\..\middlewares\3rd_party\uip\port\at32f415_dm9051;..\..\..\apps\uip_dm9051_example_e1\example_uip\inc;..\..\..\apps\uip_dm9051_example_e1\uip_conf_inc;..\..\..\apps\uip_dm9051_example_e1\uip_app_src;..\..\..\apps\uip_dm9051_example_e1\uip_app_src\Eth_app\dhcpc;..\..\..\apps\uip_dm9051_example_e1\uip_app_src\Eth_app\resolv;..\..\..\apps\uip_dm9051_example_e1\uip_app_src\webserver\inc;..\..\..\drivers\dm9051_edriver_v1.6.1a_beta;..\port\mh2030a;..\port\uip</IncludePath>
+              <IncludePath>..\SYSTEM\delay;..\USER;..\bsp;..\..\..\Libraries\MH20xxLib\inc;..\..\..\Libraries\CMSIS\Include;..\..\..\middlewares\3rd_party\uip\inc;..\..\..\middlewares\3rd_party\uip\port\at32f415_dm9051;..\..\..\apps\uip_dm9051_example_e1\example_uip\inc;..\..\..\apps\uip_dm9051_example_e1\uip_conf_inc;..\..\..\apps\uip_dm9051_example_e1\uip_app_src;..\..\..\apps\uip_dm9051_example_e1\uip_app_src\Eth_app\dhcpc;..\..\..\apps\uip_dm9051_example_e1\uip_app_src\Eth_app\resolv;..\..\..\apps\uip_dm9051_example_e1\uip_app_src\webserver\inc;..\..\..\drivers\dm9051_edriver_v1.6.1a_beta;..\port\mh2030a;..\port\uip</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -3063,7 +3053,7 @@
             <File>
               <FileName>mh2030a_board.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_board.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_board.c</FilePath>
             </File>
             <File>
               <FileName>mh2030a_dm9051_spi.c</FileName>
@@ -3134,7 +3124,7 @@
             <File>
               <FileName>clock-arch.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\clock-arch.c</FilePath>
+              <FilePath>..\port\uip\clock-arch.c</FilePath>
             </File>
             <File>
               <FileName>netconf_mh2030a.c</FileName>
@@ -3145,11 +3135,6 @@
               <FileName>dm9051_uip_adapter.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\port\uip\dm9051_uip_adapter.c</FilePath>
-            </File>
-            <File>
-              <FileName>ethernetif_mh2030a.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\ethernetif_mh2030a.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -3574,7 +3559,7 @@
               <MiscControls></MiscControls>
               <Define>USE_STDPERIPH_DRIVER,MH2030A_UIP_PORT,MH2030A_DM9051_SPI_DMA</Define>
               <Undefine></Undefine>
-              <IncludePath>..\SYSTEM\delay;..\USER;..\bsp;..\port\uip_mh2030a;..\..\..\Libraries\MH20xxLib\inc;..\..\..\Libraries\CMSIS\Include;..\..\..\middlewares\3rd_party\uip\inc;..\..\..\middlewares\3rd_party\uip\port\at32f415_dm9051;..\..\..\apps\uip_dm9051_example_e1\example_uip\inc;..\..\..\apps\uip_dm9051_example_e1\uip_conf_inc;..\..\..\apps\uip_dm9051_example_e1\uip_app_src;..\..\..\apps\uip_dm9051_example_e1\uip_app_src\Eth_app\dhcpc;..\..\..\apps\uip_dm9051_example_e1\uip_app_src\Eth_app\resolv;..\..\..\apps\uip_dm9051_example_e1\uip_app_src\webserver\inc;..\..\..\drivers\dm9051_edriver_v1.6.1a_beta;..\port\mh2030a;..\port\uip</IncludePath>
+              <IncludePath>..\SYSTEM\delay;..\USER;..\bsp;..\..\..\Libraries\MH20xxLib\inc;..\..\..\Libraries\CMSIS\Include;..\..\..\middlewares\3rd_party\uip\inc;..\..\..\middlewares\3rd_party\uip\port\at32f415_dm9051;..\..\..\apps\uip_dm9051_example_e1\example_uip\inc;..\..\..\apps\uip_dm9051_example_e1\uip_conf_inc;..\..\..\apps\uip_dm9051_example_e1\uip_app_src;..\..\..\apps\uip_dm9051_example_e1\uip_app_src\Eth_app\dhcpc;..\..\..\apps\uip_dm9051_example_e1\uip_app_src\Eth_app\resolv;..\..\..\apps\uip_dm9051_example_e1\uip_app_src\webserver\inc;..\..\..\drivers\dm9051_edriver_v1.6.1a_beta;..\port\mh2030a;..\port\uip</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -3957,7 +3942,7 @@
             <File>
               <FileName>mh2030a_board.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_board.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_board.c</FilePath>
             </File>
             <File>
               <FileName>mh2030a_dm9051_spi.c</FileName>
@@ -4079,7 +4064,7 @@
             <File>
               <FileName>clock-arch.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\clock-arch.c</FilePath>
+              <FilePath>..\port\uip\clock-arch.c</FilePath>
             </File>
             <File>
               <FileName>netconf_mh2030a.c</FileName>
@@ -4090,11 +4075,6 @@
               <FileName>dm9051_uip_adapter.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\port\uip\dm9051_uip_adapter.c</FilePath>
-            </File>
-            <File>
-              <FileName>ethernetif_mh2030a.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\ethernetif_mh2030a.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -4519,7 +4499,7 @@
               <MiscControls></MiscControls>
               <Define>USE_STDPERIPH_DRIVER,MH2030A_UIP_PORT,DMPLUG_INT</Define>
               <Undefine></Undefine>
-              <IncludePath>..\SYSTEM\delay;..\USER;..\bsp;..\port\uip_mh2030a;..\..\..\Libraries\MH20xxLib\inc;..\..\..\Libraries\CMSIS\Include;..\..\..\middlewares\3rd_party\uip\inc;..\..\..\middlewares\3rd_party\uip\port\at32f415_dm9051;..\..\..\apps\uip_dm9051_example_e1\example_uip\inc;..\..\..\apps\uip_dm9051_example_e1\uip_conf_inc;..\..\..\apps\uip_dm9051_example_e1\uip_app_src;..\..\..\apps\uip_dm9051_example_e1\uip_app_src\Eth_app\dhcpc;..\..\..\apps\uip_dm9051_example_e1\uip_app_src\Eth_app\resolv;..\..\..\apps\uip_dm9051_example_e1\uip_app_src\webserver\inc;..\..\..\drivers\dm9051_edriver_v1.6.1a_beta;..\port\mh2030a;..\port\uip</IncludePath>
+              <IncludePath>..\SYSTEM\delay;..\USER;..\bsp;..\..\..\Libraries\MH20xxLib\inc;..\..\..\Libraries\CMSIS\Include;..\..\..\middlewares\3rd_party\uip\inc;..\..\..\middlewares\3rd_party\uip\port\at32f415_dm9051;..\..\..\apps\uip_dm9051_example_e1\example_uip\inc;..\..\..\apps\uip_dm9051_example_e1\uip_conf_inc;..\..\..\apps\uip_dm9051_example_e1\uip_app_src;..\..\..\apps\uip_dm9051_example_e1\uip_app_src\Eth_app\dhcpc;..\..\..\apps\uip_dm9051_example_e1\uip_app_src\Eth_app\resolv;..\..\..\apps\uip_dm9051_example_e1\uip_app_src\webserver\inc;..\..\..\drivers\dm9051_edriver_v1.6.1a_beta;..\port\mh2030a;..\port\uip</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -4851,7 +4831,7 @@
             <File>
               <FileName>mh2030a_board.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_board.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_board.c</FilePath>
             </File>
             <File>
               <FileName>mh2030a_dm9051_spi.c</FileName>
@@ -4922,7 +4902,7 @@
             <File>
               <FileName>clock-arch.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\clock-arch.c</FilePath>
+              <FilePath>..\port\uip\clock-arch.c</FilePath>
             </File>
             <File>
               <FileName>netconf_mh2030a.c</FileName>
@@ -4933,11 +4913,6 @@
               <FileName>dm9051_uip_adapter.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\port\uip\dm9051_uip_adapter.c</FilePath>
-            </File>
-            <File>
-              <FileName>ethernetif_mh2030a.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\ethernetif_mh2030a.c</FilePath>
             </File>
           </Files>
         </Group>
