@@ -18,6 +18,10 @@
 #define MH2030A_UIP_MASK_IP2      255
 #define MH2030A_UIP_MASK_IP3      0
 
+#ifndef MH2030A_UIP_TICK_MS
+#define MH2030A_UIP_TICK_MS       10u
+#endif
+
 void mh2030a_uip_net_init(void);
 void mh2030a_uip_net_loop(void);
 void mh2030a_uip_update_time(void);

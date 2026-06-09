@@ -779,17 +779,17 @@
             <File>
               <FileName>mh2030a_dm9051_spi.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_dm9051_spi.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_dm9051_spi.c</FilePath>
             </File>
             <File>
               <FileName>mh2030a_dm9051_int.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_dm9051_int.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_dm9051_int.c</FilePath>
             </File>
             <File>
               <FileName>mh2030a_dm9051_spi_dma.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_dm9051_spi_dma.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_dm9051_spi_dma.c</FilePath>
             </File>
             <File>
               <FileName>clock-arch.c</FileName>
@@ -799,7 +799,12 @@
             <File>
               <FileName>netconf_mh2030a.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\netconf_mh2030a.c</FilePath>
+              <FilePath>..\port\uip\netconf_mh2030a.c</FilePath>
+            </File>
+            <File>
+              <FileName>dm9051_uip_adapter.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\port\uip\dm9051_uip_adapter.c</FilePath>
             </File>
             <File>
               <FileName>ethernetif_mh2030a.c</FileName>
@@ -1944,7 +1949,7 @@
             <File>
               <FileName>mh2030a_dm9051_spi.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_dm9051_spi.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_dm9051_spi.c</FilePath>
               <FileOption>
                 <CommonProperty>
                   <UseCPPCompiler>2</UseCPPCompiler>
@@ -2000,12 +2005,12 @@
             <File>
               <FileName>mh2030a_dm9051_int.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_dm9051_int.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_dm9051_int.c</FilePath>
             </File>
             <File>
               <FileName>mh2030a_dm9051_spi_dma.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_dm9051_spi_dma.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_dm9051_spi_dma.c</FilePath>
             </File>
             <File>
               <FileName>clock-arch.c</FileName>
@@ -2015,7 +2020,12 @@
             <File>
               <FileName>netconf_mh2030a.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\netconf_mh2030a.c</FilePath>
+              <FilePath>..\port\uip\netconf_mh2030a.c</FilePath>
+            </File>
+            <File>
+              <FileName>dm9051_uip_adapter.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\port\uip\dm9051_uip_adapter.c</FilePath>
             </File>
             <File>
               <FileName>ethernetif_mh2030a.c</FileName>
@@ -3058,17 +3068,17 @@
             <File>
               <FileName>mh2030a_dm9051_spi.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_dm9051_spi.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_dm9051_spi.c</FilePath>
             </File>
             <File>
               <FileName>mh2030a_dm9051_int.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_dm9051_int.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_dm9051_int.c</FilePath>
             </File>
             <File>
               <FileName>mh2030a_dm9051_spi_dma.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_dm9051_spi_dma.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_dm9051_spi_dma.c</FilePath>
               <FileOption>
                 <CommonProperty>
                   <UseCPPCompiler>2</UseCPPCompiler>
@@ -3129,7 +3139,12 @@
             <File>
               <FileName>netconf_mh2030a.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\netconf_mh2030a.c</FilePath>
+              <FilePath>..\port\uip\netconf_mh2030a.c</FilePath>
+            </File>
+            <File>
+              <FileName>dm9051_uip_adapter.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\port\uip\dm9051_uip_adapter.c</FilePath>
             </File>
             <File>
               <FileName>ethernetif_mh2030a.c</FileName>
@@ -3947,7 +3962,7 @@
             <File>
               <FileName>mh2030a_dm9051_spi.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_dm9051_spi.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_dm9051_spi.c</FilePath>
               <FileOption>
                 <CommonProperty>
                   <UseCPPCompiler>2</UseCPPCompiler>
@@ -4003,7 +4018,7 @@
             <File>
               <FileName>mh2030a_dm9051_int.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_dm9051_int.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_dm9051_int.c</FilePath>
               <FileOption>
                 <CommonProperty>
                   <UseCPPCompiler>2</UseCPPCompiler>
@@ -4059,7 +4074,7 @@
             <File>
               <FileName>mh2030a_dm9051_spi_dma.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_dm9051_spi_dma.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_dm9051_spi_dma.c</FilePath>
             </File>
             <File>
               <FileName>clock-arch.c</FileName>
@@ -4069,7 +4084,12 @@
             <File>
               <FileName>netconf_mh2030a.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\netconf_mh2030a.c</FilePath>
+              <FilePath>..\port\uip\netconf_mh2030a.c</FilePath>
+            </File>
+            <File>
+              <FileName>dm9051_uip_adapter.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\port\uip\dm9051_uip_adapter.c</FilePath>
             </File>
             <File>
               <FileName>ethernetif_mh2030a.c</FileName>
@@ -4836,17 +4856,17 @@
             <File>
               <FileName>mh2030a_dm9051_spi.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_dm9051_spi.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_dm9051_spi.c</FilePath>
             </File>
             <File>
               <FileName>mh2030a_dm9051_int.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_dm9051_int.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_dm9051_int.c</FilePath>
             </File>
             <File>
               <FileName>mh2030a_dm9051_spi_dma.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\mh2030a_dm9051_spi_dma.c</FilePath>
+              <FilePath>..\port\mh2030a\mh2030a_dm9051_spi_dma.c</FilePath>
               <FileOption>
                 <CommonProperty>
                   <UseCPPCompiler>2</UseCPPCompiler>
@@ -4907,7 +4927,12 @@
             <File>
               <FileName>netconf_mh2030a.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\port\uip_mh2030a\netconf_mh2030a.c</FilePath>
+              <FilePath>..\port\uip\netconf_mh2030a.c</FilePath>
+            </File>
+            <File>
+              <FileName>dm9051_uip_adapter.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\port\uip\dm9051_uip_adapter.c</FilePath>
             </File>
             <File>
               <FileName>ethernetif_mh2030a.c</FileName>
