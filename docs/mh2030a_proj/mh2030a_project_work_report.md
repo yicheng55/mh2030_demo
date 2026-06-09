@@ -62,7 +62,7 @@
 | `DM9051A` | `DM9051A` | `../OBJ/` | `USE_STDPERIPH_DRIVER` | 基礎 SPI probe，執行 `main.c`，確認 DM9051A VID/PID/CHIPR 讀取。 |
 | `DM9051A_SPI_DMA` | `DM9051A_DMA` | `../OBJ/` | `USE_STDPERIPH_DRIVER` | 基礎 SPI DMA 版本；目前巨集與 include path 與 `DM9051A` 相同，實際差異需由檔案內條件編譯或 Keil file option 切換檔案。 |
 | `MH2030A_DM9051_uIP` | `MH2030A_DM9051_uIP` | `../OBJ_UIP/` | `USE_STDPERIPH_DRIVER,MH2030A_UIP_PORT` | uIP + DM9051A polling/一般 bring-up。 |
-| `MH2030A_DM9051_uIP_dma` | `MH2030A_DM9051_uIP_dma` | `../OBJ_UIP/` | `USE_STDPERIPH_DRIVER,MH2030A_UIP_PORT` | uIP + DM9051A DMA 版本；目前 target 巨集與一般 uIP 版相同。 |
+| `MH2030A_DM9051_uIP_dma` | `MH2030A_DM9051_uIP_dma` | `../OBJ_UIP/` | `USE_STDPERIPH_DRIVER,MH2030A_UIP_PORT,MH2030A_DM9051_SPI_DMA` | uIP + DM9051A DMA 版本；以 `MH2030A_DM9051_SPI_DMA` 明確區分。 |
 | `MH2030A_DM9051_uIP_int` | `MH2030A_DM9051_uIP_int` | `../OBJ_UIP_INT/` | `USE_STDPERIPH_DRIVER,MH2030A_UIP_PORT,DMPLUG_INT` | uIP + DM9051A interrupt 版本；啟用 PF6/EXTI6 中斷處理。 |
 
 共同設定：
@@ -187,4 +187,23 @@ PB4  MISO
 - uIP target 已加入完整 include path，涵蓋 middleware、app source、webserver include、DM9051 beta driver。
 - `MH2030A_UIP_PORT` 已用來區分基礎 SPI probe 與 uIP bring-up。
 - `DMPLUG_INT` 已用來隔離 interrupt 版本，且 interrupt 腳位配置為 PF6/EXTI6。
+- `MH2030A_DM9051_SPI_DMA` 已加入 `MH2030A_DM9051_uIP_dma` target，用於與一般 uIP target 明確分流。
+- 已新增 target matrix 與自動驗證腳本，可在修改 `.uvprojx` 後快速檢查設定漂移。
 - 截圖顯示基礎 `DM9051A` 與 `DM9051A_SPI_DMA` target 已能 build 並產生 hex。
+
+## 8. 自動化檢查
+
+- Target matrix 文件：`docs/mh2030a_proj/dm9051_target_matrix.md`
+- 驗證腳本：`tools/keil/validate-dm9051-targets.ps1`
+
+執行方式（於 repo root）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/keil/validate-dm9051-targets.ps1
+```
+
+預期輸出：
+
+```text
+DM9051 target validation PASSED.
+```
