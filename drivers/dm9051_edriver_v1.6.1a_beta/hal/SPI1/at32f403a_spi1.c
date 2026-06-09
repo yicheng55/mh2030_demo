@@ -275,7 +275,7 @@ static __inline void hal_spi_mem_read(uint8_t reg, uint8_t *buf, uint16_t len)
  * @param  buf: Buffer containing data to write
  * @param  len: Number of bytes to write
  */
-static __inline void hal_spi_mem_write(uint8_t reg, uint8_t *buf, uint16_t len)
+static __inline void hal_spi_mem_write(uint8_t reg, const uint8_t *buf, uint16_t len)
 {
 	uint16_t i;
 	hal_spi_cmdxfer(reg);
@@ -332,7 +332,7 @@ void hal_read_mem(uint8_t *buf, uint16_t len)
  * @param  buf: Buffer containing data to write
  * @param  len: Number of bytes to write
  */
-void hal_write_mem(uint8_t *buf, uint16_t len)
+void hal_write_mem(const uint8_t *buf, uint16_t len)
 {
 	hal_stdpin_lo();
 	hal_spi_mem_write(DM9051_MWCMD | OPC_REG_W, buf, len);

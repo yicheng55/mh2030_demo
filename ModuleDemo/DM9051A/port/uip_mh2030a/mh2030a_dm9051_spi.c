@@ -185,7 +185,7 @@ void hal_read_mem(uint8_t *buf, uint16_t len)
     deselect_dm9051();
 }
 
-void hal_write_mem(uint8_t *buf, uint16_t len)
+void hal_write_mem(const uint8_t *buf, uint16_t len)
 {
     uint16_t i;
 

@@ -1,6 +1,7 @@
 #ifndef __DM9051_HAL_MH2030A_H
 #define __DM9051_HAL_MH2030A_H
 
+#include "../include/dm9051_hal.h"
 #include "hal_mh2030a.h"
 
 #ifdef __cplusplus

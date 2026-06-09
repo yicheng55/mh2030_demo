@@ -355,7 +355,7 @@ void	  hal_spi_initialize(void);
 uint8_t   hal_read_reg(uint8_t reg);
 void      hal_write_reg(uint8_t reg, uint8_t val);
 void      hal_read_mem(uint8_t *buf, uint16_t len);
-void      hal_write_mem(uint8_t *buf, uint16_t len);
+void      hal_write_mem(const uint8_t *buf, uint16_t len);
 char *hal_spi_info(int idx);
 uint32_t hal_int_initialize(void);
 void hal_enable_mcu_irq(void);
