@@ -17,14 +17,14 @@ description: "Skill for the Freertos area of mh2030_demo. 157 symbols across 13 
 
 | File | Symbols |
 |------|---------|
-| `ModuleDemo/OS/FREERTOS/SYSTEM/freertos/tasks.c` | vApplicationStackOverflowHook, vApplicationTickHook, prvResetNextTaskUnblockTime, prvWriteNameToBuffer, vTaskDelete (+56) |
+| `ModuleDemo/OS/FREERTOS/SYSTEM/freertos/tasks.c` | vApplicationStackOverflowHook, vApplicationTickHook, prvSearchForNameWithinSingleList, prvResetNextTaskUnblockTime, prvWriteNameToBuffer (+56) |
 | `ModuleDemo/OS/FREERTOS/SYSTEM/freertos/queue.c` | vQueueWaitForMessageRestricted, xQueueGiveMutexRecursive, xQueueTakeMutexRecursive, xQueueGenericReceive, prvIsQueueEmpty (+29) |
 | `ModuleDemo/OS/FREERTOS/SYSTEM/freertos/timers.c` | xTimerGenericCommand, prvProcessExpiredTimer, prvTimerTask, prvProcessTimerOrBlockTask, prvGetNextExpireTime (+11) |
 | `ModuleDemo/OS/FREERTOS/SYSTEM/freertos/event_groups.c` | xEventGroupSync, xEventGroupWaitBits, xEventGroupSetBits, vEventGroupDelete, vEventGroupSetBitsCallback (+7) |
 | `ModuleDemo/OS/FREERTOS/SYSTEM/freertos/croutine.c` | prvCheckPendingReadyList, prvCheckDelayedList, vCoRoutineSchedule, vCoRoutineAddToDelayedList, xCoRoutineRemoveFromEventList (+2) |
 | `ModuleDemo/OS/FREERTOS/SYSTEM/freertos/list.c` | vListInsertEnd, vListInsert, uxListRemove, vListInitialiseItem, vListInitialise |
 | `ModuleDemo/OS/FREERTOS/SYSTEM/freertos/port.c` | xPortPendSVHandler, pxPortInitialiseStack, prvSetupTimerInterrupt, prvPortStartFirstTask, vPortEndScheduler |
-| `ModuleDemo/OS/FREERTOS/SYSTEM/freertos/heap_4.c` | prvHeapInit, pvPortMalloc, vPortFree, prvInsertBlockIntoFreeList |
+| `ModuleDemo/OS/FREERTOS/SYSTEM/freertos/heap_4.c` | prvInsertBlockIntoFreeList, prvHeapInit, pvPortMalloc, vPortFree |
 | `ModuleDemo/OS/FREERTOS/USER/main.c` | NVIC_Configuration, main, TEST_Thread1, TEST_Thread2 |
 | `ModuleDemo/OS/FREERTOS/SYSTEM/freertos/heap_2.c` | prvHeapInit, pvPortMalloc, vPortFree |
 
@@ -85,6 +85,6 @@ Start here when exploring this area:
 
 ## How to Explore
 
-1. `context({name: "vCoRoutineSchedule"})` — see callers and callees
-2. `query({query: "freertos"})` — find related execution flows
+1. `gitnexus_context({name: "vCoRoutineSchedule"})` — see callers and callees
+2. `gitnexus_query({query: "freertos"})` — find related execution flows
 3. Read key files listed above for implementation details

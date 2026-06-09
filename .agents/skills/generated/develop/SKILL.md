@@ -1,11 +1,11 @@
 ---
 name: develop
-description: "Skill for the Develop area of mh2030_demo. 27 symbols across 14 files."
+description: "Skill for the Develop area of mh2030_demo. 25 symbols across 12 files."
 ---
 
 # Develop
 
-27 symbols | 14 files | Cohesion: 77%
+25 symbols | 12 files | Cohesion: 84%
 
 ## When to Use
 
@@ -17,8 +17,8 @@ description: "Skill for the Develop area of mh2030_demo. 27 symbols across 14 fi
 
 | File | Symbols |
 |------|---------|
-| `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd-fs.c` | httpd_fs_strcmp, httpd_fs_count, update_ajax_fsfile, update_barinfo_fsfile, update_adc_fsfile (+2) |
-| `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd.c` | DM9051_DoRXDUMP, next_scriptstate, update_onoff_led, Set_LED_mode_button, ledflag_of_input (+2) |
+| `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd-fs.c` | httpd_fs_strcmp, update_ajax_fsfile, update_barinfo_fsfile, update_adc_fsfile, update_led_fsfile (+2) |
+| `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd.c` | ledflag_of_input, DM9051_DoRXDUMP, next_scriptstate, update_onoff_led, Set_LED_mode_button (+2) |
 | `middlewares/3rd_party/uip/src/uip.c` | uip_log, htons |
 | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/AT - do/httpd-cgi.c` | generate_tcp_stats |
 | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/AT/httpd-cgi.c` | generate_tcp_stats |
@@ -35,8 +35,8 @@ Start here when exploring this area:
 - **`uip_log`** (Function) — `middlewares/3rd_party/uip/src/uip.c:240`
 - **`htons`** (Function) — `middlewares/3rd_party/uip/src/uip.c:1883`
 - **`httpd_fs_strcmp`** (Function) — `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd-fs.c:86`
-- **`httpd_fs_count`** (Function) — `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd-fs.c:271`
-- **`DM9051_DoRXDUMP`** (Function) — `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd.c:78`
+- **`update_ajax_fsfile`** (Function) — `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd-fs.c:128`
+- **`update_barinfo_fsfile`** (Function) — `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd-fs.c:152`
 
 ## Key Symbols
 
@@ -45,14 +45,14 @@ Start here when exploring this area:
 | `uip_log` | Function | `middlewares/3rd_party/uip/src/uip.c` | 240 |
 | `htons` | Function | `middlewares/3rd_party/uip/src/uip.c` | 1883 |
 | `httpd_fs_strcmp` | Function | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd-fs.c` | 86 |
-| `httpd_fs_count` | Function | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd-fs.c` | 271 |
-| `DM9051_DoRXDUMP` | Function | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd.c` | 78 |
 | `update_ajax_fsfile` | Function | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd-fs.c` | 128 |
 | `update_barinfo_fsfile` | Function | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd-fs.c` | 152 |
 | `update_adc_fsfile` | Function | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd-fs.c` | 167 |
 | `update_led_fsfile` | Function | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd-fs.c` | 189 |
 | `httpd_fs_open` | Function | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd-fs.c` | 200 |
+| `httpd_fs_count` | Function | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd-fs.c` | 271 |
 | `ledflag_of_input` | Function | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd.c` | 252 |
+| `DM9051_DoRXDUMP` | Function | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd.c` | 78 |
 | `httpd_appcall` | Function | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd.c` | 572 |
 | `generate_tcp_stats` | Function | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/AT - do/httpd-cgi.c` | 140 |
 | `generate_tcp_stats` | Function | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/AT/httpd-cgi.c` | 140 |
@@ -67,11 +67,10 @@ Start here when exploring this area:
 
 | Area | Connections |
 |------|-------------|
-| Ppp | 2 calls |
 | USER | 1 calls |
 
 ## How to Explore
 
-1. `context({name: "uip_log"})` — see callers and callees
-2. `query({query: "develop"})` — find related execution flows
+1. `gitnexus_context({name: "uip_log"})` — see callers and callees
+2. `gitnexus_query({query: "develop"})` — find related execution flows
 3. Read key files listed above for implementation details

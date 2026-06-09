@@ -57,6 +57,6 @@ Start here when exploring this area:
 
 ## How to Explore
 
-1. `context({name: "NVIC_SetPriority"})` — see callers and callees
-2. `query({query: "include"})` — find related execution flows
+1. `gitnexus_context({name: "NVIC_SetPriority"})` — see callers and callees
+2. `gitnexus_query({query: "include"})` — find related execution flows
 3. Read key files listed above for implementation details

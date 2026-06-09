@@ -1,24 +1,24 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **mh2030_demo** (12614 symbols, 19286 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **mh2030_demo** (23708 symbols, 37520 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
-> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
+> Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 
 ## Always Do
 
-- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
-- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
+- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
+- **MUST run `detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows. For regression review, compare against the default branch: `detect_changes({scope: "compare", base_ref: "master"})`.
 - **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
-- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
-- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
+- When exploring unfamiliar code, use `query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
+- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `context({name: "symbolName"})`.
 
 ## Never Do
 
-- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
+- NEVER edit a function, class, or method without first running `impact` on it.
 - NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
-- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
-- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
+- NEVER rename symbols with find-and-replace — use `rename` which understands the call graph.
+- NEVER commit changes without running `detect_changes()` to check affected scope.
 
 ## Resources
 
@@ -39,25 +39,25 @@ This project is indexed by GitNexus as **mh2030_demo** (12614 symbols, 19286 rel
 | Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
 | Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
-| Work in the USER area (578 symbols) | `.claude/skills/generated/user/SKILL.md` |
+| Work in the Ppp area (674 symbols) | `.claude/skills/generated/ppp/SKILL.md` |
+| Work in the USER area (586 symbols) | `.claude/skills/generated/user/SKILL.md` |
+| Work in the Api area (239 symbols) | `.claude/skills/generated/api/SKILL.md` |
+| Work in the Http area (174 symbols) | `.claude/skills/generated/http/SKILL.md` |
 | Work in the Freertos area (157 symbols) | `.claude/skills/generated/freertos/SKILL.md` |
+| Work in the Snmp area (142 symbols) | `.claude/skills/generated/snmp/SKILL.md` |
+| Work in the Ipv4 area (105 symbols) | `.claude/skills/generated/ipv4/SKILL.md` |
+| Work in the Tcp area (76 symbols) | `.claude/skills/generated/tcp/SKILL.md` |
+| Work in the Uip_mh2030a area (56 symbols) | `.claude/skills/generated/uip-mh2030a/SKILL.md` |
 | Work in the Delay area (54 symbols) | `.claude/skills/generated/delay/SKILL.md` |
-| Work in the Uip_mh2030a area (43 symbols) | `.claude/skills/generated/uip-mh2030a/SKILL.md` |
-| Work in the Bsp area (38 symbols) | `.claude/skills/generated/bsp/SKILL.md` |
-| Work in the Oled area (28 symbols) | `.claude/skills/generated/oled/SKILL.md` |
-| Work in the Develop area (25 symbols) | `.claude/skills/generated/develop/SKILL.md` |
+| Work in the Lwiperf area (48 symbols) | `.claude/skills/generated/lwiperf/SKILL.md` |
+| Work in the Mdns area (44 symbols) | `.claude/skills/generated/mdns/SKILL.md` |
+| Work in the Bsp area (33 symbols) | `.claude/skills/generated/bsp/SKILL.md` |
+| Work in the Netif area (33 symbols) | `.claude/skills/generated/netif/SKILL.md` |
+| Work in the Smtp area (31 symbols) | `.claude/skills/generated/smtp/SKILL.md` |
+| Work in the Mqtt area (29 symbols) | `.claude/skills/generated/mqtt/SKILL.md` |
+| Work in the Develop area (27 symbols) | `.claude/skills/generated/develop/SKILL.md` |
+| Work in the Tcp_ area (27 symbols) | `.claude/skills/generated/tcp-2/SKILL.md` |
+| Work in the Makefsdata area (26 symbols) | `.claude/skills/generated/makefsdata/SKILL.md` |
 | Work in the Include area (25 symbols) | `.claude/skills/generated/include/SKILL.md` |
-| Work in the IOT area (20 symbols) | `.claude/skills/generated/iot/SKILL.md` |
-| Work in the At24C02 area (19 symbols) | `.claude/skills/generated/at24c02/SKILL.md` |
-| Work in the W25qxx area (17 symbols) | `.claude/skills/generated/w25qxx/SKILL.md` |
-| Work in the AT - do area (16 symbols) | `.claude/skills/generated/at-do/SKILL.md` |
-| Work in the SPI1 area (15 symbols) | `.claude/skills/generated/spi1/SKILL.md` |
-| Work in the Cluster_139 area (15 symbols) | `.claude/skills/generated/cluster-139/SKILL.md` |
-| Work in the At32f415_dm9051 area (13 symbols) | `.claude/skills/generated/at32f415-dm9051/SKILL.md` |
-| Work in the DM area (13 symbols) | `.claude/skills/generated/dm/SKILL.md` |
-| Work in the Cluster_124 area (10 symbols) | `.claude/skills/generated/cluster-124/SKILL.md` |
-| Work in the Dhcpc area (10 symbols) | `.claude/skills/generated/dhcpc/SKILL.md` |
-| Work in the Udp_app area (9 symbols) | `.claude/skills/generated/udp-app/SKILL.md` |
-| Work in the Cluster_35 area (8 symbols) | `.claude/skills/generated/cluster-35/SKILL.md` |
 
 <!-- gitnexus:end -->
