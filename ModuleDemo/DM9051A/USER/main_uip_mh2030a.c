@@ -6,10 +6,10 @@
 int main(void)
 {
     mh2030a_uip_board_init(115200);
-    mh2030a_uip_tick_init();
 
     printf("[MH2030A uIP] DM9051 + uIP bring-up\r\n");
     mh2030a_uip_net_init();
+    mh2030a_uip_tick_init();
 
 #if WEB_EN
     httpd_init();
