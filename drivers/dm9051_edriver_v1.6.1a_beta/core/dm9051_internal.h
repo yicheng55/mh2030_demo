@@ -1,5 +1,5 @@
-#ifndef __DM9051_VER_H
-#define __DM9051_VER_H
+#ifndef __DM9051_INTERNAL_H
+#define __DM9051_INTERNAL_H
 #include <stdio.h>
 #include <string.h>
 
@@ -305,7 +305,7 @@ static void ver_string_get(char *ver_buf, char *path_info)
 
 static char *dm_version_info(void) //(char *version_string)
 {
-	char path_info[42];
+	char path_info[sizeof(__FILE__)];
 	sprintf(path_info, "%s", __FILE__); // dm_version_display(path_info);
 	printf("\r\n\r\n\r\n");
 	printf("[%s]\r\n\r\n", "POWER-ON");
@@ -398,4 +398,4 @@ void cspi_enable_irq(void);
 void cspi_set_recv(void);
 uint16_t env_err_rsthdlr3(const char *format, ...);
 
-#endif //__DM9051_VER_H
+#endif //__DM9051_INTERNAL_H

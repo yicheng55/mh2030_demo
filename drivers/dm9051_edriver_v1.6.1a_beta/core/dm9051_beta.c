@@ -25,7 +25,7 @@
 #include <stdlib.h>
 
 #include "dm9051.h"
-#include "ver.h"
+#include "dm9051_internal.h"
 //#include "dm9051opts1.h"
 
 char *dm9051_info(void)

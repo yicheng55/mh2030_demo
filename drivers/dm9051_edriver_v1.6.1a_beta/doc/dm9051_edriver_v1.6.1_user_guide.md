@@ -8,7 +8,7 @@
 	core/
 		├── dm9051.c                # Core functions and operations
 		├── dm9051.h                # Header for core functions
-		└── ver.h                   # Version information
+		└── dm9051_internal.h       # Internal definitions and version information
 	hal/
 		├── hal_at32f437.h          # MCU header for AT32F437
 		├── hal_stm32f103.h         # MCU header for STM32F103
