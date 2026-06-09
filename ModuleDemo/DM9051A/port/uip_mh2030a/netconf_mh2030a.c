@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
-uint32_t uip_elapsed_ms = 0;
+volatile uint32_t uip_elapsed_ms = 0;
 uint32_t g_RunTime = 0;
 volatile uint32_t all_local_time = 0;
 

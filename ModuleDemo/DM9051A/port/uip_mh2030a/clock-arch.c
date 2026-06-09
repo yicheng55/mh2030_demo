@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 extern void mh2030a_uip_update_time(void);
-extern uint32_t uip_elapsed_ms;
+extern volatile uint32_t uip_elapsed_ms;
 extern uint32_t g_RunTime;
 
 void mh2030a_uip_tick_init(void)
