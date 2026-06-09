@@ -2,8 +2,10 @@
 #ifndef __DM9051_H
 #define __DM9051_H
 
+/* Platform-agnostic HAL: function declarations and macro aliases only.
+ * No MH2030A-specific headers are included here. */
 #include "../include/dm9051_hal.h"
-#include "../hal/dm9051_hal_mh2030a.h"
+#include "../include/dm9051_hal_api.h"
 
 #ifdef __cplusplus
 extern "C" {
