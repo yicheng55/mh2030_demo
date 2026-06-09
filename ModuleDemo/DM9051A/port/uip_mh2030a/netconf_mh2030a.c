@@ -16,6 +16,8 @@ static struct timer periodic_timer;
 static struct timer arp_timer;
 static int dm9051_input_mode;
 
+#define MH2030A_UIP_RX_BURST_MAX 8u
+
 void uip_log(char *msg)
 {
     printf("[uIP] %s\r\n", msg);
@@ -96,11 +98,11 @@ void mh2030a_uip_net_init(void)
            MH2030A_UIP_STATIC_IP2, MH2030A_UIP_STATIC_IP3);
 }
 
-static void process_received_ethernet_frame(void)
+static uint8_t process_received_ethernet_frame(void)
 {
     uip_len = ethernetif_input();
     if (uip_len == 0) {
-        return;
+        return 0u;
     }
 
     if (((struct uip_eth_hdr *)&uip_buf[0])->type == htons(UIP_ETHTYPE_IP)) {
@@ -116,6 +118,8 @@ static void process_received_ethernet_frame(void)
             ethernetif_output();
         }
     }
+
+    return 1u;
 }
 
 static void process_uip_periodic_timers(void)
@@ -154,7 +158,14 @@ static void process_uip_periodic_timers(void)
 void mh2030a_uip_net_loop(void)
 {
     if (dm9051_interrupt_get()) {
-        process_received_ethernet_frame();
+        uint8_t rx_burst = 0u;
+
+        while (rx_burst < MH2030A_UIP_RX_BURST_MAX) {
+            if (!process_received_ethernet_frame()) {
+                break;
+            }
+            ++rx_burst;
+        }
         dm9051_interrupt_reset();
     }
     process_uip_periodic_timers();
