@@ -15,6 +15,7 @@ volatile uint32_t all_local_time = 0;
 static struct timer periodic_timer;
 static struct timer arp_timer;
 static int dm9051_input_mode;
+static uint8_t rx_drain_pending;
 
 #define MH2030A_UIP_RX_BURST_MAX 8u
 
@@ -157,16 +158,22 @@ static void process_uip_periodic_timers(void)
 
 void mh2030a_uip_net_loop(void)
 {
-    if (dm9051_interrupt_get()) {
+    if (rx_drain_pending || dm9051_interrupt_get()) {
         uint8_t rx_burst = 0u;
 
+        rx_drain_pending = 0u;
         while (rx_burst < MH2030A_UIP_RX_BURST_MAX) {
             if (!process_received_ethernet_frame()) {
                 break;
             }
             ++rx_burst;
         }
-        dm9051_interrupt_reset();
+        if (rx_burst == MH2030A_UIP_RX_BURST_MAX) {
+            rx_drain_pending = 1u;
+        }
+        if (!rx_drain_pending) {
+            dm9051_interrupt_reset();
+        }
     }
     process_uip_periodic_timers();
 }
