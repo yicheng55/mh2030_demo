@@ -19,6 +19,17 @@ static uint8_t rx_drain_pending;
 
 #define MH2030A_UIP_RX_BURST_MAX 8u
 
+const char *mh2030a_uip_target_mode(void)
+{
+#if defined(DMPLUG_INT)
+    return "interrupt";
+#elif defined(MH2030A_DM9051_SPI_DMA)
+    return "spi dma";
+#else
+    return "polling";
+#endif
+}
+
 void uip_log(char *msg)
 {
     printf("[uIP] %s\r\n", msg);
@@ -90,7 +101,8 @@ void mh2030a_uip_net_init(void)
                MH2030A_UIP_MASK_IP2, MH2030A_UIP_MASK_IP3);
     uip_setnetmask(ipaddr);
 
-    printf("[MH2030A uIP] mode=%s\r\n", dm9051_input_mode == INPUT_MODE_POLL ? "poll" : "interrupt");
+    printf("[MH2030A uIP] target mode=%s\r\n", mh2030a_uip_target_mode());
+    printf("[MH2030A uIP] input mode=%s\r\n", dm9051_input_mode == INPUT_MODE_POLL ? "poll" : "interrupt");
     printf("[MH2030A uIP] MAC %02X:%02X:%02X:%02X:%02X:%02X\r\n",
            uip_ethaddr.addr[0], uip_ethaddr.addr[1], uip_ethaddr.addr[2],
            uip_ethaddr.addr[3], uip_ethaddr.addr[4], uip_ethaddr.addr[5]);
