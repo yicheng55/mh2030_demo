@@ -49,5 +49,8 @@ Current staging implementation status:
   without requiring platform headers.
 - `dm9051_mh2030a_transport_name()` and `dm9051_mh2030a_irq_name()` are usable
   string helpers.
-- `dm9051_mh2030a_hal_bind()` validates parameters, clears the HAL handle, and
-  returns `DM9051_HAL_ERR` until real polling/DMA ops are implemented.
+- `dm9051_mh2030a_hal_bind()` validates parameters, binds a staging vtable,
+  and returns `DM9051_HAL_ERR_NOT_READY` until real polling/DMA ops are
+  implemented.
+- The staging vtable implements argument checks and zero-length FIFO success,
+  but all real register/FIFO transfers return `DM9051_HAL_ERR_NOT_READY`.

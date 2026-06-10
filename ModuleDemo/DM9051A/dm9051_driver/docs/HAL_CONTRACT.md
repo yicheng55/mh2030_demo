@@ -12,6 +12,7 @@ API in `drivers/dm9051_edriver_v1.6.1a_beta/include/dm9051_hal_api.h`.
 | `DM9051_HAL_ERR` | General platform or bus failure. |
 | `DM9051_HAL_ERR_TIMEOUT` | SPI/DMA/IRQ wait timed out. |
 | `DM9051_HAL_ERR_PARAM` | Invalid argument, such as NULL buffer with nonzero length. |
+| `DM9051_HAL_ERR_NOT_READY` | HAL shape is present, but the transport is not wired to hardware yet. |
 
 ## Register Access
 
@@ -43,6 +44,10 @@ a staged device binding:
 `reset`, IRQ hooks, and critical-section hooks remain optional at this stage.
 This lets polling-only targets bind without an interrupt implementation while
 still preventing an empty HAL vtable from reaching future RX/TX code.
+
+Staging ports may provide a complete vtable whose bus operations return
+`DM9051_HAL_ERR_NOT_READY`. This is useful for adapter/core build checks, but
+must not be treated as a functional hardware transport.
 
 ## FIFO Access
 

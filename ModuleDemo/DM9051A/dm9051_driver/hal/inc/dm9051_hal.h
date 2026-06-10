@@ -14,6 +14,7 @@ extern "C" {
 #define DM9051_HAL_ERR           -1
 #define DM9051_HAL_ERR_TIMEOUT   -2
 #define DM9051_HAL_ERR_PARAM     -3
+#define DM9051_HAL_ERR_NOT_READY -4
 
 typedef struct dm9051_hal_ops {
     /* Register access: reg is the DM9051 register address without SPI opcode. */

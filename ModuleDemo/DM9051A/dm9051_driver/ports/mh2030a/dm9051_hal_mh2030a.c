@@ -13,6 +13,103 @@
 
 #include "dm9051_hal_mh2030a.h"
 
+static int dm9051_mh2030a_staging_read_reg(void *ctx,
+                                            uint8_t reg,
+                                            uint8_t *val)
+{
+    (void)ctx;
+    (void)reg;
+
+    if (val == 0) {
+        return DM9051_HAL_ERR_PARAM;
+    }
+
+    return DM9051_HAL_ERR_NOT_READY;
+}
+
+static int dm9051_mh2030a_staging_write_reg(void *ctx,
+                                             uint8_t reg,
+                                             uint8_t val)
+{
+    (void)ctx;
+    (void)reg;
+    (void)val;
+    return DM9051_HAL_ERR_NOT_READY;
+}
+
+static int dm9051_mh2030a_staging_read_mem(void *ctx,
+                                            uint8_t *buf,
+                                            uint16_t len)
+{
+    (void)ctx;
+
+    if ((buf == 0) && (len != 0u)) {
+        return DM9051_HAL_ERR_PARAM;
+    }
+
+    if (len == 0u) {
+        return DM9051_HAL_OK;
+    }
+
+    return DM9051_HAL_ERR_NOT_READY;
+}
+
+static int dm9051_mh2030a_staging_write_mem(void *ctx,
+                                             const uint8_t *buf,
+                                             uint16_t len)
+{
+    (void)ctx;
+
+    if ((buf == 0) && (len != 0u)) {
+        return DM9051_HAL_ERR_PARAM;
+    }
+
+    if (len == 0u) {
+        return DM9051_HAL_OK;
+    }
+
+    return DM9051_HAL_ERR_NOT_READY;
+}
+
+static void dm9051_mh2030a_staging_reset(void *ctx)
+{
+    (void)ctx;
+}
+
+static void dm9051_mh2030a_staging_delay_ms(uint32_t ms)
+{
+    (void)ms;
+}
+
+static void dm9051_mh2030a_staging_delay_us(uint32_t us)
+{
+    (void)us;
+}
+
+static void dm9051_mh2030a_staging_irq_enable(void *ctx)
+{
+    (void)ctx;
+}
+
+static void dm9051_mh2030a_staging_irq_disable(void *ctx)
+{
+    (void)ctx;
+}
+
+static const dm9051_hal_ops_t dm9051_mh2030a_staging_ops = {
+    dm9051_mh2030a_staging_read_reg,
+    dm9051_mh2030a_staging_write_reg,
+    dm9051_mh2030a_staging_read_mem,
+    dm9051_mh2030a_staging_write_mem,
+    dm9051_mh2030a_staging_reset,
+    dm9051_mh2030a_staging_delay_ms,
+    dm9051_mh2030a_staging_delay_us,
+    dm9051_mh2030a_staging_irq_enable,
+    dm9051_mh2030a_staging_irq_disable,
+    0,
+    0
+};
+
 void dm9051_mh2030a_default_config(dm9051_mh2030a_config_t *config)
 {
     if (config == 0) {
@@ -72,9 +169,9 @@ int dm9051_mh2030a_hal_bind(dm9051_hal_t *hal,
         return DM9051_HAL_ERR_PARAM;
     }
 
-    hal->ops = 0;
+    hal->ops = &dm9051_mh2030a_staging_ops;
     hal->ctx = 0;
-    return DM9051_HAL_ERR;
+    return DM9051_HAL_ERR_NOT_READY;
 }
 
 const char *dm9051_mh2030a_transport_name(dm9051_mh2030a_transport_t transport)
