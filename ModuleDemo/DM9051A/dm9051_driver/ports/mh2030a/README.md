@@ -27,3 +27,16 @@ portable build should make the transport selection explicit to avoid duplicate
 `hal_*` symbols.
 
 See `../../docs/BUILD_SELECTION.md` for the current target matrix.
+
+## Future Port API
+
+The staging header `dm9051_hal_mh2030a.h` defines an explicit config model:
+
+- `dm9051_mh2030a_transport_t`: polling or DMA SPI.
+- `dm9051_mh2030a_irq_mode_t`: IRQ off or EXTI IRQ.
+- `dm9051_mh2030a_pins_t`: pin assignment for CS/SCK/MISO/MOSI/RST/INT.
+- `dm9051_mh2030a_config_t`: transport, IRQ, pins, and timeout.
+
+The future implementation should bind this config into `dm9051_hal_t` with
+`dm9051_mh2030a_hal_bind()`. Until that function is implemented and wired into
+a target, the production code remains the current flat `hal_*` implementation.

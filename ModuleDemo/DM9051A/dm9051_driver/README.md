@@ -44,6 +44,11 @@ files as part of the staging step.
 The current Keil target transport selection is documented in
 `docs/BUILD_SELECTION.md`. The staged driver is not wired into those targets.
 
+## API Boundary
+
+The intended dependency direction and adapter/core/HAL ownership rules are
+documented in `docs/API_BOUNDARY.md`.
+
 ## Refactor Phases
 
 1. Add this staging layout and document file ownership.
@@ -63,5 +68,7 @@ The current Keil target transport selection is documented in
   definitions used by the current core.
 - `core/inc/dm9051_core.h` contains a staging snapshot of the current public
   core API.
+- `ports/mh2030a/dm9051_hal_mh2030a.h` contains the future MH2030A transport
+  and IRQ config model.
 
 These files are not included by the existing Keil project yet.
