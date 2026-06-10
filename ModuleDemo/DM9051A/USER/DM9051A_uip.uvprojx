@@ -528,6 +528,16 @@
               <FileType>1</FileType>
               <FilePath>..\dm9051_driver\ports\mh2030a\mh2030a_board.c</FilePath>
             </File>
+            <File>
+              <FileName>mh2030a_platform.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\dm9051_driver\ports\mh2030a\mh2030a_platform.h</FilePath>
+            </File>
+            <File>
+              <FileName>mh2030a_board.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\dm9051_driver\ports\mh2030a\mh2030a_board.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

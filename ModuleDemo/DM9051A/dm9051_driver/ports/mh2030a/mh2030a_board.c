@@ -1,6 +1,5 @@
 #include "mh2030a_board.h"
-
-#include "../../../port/mh2030a/hal_mh2030a.h"
+#include "mh2030a_platform.h"
 
 #include <stdarg.h>
 #include <stdio.h>

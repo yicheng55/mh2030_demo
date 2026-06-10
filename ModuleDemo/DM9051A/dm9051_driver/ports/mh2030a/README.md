@@ -8,6 +8,7 @@ HAL interface.
 | File | Role |
 | --- | --- |
 | `dm9051_hal_mh2030a.c/.h` | DM9051 HAL binding for MH2030A SPI/GPIO/IRQ/delay. |
+| `mh2030a_platform.h` | Local MH2030A platform include shim for `mh20xx.h` and `delay.h`. |
 | `mh2030a_board.c/.h` | MH2030A board bring-up helpers for clock, debug UART, and printf retargeting. |
 
 ## Current Pin Mapping

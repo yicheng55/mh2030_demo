@@ -12,9 +12,9 @@
  */
 
 #include "dm9051_hal_mh2030a.h"
+#include "mh2030a_platform.h"
 
 #include "../../core/inc/dm9051_regs.h"
-#include "../../../port/mh2030a/hal_mh2030a.h"
 
 #define DM9051_MH2030A_SPI        SPI1
 #define DM9051_MH2030A_CS_PORT    GPIOA
