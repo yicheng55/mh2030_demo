@@ -70,3 +70,12 @@ int dm9051_uip_mh2030a_smoke_last_status(void)
 {
     return dm9051_uip_mh2030a_smoke_status;
 }
+
+uint16_t dm9051_uip_mh2030a_smoke_receive(uint8_t *buf, uint16_t buf_len)
+{
+    if (dm9051_uip_mh2030a_smoke_status != DM9051_OK) {
+        return 0u;
+    }
+
+    return dm9051_core_receive(&dm9051_uip_mh2030a_smoke_dev, buf, buf_len);
+}

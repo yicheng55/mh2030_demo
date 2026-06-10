@@ -88,7 +88,17 @@
 #define DM9051_RCR_PRMSC          (1u << 1)
 #define DM9051_RCR_RXEN           (1u << 0)
 #define DM9051_RCR_DEFAULT        (DM9051_RCR_DIS_LONG | DM9051_RCR_DIS_CRC)
+#define DM9051_RSR_RF             (1u << 7)
+#define DM9051_RSR_LCS            (1u << 5)
+#define DM9051_RSR_RWTO           (1u << 4)
+#define DM9051_RSR_AE             (1u << 2)
+#define DM9051_RSR_CE             (1u << 1)
+#define DM9051_RSR_FOE            (1u << 0)
+#define DM9051_RSR_ERR_BITS       (DM9051_RSR_RF | DM9051_RSR_LCS | \
+                                   DM9051_RSR_RWTO | DM9051_RSR_AE | \
+                                   DM9051_RSR_CE | DM9051_RSR_FOE)
 #define DM9051_ISR_PR             (1u << 0)
+#define DM9051_ISR_CLEAR_RX       (1u << 7)
 #define DM9051_IMR_PAR            (1u << 7)
 #define DM9051_IMR_PRM            (1u << 0)
 #define DM9051_IMR_INT_DEFAULT    (DM9051_IMR_PAR | DM9051_IMR_PRM)

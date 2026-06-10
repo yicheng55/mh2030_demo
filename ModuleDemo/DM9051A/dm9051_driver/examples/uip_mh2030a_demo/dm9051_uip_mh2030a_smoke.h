@@ -10,6 +10,7 @@ extern "C" {
 int dm9051_uip_mh2030a_smoke_open(const uint8_t *mac_addr);
 const dm9051_device_t *dm9051_uip_mh2030a_smoke_device(void);
 int dm9051_uip_mh2030a_smoke_last_status(void);
+uint16_t dm9051_uip_mh2030a_smoke_receive(uint8_t *buf, uint16_t buf_len);
 
 #ifdef __cplusplus
 }
