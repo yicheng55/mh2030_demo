@@ -46,6 +46,10 @@ int dm9051_core_interrupt_take(dm9051_device_t *dev);
 void dm9051_core_interrupt_reset(dm9051_device_t *dev);
 
 const uint8_t *dm9051_core_mac(const dm9051_device_t *dev);
+int dm9051_core_device_found(const dm9051_device_t *dev);
+uint16_t dm9051_core_vendor_id(const dm9051_device_t *dev);
+uint16_t dm9051_core_product_id(const dm9051_device_t *dev);
+uint8_t dm9051_core_chip_revision(const dm9051_device_t *dev);
 
 /* -------------------------------------------------------------------------
  * Legacy compatibility API

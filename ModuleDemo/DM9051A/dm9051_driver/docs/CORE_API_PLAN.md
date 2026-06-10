@@ -42,6 +42,10 @@ int dm9051_core_interrupt_take(dm9051_device_t *dev);
 void dm9051_core_interrupt_reset(dm9051_device_t *dev);
 
 const uint8_t *dm9051_core_mac(const dm9051_device_t *dev);
+int dm9051_core_device_found(const dm9051_device_t *dev);
+uint16_t dm9051_core_vendor_id(const dm9051_device_t *dev);
+uint16_t dm9051_core_product_id(const dm9051_device_t *dev);
+uint8_t dm9051_core_chip_revision(const dm9051_device_t *dev);
 ```
 
 `struct dm9051_hal` is forward-declared to keep `dm9051_core.h` independent
@@ -77,12 +81,16 @@ The context API currently implements only safe state handling:
 - `dm9051_netif_device_is_valid()` currently checks only pointer validity so
   adapters do not prematurely reject DHCP or legacy zero-address staging cases.
 - `dm9051_core_open()` validates config and the minimum HAL binding set, copies
-  config/HAL/MAC into `dm9051_device_t`, and returns `DM9051_ERR_NOT_READY`
-  because chip initialization is not copied yet.
+  config/HAL/MAC into `dm9051_device_t`, resets the device if the HAL provides
+  a reset hook, probes `VIDL/VIDH/PIDL/PIDH/CHIPR`, and returns `DM9051_OK`
+  only when the staged ID probe succeeds.
 - `dm9051_core_close()` clears the device context.
 - `dm9051_core_interrupt_set/take/reset()` operate on the staged interrupt event
   flag only.
 - `dm9051_core_mac()` returns the staged MAC buffer.
+- `dm9051_core_device_found()`, `dm9051_core_vendor_id()`,
+  `dm9051_core_product_id()`, and `dm9051_core_chip_revision()` expose the
+  staged probe result.
 - RX/TX/PHY functions return neutral not-ready values until the production core
   logic is copied.
 

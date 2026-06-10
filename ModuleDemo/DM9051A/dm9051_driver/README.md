@@ -45,6 +45,10 @@ files as part of the staging step.
 The current Keil target transport selection is documented in
 `docs/BUILD_SELECTION.md`. The staged driver is not wired into those targets.
 
+The separate `ModuleDemo/DM9051A/USER/DM9051A_uip.uvprojx` project includes
+the staged uIP/polling-driver files for incremental validation. The original
+`DM9051A.uvprojx` remains unchanged.
+
 ## API Boundary
 
 The intended dependency direction and adapter/core/HAL ownership rules are
@@ -96,8 +100,8 @@ The current uIP/lwIP staging behavior is documented in
 - `core/src/dm9051_core.c` and `core/src/dm9051_debug.c` are the only planned
   core source files at this stage.
 - `core/src/dm9051_core.c` currently provides staging-only config/netif
-  validation, minimum HAL binding validation, MAC state copy, interrupt event
-  state, and neutral not-ready RX/TX/PHY behavior.
+  validation, minimum HAL binding validation, MAC state copy, chip-ID probe,
+  interrupt event state, and neutral not-ready RX/TX/PHY behavior.
 - `ports/mh2030a/dm9051_hal_mh2030a.h` contains the future MH2030A transport
   and IRQ config model.
 - `ports/mh2030a/dm9051_hal_mh2030a.c` binds the MH2030A polling SPI HAL to

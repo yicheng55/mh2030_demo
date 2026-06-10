@@ -20,8 +20,11 @@ The staging type is defined in `core/inc/dm9051_types.h`:
 typedef struct dm9051_runtime {
     dm9051_config_t config;
     dm9051_mac_t current_mac;
+    uint16_t vendor_id;
+    uint16_t product_id;
     uint32_t irq_line;
     volatile uint8_t interrupt_event;
+    uint8_t chip_revision;
     uint8_t device_found;
 } dm9051_runtime_t;
 
@@ -48,8 +51,10 @@ default instance.
 | --- | --- |
 | `runtime.config` | checksum options, RX filter mode, flow control, force-stop policy, input mode |
 | `runtime.current_mac` | active programmed MAC |
+| `runtime.vendor_id` | staged probe result from `VIDL/VIDH` |
+| `runtime.product_id` | staged probe result from `PIDL/PIDH` |
 | `runtime.irq_line` | EXTI line currently associated with DM9051 |
 | `runtime.interrupt_event` | ISR-to-main-loop event flag |
+| `runtime.chip_revision` | staged probe result from `CHIPR` |
 | `runtime.device_found` | probe result from chip ID / init |
 | `hal` | platform bus/IRQ/delay operations |
-

@@ -57,6 +57,23 @@
  * once the staged implementation is wired.
  */
 
+static int dm9051_core_hal_status(int status)
+{
+    if (status == DM9051_HAL_OK) {
+        return DM9051_OK;
+    }
+
+    if (status == DM9051_HAL_ERR_TIMEOUT) {
+        return DM9051_ERR_TIMEOUT;
+    }
+
+    if (status == DM9051_HAL_ERR_PARAM) {
+        return DM9051_ERR_PARAM;
+    }
+
+    return DM9051_ERR_NOT_READY;
+}
+
 static int dm9051_core_hal_is_valid(const dm9051_hal_t *hal)
 {
     if ((hal == 0) || (hal->ops == 0)) {
@@ -73,6 +90,72 @@ static int dm9051_core_hal_is_valid(const dm9051_hal_t *hal)
     }
 
     return 1;
+}
+
+static int dm9051_core_read_reg(const dm9051_hal_t *hal,
+                                uint8_t reg,
+                                uint8_t *val)
+{
+    if ((hal == 0) || (hal->ops == 0) || (hal->ops->read_reg == 0)) {
+        return DM9051_ERR_PARAM;
+    }
+
+    return dm9051_core_hal_status(hal->ops->read_reg(hal->ctx, reg, val));
+}
+
+static int dm9051_core_probe(dm9051_device_t *dev, const dm9051_hal_t *hal)
+{
+    uint8_t vidl;
+    uint8_t vidh;
+    uint8_t pidl;
+    uint8_t pidh;
+    uint8_t chipr;
+    int status;
+
+    if ((dev == 0) || (hal == 0)) {
+        return DM9051_ERR_PARAM;
+    }
+
+    status = dm9051_core_read_reg(hal, DM9051_VIDL, &vidl);
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    status = dm9051_core_read_reg(hal, DM9051_VIDH, &vidh);
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    status = dm9051_core_read_reg(hal, DM9051_PIDL, &pidl);
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    status = dm9051_core_read_reg(hal, DM9051_PIDH, &pidh);
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    status = dm9051_core_read_reg(hal, DM9051_CHIPR, &chipr);
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    dev->runtime.vendor_id = (uint16_t)((uint16_t)vidl | ((uint16_t)vidh << 8));
+    dev->runtime.product_id = (uint16_t)((uint16_t)pidl | ((uint16_t)pidh << 8));
+    dev->runtime.chip_revision = chipr;
+
+    if ((dev->runtime.product_id == 0u) ||
+        (dev->runtime.product_id == 0xffffu)) {
+        return DM9051_ERR_NOT_READY;
+    }
+
+    if ((chipr != DM9051_CHIPR_A) && (chipr != DM9051_CHIPR_B)) {
+        return DM9051_ERR_NOT_READY;
+    }
+
+    dev->runtime.device_found = 1u;
+    return DM9051_OK;
 }
 
 /* -------------------------------------------------------------------------
@@ -128,6 +211,8 @@ int dm9051_core_open(dm9051_device_t *dev,
                      const dm9051_config_t *config,
                      struct dm9051_hal *hal)
 {
+    int status;
+
     if ((dev == 0) ||
         !dm9051_core_config_is_valid(config) ||
         !dm9051_core_hal_is_valid((const dm9051_hal_t *)hal)) {
@@ -138,6 +223,9 @@ int dm9051_core_open(dm9051_device_t *dev,
     dev->runtime.irq_line = 0u;
     dev->runtime.interrupt_event = 0u;
     dev->runtime.device_found = 0u;
+    dev->runtime.vendor_id = 0u;
+    dev->runtime.product_id = 0u;
+    dev->runtime.chip_revision = 0u;
     dev->hal = hal;
 
     if (config->mac_addr != 0) {
@@ -148,7 +236,16 @@ int dm9051_core_open(dm9051_device_t *dev,
         (void)memset(dev->runtime.current_mac, 0, DM9051_MAC_ADDR_LENGTH);
     }
 
-    return DM9051_ERR_NOT_READY;
+    if (((dm9051_hal_t *)hal)->ops->reset != 0) {
+        ((dm9051_hal_t *)hal)->ops->reset(((dm9051_hal_t *)hal)->ctx);
+    }
+
+    status = dm9051_core_probe(dev, (const dm9051_hal_t *)hal);
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    return DM9051_OK;
 }
 
 int dm9051_core_close(dm9051_device_t *dev)
@@ -234,6 +331,42 @@ const uint8_t *dm9051_core_mac(const dm9051_device_t *dev)
     }
 
     return dev->runtime.current_mac;
+}
+
+int dm9051_core_device_found(const dm9051_device_t *dev)
+{
+    if (dev == 0) {
+        return 0;
+    }
+
+    return dev->runtime.device_found != 0u;
+}
+
+uint16_t dm9051_core_vendor_id(const dm9051_device_t *dev)
+{
+    if (dev == 0) {
+        return 0u;
+    }
+
+    return dev->runtime.vendor_id;
+}
+
+uint16_t dm9051_core_product_id(const dm9051_device_t *dev)
+{
+    if (dev == 0) {
+        return 0u;
+    }
+
+    return dev->runtime.product_id;
+}
+
+uint8_t dm9051_core_chip_revision(const dm9051_device_t *dev)
+{
+    if (dev == 0) {
+        return 0u;
+    }
+
+    return dev->runtime.chip_revision;
 }
 
 /* -------------------------------------------------------------------------
