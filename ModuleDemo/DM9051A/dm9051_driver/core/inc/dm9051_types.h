@@ -1,14 +1,41 @@
 #ifndef DM9051_TYPES_H
 #define DM9051_TYPES_H
 
-/*
- * Future home for portable DM9051 types, status codes, and configuration.
- *
- * Current sources:
- *   drivers/dm9051_edriver_v1.6.1a_beta/include/dm9051_hal.h
- *   drivers/dm9051_edriver_v1.6.1a_beta/include/dm9051_netif.h
- *   drivers/dm9051_edriver_v1.6.1a_beta/core/dm9051_internal.h
- */
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define DM9051_MAC_ADDR_LENGTH    6u
+#define DM9051_ETH_FRAME_MAX      1514u
+#define DM9051_RX_HEAD_SIZE       4u
+#define DM9051_RX_BUFFER_SIZE     (DM9051_ETH_FRAME_MAX + DM9051_RX_HEAD_SIZE)
+
+#define DM9051_INPUT_MODE_POLL              0
+#define DM9051_INPUT_MODE_INTERRUPT         1
+#define DM9051_INPUT_MODE_INTERRUPT_CLKOUT  2
+
+typedef uint8_t dm9051_mac_t[DM9051_MAC_ADDR_LENGTH];
+
+typedef struct dm9051_config {
+    const uint8_t *mac_addr;
+    uint8_t tx_checksuming;
+    uint8_t rx_checksuming;
+    uint8_t flow_control;
+    uint8_t accept_all;
+    uint8_t interrupt_mode;
+} dm9051_config_t;
+
+typedef struct dm9051_netif_device {
+    const uint8_t *mac_addr;
+    uint8_t static_ip[4];
+    uint8_t gateway_ip[4];
+    uint8_t netmask_ip[4];
+} dm9051_netif_device_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DM9051_TYPES_H */
-

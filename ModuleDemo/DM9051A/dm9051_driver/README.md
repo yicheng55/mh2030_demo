@@ -39,6 +39,11 @@ The existing project remains the source of truth until a later phase explicitly
 switches a target to this directory. Do not remove, rename, or redirect existing
 files as part of the staging step.
 
+## Build Selection
+
+The current Keil target transport selection is documented in
+`docs/BUILD_SELECTION.md`. The staged driver is not wired into those targets.
+
 ## Refactor Phases
 
 1. Add this staging layout and document file ownership.
@@ -48,3 +53,15 @@ files as part of the staging step.
 4. Split core implementation into stable init, RX, TX, PHY, and IRQ sections.
 5. Move uIP-only logic into `adapters/uip` and keep core stack-neutral.
 6. Add lwIP adapter and examples after the core/HAL boundary is stable.
+
+## Current Staging Status
+
+- `hal/inc/dm9051_hal.h` contains a staging copy of the vtable HAL contract.
+- `core/inc/dm9051_types.h` contains portable MAC, buffer, mode, config, and
+  netif device types.
+- `core/inc/dm9051_regs.h` contains a staging subset of register and bit
+  definitions used by the current core.
+- `core/inc/dm9051_core.h` contains a staging snapshot of the current public
+  core API.
+
+These files are not included by the existing Keil project yet.

@@ -26,3 +26,4 @@ The current Keil targets select files with per-target file options. The future
 portable build should make the transport selection explicit to avoid duplicate
 `hal_*` symbols.
 
+See `../../docs/BUILD_SELECTION.md` for the current target matrix.

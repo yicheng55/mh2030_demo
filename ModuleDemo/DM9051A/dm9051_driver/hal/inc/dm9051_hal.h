@@ -1,15 +1,41 @@
 #ifndef DM9051_HAL_H
 #define DM9051_HAL_H
 
-/*
- * Future portable DM9051 HAL contract.
- *
- * Current source of truth:
- *   drivers/dm9051_edriver_v1.6.1a_beta/include/dm9051_hal.h
- *
- * The intended direction is a vtable-style dm9051_hal_t interface rather than
- * direct dependence on global flat hal_* symbols.
- */
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Staging copy of the portable HAL contract. The current production driver
+ * still uses drivers/dm9051_edriver_v1.6.1a_beta/include/dm9051_hal.h. */
+
+#define DM9051_HAL_OK             0
+#define DM9051_HAL_ERR           -1
+#define DM9051_HAL_ERR_TIMEOUT   -2
+#define DM9051_HAL_ERR_PARAM     -3
+
+typedef struct dm9051_hal_ops {
+    int (*read_reg)(void *ctx, uint8_t reg, uint8_t *val);
+    int (*write_reg)(void *ctx, uint8_t reg, uint8_t val);
+    int (*read_mem)(void *ctx, uint8_t *buf, uint16_t len);
+    int (*write_mem)(void *ctx, const uint8_t *buf, uint16_t len);
+    void (*reset)(void *ctx);
+    void (*delay_ms)(uint32_t ms);
+    void (*delay_us)(uint32_t us);
+    void (*irq_enable)(void *ctx);
+    void (*irq_disable)(void *ctx);
+    uint32_t (*enter_critical)(void *ctx);
+    void (*exit_critical)(void *ctx, uint32_t state);
+} dm9051_hal_ops_t;
+
+typedef struct dm9051_hal {
+    const dm9051_hal_ops_t *ops;
+    void *ctx;
+} dm9051_hal_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DM9051_HAL_H */
-
