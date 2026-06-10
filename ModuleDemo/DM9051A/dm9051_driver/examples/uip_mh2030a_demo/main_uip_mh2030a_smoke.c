@@ -9,6 +9,27 @@ static const uint8_t dm9051_smoke_mac[DM9051_MAC_ADDR_LENGTH] = {
 };
 
 static uint8_t dm9051_smoke_rx_buf[DM9051_ETH_FRAME_MAX];
+static uint8_t dm9051_smoke_tx_buf[60];
+
+static void dm9051_smoke_build_tx_frame(void)
+{
+    uint16_t i;
+
+    for (i = 0u; i < 6u; ++i) {
+        dm9051_smoke_tx_buf[i] = 0xffu;
+    }
+
+    for (i = 0u; i < DM9051_MAC_ADDR_LENGTH; ++i) {
+        dm9051_smoke_tx_buf[6u + i] = dm9051_smoke_mac[i];
+    }
+
+    dm9051_smoke_tx_buf[12] = 0x88u;
+    dm9051_smoke_tx_buf[13] = 0xB5u;
+
+    for (i = 14u; i < sizeof(dm9051_smoke_tx_buf); ++i) {
+        dm9051_smoke_tx_buf[i] = (uint8_t)i;
+    }
+}
 
 void mh2030a_uip_tick_isr(void)
 {
@@ -17,9 +38,11 @@ void mh2030a_uip_tick_isr(void)
 int main(void)
 {
     const dm9051_device_t *dev;
+    uint32_t loops = 0u;
     int status;
 
     mh2030a_uip_board_init(115200);
+    dm9051_smoke_build_tx_frame();
 
     printf("[DM9051 staging] MH2030A polling smoke start\r\n");
 
@@ -47,6 +70,15 @@ int main(void)
                    dm9051_smoke_rx_buf[3]);
         } else {
             printf("[DM9051 staging] rx len=0\r\n");
+        }
+
+        ++loops;
+        if ((loops % 5u) == 0u) {
+            status = dm9051_uip_mh2030a_smoke_send(dm9051_smoke_tx_buf,
+                                                   sizeof(dm9051_smoke_tx_buf));
+            printf("[DM9051 staging] tx len=%u status=%d\r\n",
+                   (unsigned int)sizeof(dm9051_smoke_tx_buf),
+                   status);
         }
 
         Delay_Ms(1000u);

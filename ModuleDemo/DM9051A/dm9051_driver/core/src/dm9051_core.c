@@ -125,6 +125,17 @@ static int dm9051_core_read_mem(const dm9051_hal_t *hal,
     return dm9051_core_hal_status(hal->ops->read_mem(hal->ctx, buf, len));
 }
 
+static int dm9051_core_write_mem(const dm9051_hal_t *hal,
+                                 const uint8_t *buf,
+                                 uint16_t len)
+{
+    if ((hal == 0) || (hal->ops == 0) || (hal->ops->write_mem == 0)) {
+        return DM9051_ERR_PARAM;
+    }
+
+    return dm9051_core_hal_status(hal->ops->write_mem(hal->ctx, buf, len));
+}
+
 static int dm9051_core_probe(dm9051_device_t *dev, const dm9051_hal_t *hal)
 {
     uint8_t vidl;
@@ -362,6 +373,45 @@ static int dm9051_core_rx_discard(const dm9051_hal_t *hal, uint16_t len)
     return dm9051_core_write_reg(hal, DM9051_ISR, DM9051_ISR_CLEAR_RX);
 }
 
+static uint16_t dm9051_core_tx_pad_len(uint16_t len)
+{
+    return len;
+}
+
+static int dm9051_core_tx_set_len(const dm9051_hal_t *hal, uint16_t len)
+{
+    int status;
+
+    status = dm9051_core_write_reg(hal, DM9051_TXPLL, (uint8_t)(len & 0xffu));
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    return dm9051_core_write_reg(hal, DM9051_TXPLH, (uint8_t)(len >> 8));
+}
+
+static int dm9051_core_tx_wait_done(const dm9051_hal_t *hal)
+{
+    uint32_t timeout = 100000u;
+    uint8_t tcr;
+    int status;
+
+    do {
+        status = dm9051_core_read_reg(hal, DM9051_TCR, &tcr);
+        if (status != DM9051_OK) {
+            return status;
+        }
+
+        if ((tcr & DM9051_TCR_TXREQ) == 0u) {
+            return DM9051_OK;
+        }
+
+        --timeout;
+    } while (timeout != 0u);
+
+    return DM9051_ERR_TIMEOUT;
+}
+
 /* -------------------------------------------------------------------------
  * Public API compatibility wrappers
  * ---------------------------------------------------------------------- */
@@ -507,10 +557,34 @@ uint16_t dm9051_core_receive(dm9051_device_t *dev,
 
 int dm9051_core_send(dm9051_device_t *dev, const uint8_t *buf, uint16_t len)
 {
-    (void)dev;
-    (void)buf;
-    (void)len;
-    return DM9051_ERR_NOT_READY;
+    const dm9051_hal_t *hal;
+    int status;
+
+    if ((dev == 0) || (dev->hal == 0) || (buf == 0)) {
+        return DM9051_ERR_PARAM;
+    }
+
+    if ((len == 0u) || (len > DM9051_ETH_FRAME_MAX)) {
+        return DM9051_ERR_PARAM;
+    }
+
+    hal = (const dm9051_hal_t *)dev->hal;
+    status = dm9051_core_tx_set_len(hal, len);
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    status = dm9051_core_write_mem(hal, buf, dm9051_core_tx_pad_len(len));
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    status = dm9051_core_write_reg(hal, DM9051_TCR, DM9051_TCR_TXREQ);
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    return dm9051_core_tx_wait_done(hal);
 }
 
 uint16_t dm9051_core_phy_read(dm9051_device_t *dev, uint16_t reg)

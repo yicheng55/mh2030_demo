@@ -455,6 +455,10 @@ static int dm9051_mh2030a_polling_write_mem(void *ctx,
     }
     dm9051_mh2030a_deselect();
 
+    DM9051_MH2030A_DIAG_PRINTF("[DM9051 HAL] write mem len=%u status=%d\r\n",
+                               len,
+                               status);
+
     return status;
 }
 

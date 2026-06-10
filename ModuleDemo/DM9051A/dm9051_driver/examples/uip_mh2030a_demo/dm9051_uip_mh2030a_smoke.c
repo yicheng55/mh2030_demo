@@ -79,3 +79,12 @@ uint16_t dm9051_uip_mh2030a_smoke_receive(uint8_t *buf, uint16_t buf_len)
 
     return dm9051_core_receive(&dm9051_uip_mh2030a_smoke_dev, buf, buf_len);
 }
+
+int dm9051_uip_mh2030a_smoke_send(const uint8_t *buf, uint16_t len)
+{
+    if (dm9051_uip_mh2030a_smoke_status != DM9051_OK) {
+        return DM9051_ERR_NOT_READY;
+    }
+
+    return dm9051_core_send(&dm9051_uip_mh2030a_smoke_dev, buf, len);
+}
