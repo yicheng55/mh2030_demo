@@ -119,3 +119,10 @@ The staged MH2030A port should map:
 | `reset`, `delay_ms`, `delay_us` | `hal_mh2030a.h` / `delay.h` and current SPI init reset sequence |
 | `irq_enable`, `irq_disable` | `ModuleDemo/DM9051A/port/mh2030a/mh2030a_dm9051_int.c` |
 | `enter_critical`, `exit_critical` | CMSIS PRIMASK wrappers |
+
+Current staging status:
+
+- MH2030A polling transport is wired to the vtable.
+- MH2030A DMA transport still returns `DM9051_HAL_ERR_NOT_READY`.
+- IRQ and critical-section hooks are still no-op/NULL in the staged polling
+  binding.
