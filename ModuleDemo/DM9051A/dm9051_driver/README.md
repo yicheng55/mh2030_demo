@@ -65,6 +65,10 @@ documented in `docs/STATE_MODEL.md`.
 The future context-based core API and legacy wrapper mapping are documented in
 `docs/CORE_API_PLAN.md`.
 
+## HAL Contract
+
+The staged HAL operation semantics are documented in `docs/HAL_CONTRACT.md`.
+
 ## Refactor Phases
 
 1. Add this staging layout and document file ownership.
