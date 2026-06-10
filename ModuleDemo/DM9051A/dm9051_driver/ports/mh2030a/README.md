@@ -40,3 +40,12 @@ The staging header `dm9051_hal_mh2030a.h` defines an explicit config model:
 The future implementation should bind this config into `dm9051_hal_t` with
 `dm9051_mh2030a_hal_bind()`. Until that function is implemented and wired into
 a target, the production code remains the current flat `hal_*` implementation.
+
+Current staging implementation status:
+
+- `dm9051_mh2030a_default_config()` sets a transport/IRQ/timeout default without
+  touching hardware.
+- `dm9051_mh2030a_transport_name()` and `dm9051_mh2030a_irq_name()` are usable
+  string helpers.
+- `dm9051_mh2030a_hal_bind()` validates parameters, clears the HAL handle, and
+  returns `DM9051_HAL_ERR` until real polling/DMA ops are implemented.
