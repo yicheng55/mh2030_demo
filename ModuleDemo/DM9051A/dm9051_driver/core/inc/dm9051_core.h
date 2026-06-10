@@ -10,11 +10,42 @@
 extern "C" {
 #endif
 
+struct dm9051_hal;
+
 /* Staging snapshot of the current public DM9051 core API.
  * Current source of truth:
  *   drivers/dm9051_edriver_v1.6.1a_beta/core/dm9051.h
  *
  * This header is intentionally not included by existing targets yet. */
+
+/* -------------------------------------------------------------------------
+ * Future context-based API
+ * ---------------------------------------------------------------------- */
+
+int dm9051_core_open(dm9051_device_t *dev,
+                     const dm9051_config_t *config,
+                     struct dm9051_hal *hal);
+int dm9051_core_close(dm9051_device_t *dev);
+
+uint16_t dm9051_core_receive(dm9051_device_t *dev,
+                             uint8_t *buf,
+                             uint16_t buf_len);
+int dm9051_core_send(dm9051_device_t *dev,
+                     const uint8_t *buf,
+                     uint16_t len);
+
+uint16_t dm9051_core_phy_read(dm9051_device_t *dev, uint16_t reg);
+int dm9051_core_phy_write(dm9051_device_t *dev, uint16_t reg, uint16_t value);
+
+void dm9051_core_interrupt_set(dm9051_device_t *dev, uint32_t irq_line);
+int dm9051_core_interrupt_take(dm9051_device_t *dev);
+void dm9051_core_interrupt_reset(dm9051_device_t *dev);
+
+const uint8_t *dm9051_core_mac(const dm9051_device_t *dev);
+
+/* -------------------------------------------------------------------------
+ * Legacy compatibility API
+ * ---------------------------------------------------------------------- */
 
 int dm9051_conf(void);
 const uint8_t *dm9051_init(const uint8_t *adr);

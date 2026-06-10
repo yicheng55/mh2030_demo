@@ -60,6 +60,11 @@ documented in `docs/CORE_SPLIT_MAP.md`.
 The current global state and the staged `dm9051_device_t` runtime model are
 documented in `docs/STATE_MODEL.md`.
 
+## Core API Plan
+
+The future context-based core API and legacy wrapper mapping are documented in
+`docs/CORE_API_PLAN.md`.
+
 ## Refactor Phases
 
 1. Add this staging layout and document file ownership.
