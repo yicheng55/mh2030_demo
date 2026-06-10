@@ -3,6 +3,13 @@
 This directory will contain the MH2030A implementation of the portable DM9051
 HAL interface.
 
+## Files
+
+| File | Role |
+| --- | --- |
+| `dm9051_hal_mh2030a.c/.h` | DM9051 HAL binding for MH2030A SPI/GPIO/IRQ/delay. |
+| `mh2030a_board.c/.h` | MH2030A board bring-up helpers for clock, debug UART, and printf retargeting. |
+
 ## Current Pin Mapping
 
 | Signal | Pin |

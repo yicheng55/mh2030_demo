@@ -1,4 +1,4 @@
-#include "hal_mh2030a.h"
+#include "mh2030a_board.h"
 #include "dm9051_uip_mh2030a_smoke.h"
 
 #include <stdio.h>
