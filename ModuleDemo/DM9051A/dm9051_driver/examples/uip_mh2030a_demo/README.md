@@ -24,5 +24,9 @@ It currently:
 - Binds the MH2030A polling HAL with `dm9051_mh2030a_hal_bind()`.
 - Calls `dm9051_core_open()` to run the staged chip-ID probe.
 
+`main_uip_mh2030a_smoke.c` is the current staging entry point selected by
+`DM9051A_uip.uvprojx`. It initializes the board/tick, runs the smoke open path,
+prints the probe status and ID fields, then stays in an idle loop.
+
 It does not call uIP, process RX packets, or replace the production
 `netconf_mh2030a.c` / `dm9051_uip_adapter.c` flow.
