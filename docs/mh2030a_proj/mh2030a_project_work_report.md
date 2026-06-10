@@ -1,7 +1,6 @@
-# MH2030A DM9051 Keil 專案工作內容報告
+# MH2030A DM9051 Keil 專案工作內容
 
-日期：2026-06-09  
-分析目錄：`docs/mh2030a_proj`  
+日期：2026-06-10  
 專案檔：`ModuleDemo/DM9051A/USER/DM9051A.uvprojx`
 
 ## 1. 目的
