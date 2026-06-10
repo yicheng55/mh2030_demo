@@ -26,6 +26,7 @@ MH2030A SPI / GPIO / IRQ / delay
 | `core/inc/dm9051_regs.h` | `drivers/dm9051_edriver_v1.6.1a_beta/core/dm9051_internal.h` | Register and bit definitions. |
 | `core/inc/dm9051_types.h` | `drivers/.../include/dm9051_hal.h`, `drivers/.../include/dm9051_netif.h`, `dm9051_internal.h` | Shared types, status codes, config. |
 | `core/src/dm9051_core.c` | `drivers/dm9051_edriver_v1.6.1a_beta/core/dm9051_beta.c` | Core init, RX, TX, PHY, interrupt state. |
+| `core/src/dm9051_debug.c` | `drivers/dm9051_edriver_v1.6.1a_beta/core/dm9051_beta.c` | Diagnostics and optional debug helpers. |
 | `hal/inc/dm9051_hal.h` | `drivers/dm9051_edriver_v1.6.1a_beta/include/dm9051_hal.h` | Portable HAL vtable contract. |
 | `adapters/uip/dm9051_uip.*` | `ModuleDemo/DM9051A/port/uip/dm9051_uip_adapter.*` | uIP stack adapter. |
 | `adapters/lwip/dm9051_lwip.*` | none yet | Future lwIP adapter. |
@@ -54,6 +55,11 @@ documented in `docs/API_BOUNDARY.md`.
 The current `dm9051_beta.c` responsibilities and future extraction order are
 documented in `docs/CORE_SPLIT_MAP.md`.
 
+## State Model
+
+The current global state and the staged `dm9051_device_t` runtime model are
+documented in `docs/STATE_MODEL.md`.
+
 ## Refactor Phases
 
 1. Add this staging layout and document file ownership.
@@ -68,11 +74,13 @@ documented in `docs/CORE_SPLIT_MAP.md`.
 
 - `hal/inc/dm9051_hal.h` contains a staging copy of the vtable HAL contract.
 - `core/inc/dm9051_types.h` contains portable MAC, buffer, mode, config, and
-  netif device types.
+  netif/device runtime types.
 - `core/inc/dm9051_regs.h` contains a staging subset of register and bit
   definitions used by the current core.
 - `core/inc/dm9051_core.h` contains a staging snapshot of the current public
   core API.
+- `core/src/dm9051_core.c` and `core/src/dm9051_debug.c` are the only planned
+  core source files at this stage.
 - `ports/mh2030a/dm9051_hal_mh2030a.h` contains the future MH2030A transport
   and IRQ config model.
 

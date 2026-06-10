@@ -25,7 +25,21 @@ typedef struct dm9051_config {
     uint8_t flow_control;
     uint8_t accept_all;
     uint8_t interrupt_mode;
+    uint8_t force_stop_if_not_found;
 } dm9051_config_t;
+
+typedef struct dm9051_runtime {
+    dm9051_config_t config;
+    dm9051_mac_t current_mac;
+    uint32_t irq_line;
+    volatile uint8_t interrupt_event;
+    uint8_t device_found;
+} dm9051_runtime_t;
+
+typedef struct dm9051_device {
+    dm9051_runtime_t runtime;
+    void *hal;
+} dm9051_device_t;
 
 typedef struct dm9051_netif_device {
     const uint8_t *mac_addr;
