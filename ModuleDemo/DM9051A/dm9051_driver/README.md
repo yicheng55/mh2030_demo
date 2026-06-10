@@ -106,5 +106,9 @@ The current uIP/lwIP staging behavior is documented in
   and IRQ config model.
 - `ports/mh2030a/dm9051_hal_mh2030a.c` binds the MH2030A polling SPI HAL to
   the staged vtable; DMA transport still reports `DM9051_HAL_ERR_NOT_READY`.
+- `examples/uip_mh2030a_demo/dm9051_uip_mh2030a_smoke.c` binds one staged
+  MH2030A polling HAL/device pair and runs `dm9051_core_open()` for chip-ID
+  smoke validation only.
 
-These files are not included by the existing Keil project yet.
+These files are not included by the original `DM9051A.uvprojx` project. Use
+`DM9051A_uip.uvprojx` for staged validation.
