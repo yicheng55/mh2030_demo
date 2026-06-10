@@ -69,6 +69,11 @@ The future context-based core API and legacy wrapper mapping are documented in
 
 The staged HAL operation semantics are documented in `docs/HAL_CONTRACT.md`.
 
+## Adapter Staging
+
+The current uIP/lwIP staging behavior is documented in
+`docs/ADAPTER_STAGING.md`.
+
 ## Refactor Phases
 
 1. Add this staging layout and document file ownership.
@@ -90,6 +95,9 @@ The staged HAL operation semantics are documented in `docs/HAL_CONTRACT.md`.
   core API.
 - `core/src/dm9051_core.c` and `core/src/dm9051_debug.c` are the only planned
   core source files at this stage.
+- `core/src/dm9051_core.c` currently provides staging-only config/netif
+  validation, minimum HAL binding validation, MAC state copy, interrupt event
+  state, and neutral not-ready RX/TX/PHY behavior.
 - `ports/mh2030a/dm9051_hal_mh2030a.h` contains the future MH2030A transport
   and IRQ config model.
 

@@ -22,6 +22,10 @@ struct dm9051_hal;
  * Future context-based API
  * ---------------------------------------------------------------------- */
 
+void dm9051_core_default_config(dm9051_config_t *config);
+int dm9051_core_config_is_valid(const dm9051_config_t *config);
+int dm9051_netif_device_is_valid(const dm9051_netif_device_t *dev);
+
 int dm9051_core_open(dm9051_device_t *dev,
                      const dm9051_config_t *config,
                      struct dm9051_hal *hal);

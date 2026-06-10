@@ -19,6 +19,8 @@
 #include "dm9051_core.h"
 #include "dm9051_hal.h"
 
+#include <string.h>
+
 /* -------------------------------------------------------------------------
  * Staging rules
  * -------------------------------------------------------------------------
@@ -55,6 +57,24 @@
  * once the staged implementation is wired.
  */
 
+static int dm9051_core_hal_is_valid(const dm9051_hal_t *hal)
+{
+    if ((hal == 0) || (hal->ops == 0)) {
+        return 0;
+    }
+
+    if ((hal->ops->read_reg == 0) ||
+        (hal->ops->write_reg == 0) ||
+        (hal->ops->read_mem == 0) ||
+        (hal->ops->write_mem == 0) ||
+        (hal->ops->delay_ms == 0) ||
+        (hal->ops->delay_us == 0)) {
+        return 0;
+    }
+
+    return 1;
+}
+
 /* -------------------------------------------------------------------------
  * Public API compatibility wrappers
  * ---------------------------------------------------------------------- */
@@ -69,6 +89,152 @@
  *   dm9051_interrupt_get
  *   dm9051_interrupt_reset
  */
+
+void dm9051_core_default_config(dm9051_config_t *config)
+{
+    if (config == 0) {
+        return;
+    }
+
+    (void)memset(config, 0, sizeof(*config));
+    config->interrupt_mode = DM9051_INPUT_MODE_POLL;
+}
+
+int dm9051_core_config_is_valid(const dm9051_config_t *config)
+{
+    if (config == 0) {
+        return 0;
+    }
+
+    if ((config->interrupt_mode != DM9051_INPUT_MODE_POLL) &&
+        (config->interrupt_mode != DM9051_INPUT_MODE_INTERRUPT) &&
+        (config->interrupt_mode != DM9051_INPUT_MODE_INTERRUPT_CLKOUT)) {
+        return 0;
+    }
+
+    return 1;
+}
+
+int dm9051_netif_device_is_valid(const dm9051_netif_device_t *dev)
+{
+    if (dev == 0) {
+        return 0;
+    }
+
+    return 1;
+}
+
+int dm9051_core_open(dm9051_device_t *dev,
+                     const dm9051_config_t *config,
+                     struct dm9051_hal *hal)
+{
+    if ((dev == 0) ||
+        !dm9051_core_config_is_valid(config) ||
+        !dm9051_core_hal_is_valid((const dm9051_hal_t *)hal)) {
+        return DM9051_ERR_PARAM;
+    }
+
+    dev->runtime.config = *config;
+    dev->runtime.irq_line = 0u;
+    dev->runtime.interrupt_event = 0u;
+    dev->runtime.device_found = 0u;
+    dev->hal = hal;
+
+    if (config->mac_addr != 0) {
+        (void)memcpy(dev->runtime.current_mac,
+                     config->mac_addr,
+                     DM9051_MAC_ADDR_LENGTH);
+    } else {
+        (void)memset(dev->runtime.current_mac, 0, DM9051_MAC_ADDR_LENGTH);
+    }
+
+    return DM9051_ERR_NOT_READY;
+}
+
+int dm9051_core_close(dm9051_device_t *dev)
+{
+    if (dev == 0) {
+        return DM9051_ERR_PARAM;
+    }
+
+    (void)memset(dev, 0, sizeof(*dev));
+    return DM9051_OK;
+}
+
+uint16_t dm9051_core_receive(dm9051_device_t *dev,
+                             uint8_t *buf,
+                             uint16_t buf_len)
+{
+    (void)dev;
+    (void)buf;
+    (void)buf_len;
+    return 0u;
+}
+
+int dm9051_core_send(dm9051_device_t *dev, const uint8_t *buf, uint16_t len)
+{
+    (void)dev;
+    (void)buf;
+    (void)len;
+    return DM9051_ERR_NOT_READY;
+}
+
+uint16_t dm9051_core_phy_read(dm9051_device_t *dev, uint16_t reg)
+{
+    (void)dev;
+    (void)reg;
+    return 0xffffu;
+}
+
+int dm9051_core_phy_write(dm9051_device_t *dev, uint16_t reg, uint16_t value)
+{
+    (void)dev;
+    (void)reg;
+    (void)value;
+    return DM9051_ERR_NOT_READY;
+}
+
+void dm9051_core_interrupt_set(dm9051_device_t *dev, uint32_t irq_line)
+{
+    if (dev == 0) {
+        return;
+    }
+
+    dev->runtime.irq_line = irq_line;
+    dev->runtime.interrupt_event = 1u;
+}
+
+int dm9051_core_interrupt_take(dm9051_device_t *dev)
+{
+    if (dev == 0) {
+        return 0;
+    }
+
+    if (dev->runtime.interrupt_event == 0u) {
+        return 0;
+    }
+
+    dev->runtime.interrupt_event = 0u;
+    return 1;
+}
+
+void dm9051_core_interrupt_reset(dm9051_device_t *dev)
+{
+    if (dev == 0) {
+        return;
+    }
+
+    dev->runtime.interrupt_event = 0u;
+}
+
+const uint8_t *dm9051_core_mac(const dm9051_device_t *dev)
+{
+    if (dev == 0) {
+        return 0;
+    }
+
+    return dev->runtime.current_mac;
+}
 
 /* -------------------------------------------------------------------------
  * Init / configuration

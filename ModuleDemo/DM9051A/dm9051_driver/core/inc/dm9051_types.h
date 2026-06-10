@@ -16,6 +16,12 @@ extern "C" {
 #define DM9051_INPUT_MODE_INTERRUPT         1
 #define DM9051_INPUT_MODE_INTERRUPT_CLKOUT  2
 
+#define DM9051_OK                 0
+#define DM9051_ERR               -1
+#define DM9051_ERR_TIMEOUT       -2
+#define DM9051_ERR_PARAM         -3
+#define DM9051_ERR_NOT_READY     -4
+
 typedef uint8_t dm9051_mac_t[DM9051_MAC_ADDR_LENGTH];
 
 typedef struct dm9051_config {

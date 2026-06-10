@@ -36,10 +36,39 @@ void dm9051_mh2030a_default_config(dm9051_mh2030a_config_t *config)
     config->spi_timeout = DM9051_MH2030A_DEFAULT_SPI_TIMEOUT;
 }
 
+int dm9051_mh2030a_config_is_valid(const dm9051_mh2030a_config_t *config)
+{
+    if (config == 0) {
+        return 0;
+    }
+
+    switch (config->transport) {
+    case DM9051_MH2030A_TRANSPORT_POLLING:
+    case DM9051_MH2030A_TRANSPORT_DMA:
+        break;
+    default:
+        return 0;
+    }
+
+    switch (config->irq_mode) {
+    case DM9051_MH2030A_IRQ_OFF:
+    case DM9051_MH2030A_IRQ_EXTI:
+        break;
+    default:
+        return 0;
+    }
+
+    if (config->spi_timeout == 0u) {
+        return 0;
+    }
+
+    return 1;
+}
+
 int dm9051_mh2030a_hal_bind(dm9051_hal_t *hal,
                              const dm9051_mh2030a_config_t *config)
 {
-    if ((hal == 0) || (config == 0)) {
+    if ((hal == 0) || !dm9051_mh2030a_config_is_valid(config)) {
         return DM9051_HAL_ERR_PARAM;
     }
 

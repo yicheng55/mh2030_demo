@@ -18,6 +18,10 @@ Declared in `core/inc/dm9051_core.h`:
 ```c
 struct dm9051_hal;
 
+void dm9051_core_default_config(dm9051_config_t *config);
+int dm9051_core_config_is_valid(const dm9051_config_t *config);
+int dm9051_netif_device_is_valid(const dm9051_netif_device_t *dev);
+
 int dm9051_core_open(dm9051_device_t *dev,
                      const dm9051_config_t *config,
                      struct dm9051_hal *hal);
@@ -62,10 +66,29 @@ Start with one default static device in `dm9051_core.c` to preserve current
 single-instance behavior. After existing uIP targets pass, adapters can be
 moved to the context API directly.
 
+## Current Staging Implementation
+
+The context API currently implements only safe state handling:
+
+- `dm9051_core_default_config()` clears a config object and selects polling
+  mode as the default input mode.
+- `dm9051_core_config_is_valid()` accepts only known input modes and leaves MAC
+  content policy to the later production-compatible init path.
+- `dm9051_netif_device_is_valid()` currently checks only pointer validity so
+  adapters do not prematurely reject DHCP or legacy zero-address staging cases.
+- `dm9051_core_open()` validates config and the minimum HAL binding set, copies
+  config/HAL/MAC into `dm9051_device_t`, and returns `DM9051_ERR_NOT_READY`
+  because chip initialization is not copied yet.
+- `dm9051_core_close()` clears the device context.
+- `dm9051_core_interrupt_set/take/reset()` operate on the staged interrupt event
+  flag only.
+- `dm9051_core_mac()` returns the staged MAC buffer.
+- RX/TX/PHY functions return neutral not-ready values until the production core
+  logic is copied.
+
 ## Impact Requirements
 
 Before changing any production implementation for the legacy APIs, run GitNexus
 impact analysis for that symbol. Treat `dm9051_rx`, `dm9051_tx`, and
 `dm9051_interrupt_*` as HIGH practical risk even if graph impact appears low,
 because they are Ethernet hot-path and IRQ-path behavior.
-

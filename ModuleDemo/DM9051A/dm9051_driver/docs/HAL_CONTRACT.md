@@ -28,6 +28,22 @@ Rules:
 - `read_reg` must return `DM9051_HAL_ERR_PARAM` when `val == NULL`.
 - On read failure, `*val` should not be treated as valid by the caller.
 
+## Minimum Core Binding Set
+
+`dm9051_core_open()` treats these HAL operations as mandatory before accepting
+a staged device binding:
+
+- `read_reg`
+- `write_reg`
+- `read_mem`
+- `write_mem`
+- `delay_ms`
+- `delay_us`
+
+`reset`, IRQ hooks, and critical-section hooks remain optional at this stage.
+This lets polling-only targets bind without an interrupt implementation while
+still preventing an empty HAL vtable from reaching future RX/TX code.
+
 ## FIFO Access
 
 ```c
@@ -98,4 +114,3 @@ The staged MH2030A port should map:
 | `reset`, `delay_ms`, `delay_us` | `hal_mh2030a.h` / `delay.h` and current SPI init reset sequence |
 | `irq_enable`, `irq_disable` | `ModuleDemo/DM9051A/port/mh2030a/mh2030a_dm9051_int.c` |
 | `enter_critical`, `exit_critical` | CMSIS PRIMASK wrappers |
-

@@ -52,6 +52,7 @@ typedef struct dm9051_mh2030a_config {
 #define DM9051_MH2030A_DEFAULT_SPI_TIMEOUT 1000000u
 
 void dm9051_mh2030a_default_config(dm9051_mh2030a_config_t *config);
+int dm9051_mh2030a_config_is_valid(const dm9051_mh2030a_config_t *config);
 int dm9051_mh2030a_hal_bind(dm9051_hal_t *hal,
                              const dm9051_mh2030a_config_t *config);
 const char *dm9051_mh2030a_transport_name(dm9051_mh2030a_transport_t transport);

@@ -45,6 +45,8 @@ Current staging implementation status:
 
 - `dm9051_mh2030a_default_config()` sets a transport/IRQ/timeout default without
   touching hardware.
+- `dm9051_mh2030a_config_is_valid()` validates transport, IRQ mode, and timeout
+  without requiring platform headers.
 - `dm9051_mh2030a_transport_name()` and `dm9051_mh2030a_irq_name()` are usable
   string helpers.
 - `dm9051_mh2030a_hal_bind()` validates parameters, clears the HAL handle, and
