@@ -49,6 +49,11 @@ The current Keil target transport selection is documented in
 The intended dependency direction and adapter/core/HAL ownership rules are
 documented in `docs/API_BOUNDARY.md`.
 
+## Core Split Map
+
+The current `dm9051_beta.c` responsibilities and future extraction order are
+documented in `docs/CORE_SPLIT_MAP.md`.
+
 ## Refactor Phases
 
 1. Add this staging layout and document file ownership.
