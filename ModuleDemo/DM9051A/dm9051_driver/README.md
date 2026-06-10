@@ -1,8 +1,8 @@
 # DM9051 Driver Refactor Staging Area
 
-This directory is a staging layout for a reusable DM9051 driver. It is not
-connected to the existing Keil targets yet, so the current project behavior is
-unchanged.
+This directory is a staging layout for a reusable DM9051 driver under the
+`ModuleDemo/DM9051A` demo project. It is not connected to the existing Keil
+targets yet, so the current project behavior is unchanged.
 
 ## Layering
 
@@ -48,4 +48,3 @@ files as part of the staging step.
 4. Split core implementation into stable init, RX, TX, PHY, and IRQ sections.
 5. Move uIP-only logic into `adapters/uip` and keep core stack-neutral.
 6. Add lwIP adapter and examples after the core/HAL boundary is stable.
-
