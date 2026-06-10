@@ -103,6 +103,17 @@ static int dm9051_core_read_reg(const dm9051_hal_t *hal,
     return dm9051_core_hal_status(hal->ops->read_reg(hal->ctx, reg, val));
 }
 
+static int dm9051_core_write_reg(const dm9051_hal_t *hal,
+                                 uint8_t reg,
+                                 uint8_t val)
+{
+    if ((hal == 0) || (hal->ops == 0) || (hal->ops->write_reg == 0)) {
+        return DM9051_ERR_PARAM;
+    }
+
+    return dm9051_core_hal_status(hal->ops->write_reg(hal->ctx, reg, val));
+}
+
 static int dm9051_core_probe(dm9051_device_t *dev, const dm9051_hal_t *hal)
 {
     uint8_t vidl;
@@ -145,17 +156,110 @@ static int dm9051_core_probe(dm9051_device_t *dev, const dm9051_hal_t *hal)
     dev->runtime.product_id = (uint16_t)((uint16_t)pidl | ((uint16_t)pidh << 8));
     dev->runtime.chip_revision = chipr;
 
-    if ((dev->runtime.product_id == 0u) ||
-        (dev->runtime.product_id == 0xffffu)) {
+    if ((dev->runtime.vendor_id != DM9051_VENDOR_ID) ||
+        (dev->runtime.product_id != DM9051_PRODUCT_ID)) {
         return DM9051_ERR_NOT_READY;
     }
 
-    if ((chipr != DM9051_CHIPR_A) && (chipr != DM9051_CHIPR_B)) {
+    if (chipr == 0xffu) {
         return DM9051_ERR_NOT_READY;
     }
 
     dev->runtime.device_found = 1u;
     return DM9051_OK;
+}
+
+static int dm9051_core_set_par(dm9051_device_t *dev, const dm9051_hal_t *hal)
+{
+    uint8_t i;
+    int status;
+
+    for (i = 0u; i < DM9051_MAC_ADDR_LENGTH; ++i) {
+        status = dm9051_core_write_reg(hal,
+                                       (uint8_t)(DM9051_PAR + i),
+                                       dev->runtime.current_mac[i]);
+        if (status != DM9051_OK) {
+            return status;
+        }
+    }
+
+    return DM9051_OK;
+}
+
+static int dm9051_core_set_mar(const dm9051_hal_t *hal)
+{
+    uint8_t i;
+    int status;
+
+    for (i = 0u; i < 8u; ++i) {
+        status = dm9051_core_write_reg(hal,
+                                       (uint8_t)(DM9051_MAR + i),
+                                       (i == 7u) ? 0x80u : 0x00u);
+        if (status != DM9051_OK) {
+            return status;
+        }
+    }
+
+    return DM9051_OK;
+}
+
+static uint8_t dm9051_core_imr_value(const dm9051_config_t *config)
+{
+    if (config->interrupt_mode == DM9051_INPUT_MODE_POLL) {
+        return DM9051_IMR_POL_DEFAULT;
+    }
+
+    return DM9051_IMR_INT_DEFAULT;
+}
+
+static uint8_t dm9051_core_rcr_value(const dm9051_config_t *config)
+{
+    uint8_t value = (uint8_t)(DM9051_RCR_DEFAULT | DM9051_RCR_RXEN);
+
+    if (config->accept_all != 0u) {
+        value = (uint8_t)(value | DM9051_RCR_ALL | DM9051_RCR_PRMSC);
+    }
+
+    return value;
+}
+
+static int dm9051_core_init_device(dm9051_device_t *dev,
+                                   const dm9051_hal_t *hal)
+{
+    int status;
+
+    status = dm9051_core_write_reg(hal, DM9051_GPR, 0x00u);
+    if (status != DM9051_OK) {
+        return status;
+    }
+    hal->ops->delay_ms(25u);
+
+    status = dm9051_core_write_reg(hal, DM9051_NCR, DM9051_NCR_RESET);
+    if (status != DM9051_OK) {
+        return status;
+    }
+    hal->ops->delay_ms(5u);
+
+    status = dm9051_core_set_par(dev, hal);
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    status = dm9051_core_set_mar(hal);
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    status = dm9051_core_write_reg(hal,
+                                   DM9051_IMR,
+                                   dm9051_core_imr_value(&dev->runtime.config));
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    return dm9051_core_write_reg(hal,
+                                 DM9051_RCR,
+                                 dm9051_core_rcr_value(&dev->runtime.config));
 }
 
 /* -------------------------------------------------------------------------
@@ -245,7 +349,7 @@ int dm9051_core_open(dm9051_device_t *dev,
         return status;
     }
 
-    return DM9051_OK;
+    return dm9051_core_init_device(dev, (const dm9051_hal_t *)hal);
 }
 
 int dm9051_core_close(dm9051_device_t *dev)

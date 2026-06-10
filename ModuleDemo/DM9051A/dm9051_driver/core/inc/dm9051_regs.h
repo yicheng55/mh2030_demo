@@ -61,6 +61,9 @@
 #define DM9051_ISR                0x7Eu
 #define DM9051_IMR                0x7Fu
 
+#define DM9051_VENDOR_ID          0x0A46u
+#define DM9051_PRODUCT_ID         0x9051u
+
 #define DM9051_PHY                0x40u
 #define DM9051_PKT_RDY            0x01u
 

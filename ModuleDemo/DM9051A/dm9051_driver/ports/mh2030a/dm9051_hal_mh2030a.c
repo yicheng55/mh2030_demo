@@ -16,6 +16,8 @@
 
 #include "../../core/inc/dm9051_regs.h"
 
+#include <stdio.h>
+
 #define DM9051_MH2030A_SPI        SPI1
 #define DM9051_MH2030A_CS_PORT    GPIOA
 #define DM9051_MH2030A_CS_PIN     GPIO_Pin_15
@@ -27,6 +29,16 @@
 #define DM9051_MH2030A_MISO_PIN   GPIO_Pin_4
 #define DM9051_MH2030A_RST_PORT   GPIOF
 #define DM9051_MH2030A_RST_PIN    GPIO_Pin_7
+
+#ifndef DM9051_MH2030A_DIAG
+#define DM9051_MH2030A_DIAG       1
+#endif
+
+#if DM9051_MH2030A_DIAG
+#define DM9051_MH2030A_DIAG_PRINTF(...) printf(__VA_ARGS__)
+#else
+#define DM9051_MH2030A_DIAG_PRINTF(...) do { } while (0)
+#endif
 
 static int dm9051_mh2030a_staging_read_reg(void *ctx,
                                             uint8_t reg,
@@ -141,6 +153,7 @@ static int dm9051_mh2030a_wait_spi_idle(const dm9051_mh2030a_config_t *config)
 
     while (SPI_I2S_GetFlagStatus(DM9051_MH2030A_SPI, SPI_I2S_FLAG_BSY) == SET) {
         if (timeout == 0u) {
+            DM9051_MH2030A_DIAG_PRINTF("[DM9051 HAL] SPI timeout: BSY\r\n");
             return DM9051_HAL_ERR_TIMEOUT;
         }
         --timeout;
@@ -162,6 +175,7 @@ static int dm9051_mh2030a_transfer_byte(const dm9051_mh2030a_config_t *config,
     timeout = config->spi_timeout;
     while (SPI_I2S_GetFlagStatus(DM9051_MH2030A_SPI, SPI_I2S_FLAG_TXE) == RESET) {
         if (timeout == 0u) {
+            DM9051_MH2030A_DIAG_PRINTF("[DM9051 HAL] SPI timeout: TXE tx=0x%02X\r\n", tx);
             return DM9051_HAL_ERR_TIMEOUT;
         }
         --timeout;
@@ -171,6 +185,7 @@ static int dm9051_mh2030a_transfer_byte(const dm9051_mh2030a_config_t *config,
     timeout = config->spi_timeout;
     while (SPI_I2S_GetFlagStatus(DM9051_MH2030A_SPI, SPI_I2S_FLAG_RXNE) == RESET) {
         if (timeout == 0u) {
+            DM9051_MH2030A_DIAG_PRINTF("[DM9051 HAL] SPI timeout: RXNE tx=0x%02X\r\n", tx);
             return DM9051_HAL_ERR_TIMEOUT;
         }
         --timeout;
@@ -192,9 +207,75 @@ static int dm9051_mh2030a_finish_transfer(const dm9051_mh2030a_config_t *config)
     return status;
 }
 
+static void dm9051_mh2030a_polling_bus_init(void)
+{
+    GPIO_InitTypeDef gpio;
+    SPI_InitTypeDef spi;
+
+    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA, ENABLE);
+    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOB, ENABLE);
+    RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOF, ENABLE);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
+
+    GPIO_StructInit(&gpio);
+    gpio.GPIO_Pin = DM9051_MH2030A_CS_PIN;
+    gpio.GPIO_Mode = GPIO_Mode_OUT;
+    gpio.GPIO_Speed = GPIO_Speed_50MHz;
+    gpio.GPIO_OType = GPIO_OType_PP;
+    gpio.GPIO_PuPd = GPIO_PuPd_UP;
+    GPIO_Init(DM9051_MH2030A_CS_PORT, &gpio);
+    dm9051_mh2030a_deselect();
+
+    GPIO_StructInit(&gpio);
+    gpio.GPIO_Pin = DM9051_MH2030A_RST_PIN;
+    gpio.GPIO_Mode = GPIO_Mode_OUT;
+    gpio.GPIO_Speed = GPIO_Speed_50MHz;
+    gpio.GPIO_OType = GPIO_OType_PP;
+    gpio.GPIO_PuPd = GPIO_PuPd_UP;
+    GPIO_Init(DM9051_MH2030A_RST_PORT, &gpio);
+
+    GPIO_PinAFConfig(GPIOB, GPIO_PinSource3, GPIO_AF_0);
+    GPIO_PinAFConfig(GPIOB, GPIO_PinSource4, GPIO_AF_0);
+    GPIO_PinAFConfig(GPIOB, GPIO_PinSource5, GPIO_AF_0);
+
+    GPIO_StructInit(&gpio);
+    gpio.GPIO_Pin = DM9051_MH2030A_SCK_PIN | DM9051_MH2030A_MOSI_PIN;
+    gpio.GPIO_Mode = GPIO_Mode_AF;
+    gpio.GPIO_Speed = GPIO_Speed_50MHz;
+    gpio.GPIO_OType = GPIO_OType_PP;
+    gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_Init(DM9051_MH2030A_SCK_PORT, &gpio);
+
+    GPIO_StructInit(&gpio);
+    gpio.GPIO_Pin = DM9051_MH2030A_MISO_PIN;
+    gpio.GPIO_Mode = GPIO_Mode_AF;
+    gpio.GPIO_Speed = GPIO_Speed_50MHz;
+    gpio.GPIO_OType = GPIO_OType_PP;
+    gpio.GPIO_PuPd = GPIO_PuPd_UP;
+    GPIO_Init(DM9051_MH2030A_MISO_PORT, &gpio);
+
+    SPI_I2S_DeInit(DM9051_MH2030A_SPI);
+    SPI_StructInit(&spi);
+    spi.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
+    spi.SPI_Mode = SPI_Mode_Master;
+    spi.SPI_DataSize = SPI_DataSize_8b;
+    spi.SPI_CPOL = SPI_CPOL_Low;
+    spi.SPI_CPHA = SPI_CPHA_1Edge;
+    spi.SPI_NSS = SPI_NSS_Soft;
+    spi.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;
+    spi.SPI_FirstBit = SPI_FirstBit_MSB;
+    spi.SPI_CRCPolynomial = 7;
+    SPI_Init(DM9051_MH2030A_SPI, &spi);
+    SPI_RxFIFOThresholdConfig(DM9051_MH2030A_SPI, SPI_RxFIFOThreshold_QF);
+    SPI_Cmd(DM9051_MH2030A_SPI, ENABLE);
+
+    printf("[MH2030A uIP] DM9051 SPI bus initialized (polling transfer)\r\n");
+}
+
 static void dm9051_mh2030a_polling_reset(void *ctx)
 {
     (void)ctx;
+    dm9051_mh2030a_polling_bus_init();
     GPIO_ResetBits(DM9051_MH2030A_RST_PORT, DM9051_MH2030A_RST_PIN);
     Delay_Ms(2u);
     GPIO_SetBits(DM9051_MH2030A_RST_PORT, DM9051_MH2030A_RST_PIN);
@@ -231,22 +312,34 @@ static int dm9051_mh2030a_polling_read_reg(void *ctx,
                                            uint8_t *val)
 {
     const dm9051_mh2030a_config_t *config = (const dm9051_mh2030a_config_t *)ctx;
-    uint8_t dummy;
+    uint8_t dummy = 0u;
+    uint8_t cmd;
     int status;
 
     if ((config == 0) || (val == 0)) {
         return DM9051_HAL_ERR_PARAM;
     }
 
+    cmd = (uint8_t)(reg | DM9051_OPC_REG_R);
     dm9051_mh2030a_select();
-    status = dm9051_mh2030a_transfer_byte(config,
-                                          (uint8_t)(reg | DM9051_OPC_REG_R),
-                                          &dummy);
+    status = dm9051_mh2030a_transfer_byte(config, cmd, &dummy);
+    DM9051_MH2030A_DIAG_PRINTF("[DM9051 HAL] read reg=0x%02X cmd=0x%02X cmd_status=%d dummy=0x%02X\r\n",
+                               reg,
+                               cmd,
+                               status,
+                               dummy);
     if (status == DM9051_HAL_OK) {
         status = dm9051_mh2030a_transfer_byte(config, 0x00u, val);
+        DM9051_MH2030A_DIAG_PRINTF("[DM9051 HAL] read reg=0x%02X data_status=%d val=0x%02X\r\n",
+                                   reg,
+                                   status,
+                                   *val);
     }
     if (status == DM9051_HAL_OK) {
         status = dm9051_mh2030a_finish_transfer(config);
+        DM9051_MH2030A_DIAG_PRINTF("[DM9051 HAL] read reg=0x%02X finish_status=%d\r\n",
+                                   reg,
+                                   status);
     } else {
         (void)dm9051_mh2030a_finish_transfer(config);
     }
@@ -260,22 +353,35 @@ static int dm9051_mh2030a_polling_write_reg(void *ctx,
                                             uint8_t val)
 {
     const dm9051_mh2030a_config_t *config = (const dm9051_mh2030a_config_t *)ctx;
-    uint8_t dummy;
+    uint8_t dummy = 0u;
+    uint8_t cmd;
     int status;
 
     if (config == 0) {
         return DM9051_HAL_ERR_PARAM;
     }
 
+    cmd = (uint8_t)(reg | DM9051_OPC_REG_W);
     dm9051_mh2030a_select();
-    status = dm9051_mh2030a_transfer_byte(config,
-                                          (uint8_t)(reg | DM9051_OPC_REG_W),
-                                          &dummy);
+    status = dm9051_mh2030a_transfer_byte(config, cmd, &dummy);
+    DM9051_MH2030A_DIAG_PRINTF("[DM9051 HAL] write reg=0x%02X cmd=0x%02X cmd_status=%d dummy=0x%02X\r\n",
+                               reg,
+                               cmd,
+                               status,
+                               dummy);
     if (status == DM9051_HAL_OK) {
         status = dm9051_mh2030a_transfer_byte(config, val, &dummy);
+        DM9051_MH2030A_DIAG_PRINTF("[DM9051 HAL] write reg=0x%02X data=0x%02X data_status=%d dummy=0x%02X\r\n",
+                                   reg,
+                                   val,
+                                   status,
+                                   dummy);
     }
     if (status == DM9051_HAL_OK) {
         status = dm9051_mh2030a_finish_transfer(config);
+        DM9051_MH2030A_DIAG_PRINTF("[DM9051 HAL] write reg=0x%02X finish_status=%d\r\n",
+                                   reg,
+                                   status);
     } else {
         (void)dm9051_mh2030a_finish_transfer(config);
     }
