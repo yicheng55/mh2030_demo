@@ -32,12 +32,13 @@ void resolv_found(char *name, u16_t *ipaddr)
            (unsigned int)(ntohs(ipaddr[1]) & 0xffu));
 }
 
-void mh2030a_uip_update_time(void)
-{
-    uip_elapsed_ms += MH2030A_UIP_TICK_MS;
-//    g_RunTime += MH2030A_UIP_TICK_MS;
-//    all_local_time += MH2030A_UIP_TICK_MS;
-}
+// Moved to mh2030a_uip_clock.c to avoid duplicate definition
+// void mh2030a_uip_update_time(void)
+// {
+//     uip_elapsed_ms += MH2030A_UIP_TICK_MS;
+// //    g_RunTime += MH2030A_UIP_TICK_MS;
+// //    all_local_time += MH2030A_UIP_TICK_MS;
+// }
 
 void mh2030a_uip_net_init(void)
 {

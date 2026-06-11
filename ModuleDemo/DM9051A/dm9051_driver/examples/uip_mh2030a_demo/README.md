@@ -25,8 +25,33 @@ It currently:
 - Calls `dm9051_core_open()` to run the staged chip-ID probe.
 
 `main_uip_mh2030a_smoke.c` is the current staging entry point selected by
-`DM9051A_uip.uvprojx`. It initializes the board/tick, runs the smoke open path,
-prints the probe status and ID fields, then stays in an idle loop.
+`DM9051A_uip.uvprojx`. It initializes the board, opens the staged DM9051 core,
+attaches the staged uIP adapter bridge, then performs hardware RX/TX smoke
+using `dm9051_uip_input()` and `dm9051_uip_output()`.
 
-It does not call uIP, process RX packets, or replace the production
-`netconf_mh2030a.c` / `dm9051_uip_adapter.c` flow.
+It does not call uIP core functions. Keep it as the hardware regression test.
+
+## Optional Staged uIP Loop
+
+`main_uip_mh2030a_demo.c` is the next staged entry point. It keeps the same
+DM9051 core/HAL open path, attaches the staged uIP adapter, initializes uIP and
+ARP through `dm9051_uip_stack_init()`, then runs `dm9051_uip_stack_poll()`.
+
+To build this optional demo, create a separate Keil target or replace the smoke
+main with:
+
+- `dm9051_driver/examples/uip_mh2030a_demo/main_uip_mh2030a_demo.c`
+- `dm9051_driver/adapters/uip/dm9051_uip_stack.c`
+- `dm9051_driver/ports/mh2030a/mh2030a_uip_clock.c`
+- `middlewares/3rd_party/uip/src/uip.c`
+- `middlewares/3rd_party/uip/src/uip_arp.c`
+- `middlewares/3rd_party/uip/src/timer.c`
+
+The current project-specific `uip-conf.h` includes `app_call.h`, so the uIP
+application callback sources may also be required depending on enabled macros:
+
+- `apps/uip_dm9051_example_e1/uip_app_src/app_call.c`
+- selected TCP/UDP/webserver application sources referenced by `app_call.h`
+
+Do not add the legacy `ModuleDemo/DM9051A/port/uip/clock-arch.c` to this staged
+demo; use `dm9051_driver/ports/mh2030a/mh2030a_uip_clock.c` instead.

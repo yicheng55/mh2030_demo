@@ -606,11 +606,6 @@
               <FileType>5</FileType>
               <FilePath>..\dm9051_driver\ports\mh2030a\mh2030a_uip_clock.h</FilePath>
             </File>
-            <File>
-              <FileName>netconf_mh2030a.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\port\uip\netconf_mh2030a.c</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
@@ -705,16 +700,6 @@
               <FileName>http-strings.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\apps\uip_dm9051_example_e1\uip_app_src\webserver\src\DM\http-strings.c</FilePath>
-            </File>
-            <File>
-              <FileName>psock.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\middlewares\3rd_party\uip\src\psock.c</FilePath>
-            </File>
-            <File>
-              <FileName>tcp_app.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\apps\uip_dm9051_example_e1\uip_app_src\Eth_app\tcp_app\tcp_app.c</FilePath>
             </File>
           </Files>
         </Group>
