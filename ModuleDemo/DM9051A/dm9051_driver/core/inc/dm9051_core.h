@@ -40,6 +40,7 @@ int dm9051_core_send(dm9051_device_t *dev,
 
 uint16_t dm9051_core_phy_read(dm9051_device_t *dev, uint16_t reg);
 int dm9051_core_phy_write(dm9051_device_t *dev, uint16_t reg, uint16_t value);
+int dm9051_core_link_is_up(dm9051_device_t *dev);
 
 void dm9051_core_interrupt_set(dm9051_device_t *dev, uint32_t irq_line);
 int dm9051_core_interrupt_take(dm9051_device_t *dev);

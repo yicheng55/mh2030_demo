@@ -82,6 +82,7 @@
 #define DM9051_OPC_REG_W          0x80u
 
 #define DM9051_TCR_TXREQ          (1u << 0)
+#define DM9051_NSR_LINKST         (1u << 6)
 #define DM9051_EPCR_BUSY          (1u << 0)
 #define DM9051_EPCR_PHY_READ      0x0Cu
 #define DM9051_EPCR_PHY_WRITE     0x0Au

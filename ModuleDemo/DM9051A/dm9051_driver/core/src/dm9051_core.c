@@ -342,6 +342,68 @@ static int dm9051_core_phy_write_raw(const dm9051_hal_t *hal,
     return DM9051_OK;
 }
 
+static int dm9051_core_phy_read_raw(const dm9051_hal_t *hal,
+                                    uint16_t reg,
+                                    uint16_t *value)
+{
+    uint16_t timeout = 500u;
+    uint8_t epcr;
+    uint8_t low;
+    uint8_t high;
+    int status;
+
+    if (value == 0) {
+        return DM9051_ERR_PARAM;
+    }
+
+    status = dm9051_core_write_reg(hal, DM9051_EPAR, (uint8_t)(DM9051_PHY | reg));
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    status = dm9051_core_write_reg(hal, DM9051_EPCR, DM9051_EPCR_PHY_READ);
+    if (status != DM9051_OK) {
+        return status;
+    }
+    hal->ops->delay_us(1u);
+
+    do {
+        status = dm9051_core_read_reg(hal, DM9051_EPCR, &epcr);
+        if (status != DM9051_OK) {
+            return status;
+        }
+
+        if ((epcr & DM9051_EPCR_BUSY) == 0u) {
+            break;
+        }
+
+        hal->ops->delay_us(1u);
+        --timeout;
+    } while (timeout != 0u);
+
+    status = dm9051_core_write_reg(hal, DM9051_EPCR, 0x00u);
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    if (timeout == 0u) {
+        return DM9051_ERR_TIMEOUT;
+    }
+
+    status = dm9051_core_read_reg(hal, DM9051_EPDRL, &low);
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    status = dm9051_core_read_reg(hal, DM9051_EPDRH, &high);
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    *value = (uint16_t)(((uint16_t)high << 8) | low);
+    return DM9051_OK;
+}
+
 static int dm9051_core_soft_default(const dm9051_hal_t *hal,
                                     const dm9051_config_t *config)
 {
@@ -882,9 +944,20 @@ int dm9051_core_send(dm9051_device_t *dev, const uint8_t *buf, uint16_t len)
 
 uint16_t dm9051_core_phy_read(dm9051_device_t *dev, uint16_t reg)
 {
-    (void)dev;
-    (void)reg;
-    return 0xffffu;
+    uint16_t value;
+
+    if ((dev == 0) || (dev->hal == 0)) {
+        return 0xffffu;
+    }
+
+    value = 0xffffu;
+    if (dm9051_core_phy_read_raw((const dm9051_hal_t *)dev->hal,
+                                 reg,
+                                 &value) != DM9051_OK) {
+        return 0xffffu;
+    }
+
+    return value;
 }
 
 int dm9051_core_phy_write(dm9051_device_t *dev, uint16_t reg, uint16_t value)
@@ -896,6 +969,23 @@ int dm9051_core_phy_write(dm9051_device_t *dev, uint16_t reg, uint16_t value)
     return dm9051_core_phy_write_raw((const dm9051_hal_t *)dev->hal,
                                      reg,
                                      value);
+}
+
+int dm9051_core_link_is_up(dm9051_device_t *dev)
+{
+    uint8_t nsr;
+
+    if ((dev == 0) || (dev->hal == 0) || (dev->runtime.device_found == 0u)) {
+        return 0;
+    }
+
+    if (dm9051_core_read_reg((const dm9051_hal_t *)dev->hal,
+                             DM9051_NSR,
+                             &nsr) != DM9051_OK) {
+        return 0;
+    }
+
+    return ((nsr & DM9051_NSR_LINKST) != 0u) ? 1 : 0;
 }
 
 void dm9051_core_interrupt_set(dm9051_device_t *dev, uint32_t irq_line)
