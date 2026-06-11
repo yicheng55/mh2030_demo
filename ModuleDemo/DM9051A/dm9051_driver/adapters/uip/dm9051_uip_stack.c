@@ -18,7 +18,19 @@
 
 #define DM9051_UIP_RX_BURST_MAX 8u
 
+
+
 #ifndef DM9051_UIP_ENABLE_PERIODIC
+/*
+* Enabling this will cause the stack to call uip_periodic() and uip_udp_periodic()
+* at regular intervals, which is necessary for some applications but may cause
+* extra CPU load for simple ones. The periodic timers are still driven by the
+* application calling dm9051_uip_stack_poll() in either case.
+*
+* DM9051_UIP_ENABLE_PERIODIC 是控制 dm9051_uip_stack_poll() 是否執行 uIP 週期性處理 的開關。
+* 啟用後，dm9051_uip_stack_poll() 會定期呼叫 uip_periodic() 和 uip_udp_periodic()，這對某些應用是必要的，但可能會增加簡單應用的 CPU 負載。
+* 無論 DM9051_UIP_ENABLE_PERIODIC 是否啟用，週期性計時器仍然由應用程式呼叫 dm9051_uip_stack_poll() 驅動。
+*/
 #define DM9051_UIP_ENABLE_PERIODIC 1
 #endif
 
