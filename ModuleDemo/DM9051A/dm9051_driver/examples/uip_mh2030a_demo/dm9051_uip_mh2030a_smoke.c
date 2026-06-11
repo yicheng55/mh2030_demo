@@ -40,6 +40,7 @@ int dm9051_uip_mh2030a_smoke_open(const uint8_t *mac_addr)
     dm9051_core_default_config(&core_config);
     core_config.mac_addr = mac_addr;
     core_config.interrupt_mode = DM9051_INPUT_MODE_POLL;
+    core_config.flow_control = 0u;
 
     dm9051_mh2030a_default_config(&port_config);
     port_config.transport = DM9051_MH2030A_TRANSPORT_POLLING;

@@ -82,6 +82,33 @@
 #define DM9051_OPC_REG_W          0x80u
 
 #define DM9051_TCR_TXREQ          (1u << 0)
+#define DM9051_EPCR_BUSY          (1u << 0)
+#define DM9051_EPCR_PHY_READ      0x0Cu
+#define DM9051_EPCR_PHY_WRITE     0x0Au
+#define DM9051_INTR_ACTIVE_LOW    (1u << 0)
+#define DM9051_FCR_TXPEN          (1u << 5)
+#define DM9051_FCR_BKPA           (1u << 4)
+#define DM9051_FCR_BKPM           (1u << 3)
+#define DM9051_FCR_FLCE           (1u << 0)
+#define DM9051_FCR_DEFAULT        (DM9051_FCR_TXPEN | DM9051_FCR_BKPA | \
+                                   DM9051_FCR_BKPM | DM9051_FCR_FLCE)
+#define DM9051_TCSCR_UDPCS_ENABLE (1u << 2)
+#define DM9051_TCSCR_TCPCS_ENABLE (1u << 1)
+#define DM9051_TCSCR_IPCS_ENABLE  (1u << 0)
+#define DM9051_TCSCR_ALL_ENABLE   (DM9051_TCSCR_IPCS_ENABLE | \
+                                   DM9051_TCSCR_UDPCS_ENABLE | \
+                                   DM9051_TCSCR_TCPCS_ENABLE)
+#define DM9051_RCSSR_RCSEN        (1u << 1)
+#define DM9051_RCSSR_DCSE         (1u << 0)
+#define DM9051_RCSSR_RX_ENABLE    (DM9051_RCSSR_RCSEN | DM9051_RCSSR_DCSE)
+#define DM9051_PPCR_PAUSE_COUNT   0x0Fu
+#define DM9051_IPCOCR_CLKOUT      (1u << 7)
+#define DM9051_IPCOCR_DUTY_LEN    1u
+#define DM9051_LMCR_NEWMOD        (1u << 7)
+#define DM9051_LMCR_TYPED0        (1u << 0)
+#define DM9051_LMCR_MODE1         (DM9051_LMCR_NEWMOD | DM9051_LMCR_TYPED0)
+#define DM9051_MBNDRY_BYTE        (1u << 7)
+#define DM9051_BOUND_CONF_BIT     DM9051_MBNDRY_BYTE
 #define DM9051_RCR_DIS_LONG       (1u << 5)
 #define DM9051_RCR_DIS_CRC        (1u << 4)
 #define DM9051_RCR_ALL            (1u << 3)
@@ -103,5 +130,8 @@
 #define DM9051_IMR_PRM            (1u << 0)
 #define DM9051_IMR_INT_DEFAULT    (DM9051_IMR_PAR | DM9051_IMR_PRM)
 #define DM9051_IMR_POL_DEFAULT    DM9051_IMR_PAR
+
+#define DM9051_PHY_ADV_REG        0x04u
+#define DM9051_PHY_ADV_FLOW_CTRL  0x05E1u
 
 #endif /* DM9051_REGS_H */

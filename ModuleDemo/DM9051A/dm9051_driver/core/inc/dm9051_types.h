@@ -11,6 +11,7 @@ extern "C" {
 #define DM9051_ETH_FRAME_MAX      1514u
 #define DM9051_RX_HEAD_SIZE       4u
 #define DM9051_RX_BUFFER_SIZE     (DM9051_ETH_FRAME_MAX + DM9051_RX_HEAD_SIZE)
+#define DM9051_RXB_HIST_SIZE      254u
 
 #define DM9051_INPUT_MODE_POLL              0
 #define DM9051_INPUT_MODE_INTERRUPT         1
@@ -41,6 +42,7 @@ typedef struct dm9051_runtime {
     uint16_t product_id;
     uint32_t irq_line;
     volatile uint8_t interrupt_event;
+    uint8_t rxb_error_hist[DM9051_RXB_HIST_SIZE];
     uint8_t chip_revision;
     uint8_t device_found;
 } dm9051_runtime_t;

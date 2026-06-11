@@ -7,6 +7,8 @@
 
 #include "dm9051_uip_stack.h"
 
+#include "../../core/inc/dm9051_core.h"
+
 #include "uip.h"
 #include "uip_arp.h"
 #include "timer.h"
