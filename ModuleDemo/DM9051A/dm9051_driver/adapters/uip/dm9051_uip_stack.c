@@ -16,12 +16,18 @@
 
 #define DM9051_UIP_RX_BURST_MAX 8u
 
+#ifndef DM9051_UIP_ENABLE_PERIODIC
+#define DM9051_UIP_ENABLE_PERIODIC 1
+#endif
+
+#if DM9051_UIP_ENABLE_PERIODIC
 static struct timer dm9051_uip_periodic_timer;
 static struct timer dm9051_uip_arp_timer;
 static uint8_t dm9051_uip_tcp_periodic_index;
 static uint8_t dm9051_uip_udp_periodic_index;
 static uint8_t dm9051_uip_tcp_periodic_pending;
 static uint8_t dm9051_uip_udp_periodic_pending;
+#endif
 
 static void dm9051_uip_stack_send_if_needed(void)
 {
@@ -94,12 +100,14 @@ int dm9051_uip_stack_init(const dm9051_netif_device_t *dev)
                dev->netmask_ip[2], dev->netmask_ip[3]);
     uip_setnetmask(ipaddr);
 
+#if DM9051_UIP_ENABLE_PERIODIC
     timer_set(&dm9051_uip_periodic_timer, CLOCK_SECOND / 2);
     timer_set(&dm9051_uip_arp_timer, CLOCK_SECOND * 10);
     dm9051_uip_tcp_periodic_index = 0u;
     dm9051_uip_udp_periodic_index = 0u;
     dm9051_uip_tcp_periodic_pending = 0u;
     dm9051_uip_udp_periodic_pending = 0u;
+#endif
     printf("[DM9051 uIP] stack init mode=%s\r\n", dm9051_uip_target_mode());
     printf("[DM9051 uIP] MAC %02X:%02X:%02X:%02X:%02X:%02X\r\n",
            ethaddr.addr[0], ethaddr.addr[1], ethaddr.addr[2],
@@ -115,6 +123,7 @@ void dm9051_uip_stack_poll(void)
 {
     dm9051_uip_stack_drain_rx();
 
+#if DM9051_UIP_ENABLE_PERIODIC
     if (timer_expired(&dm9051_uip_periodic_timer)) {
         timer_reset(&dm9051_uip_periodic_timer);
         dm9051_uip_tcp_periodic_pending = 1u;
@@ -160,4 +169,5 @@ void dm9051_uip_stack_poll(void)
         timer_reset(&dm9051_uip_arp_timer);
         uip_arp_timer();
     }
+#endif
 }
