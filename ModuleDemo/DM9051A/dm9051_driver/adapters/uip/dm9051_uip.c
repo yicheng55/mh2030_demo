@@ -12,13 +12,47 @@
 
 #include "../../core/inc/dm9051_core.h"
 
+static dm9051_device_t *dm9051_uip_attached_dev;
+
 int dm9051_uip_init(const dm9051_netif_device_t *dev)
 {
     if (!dm9051_netif_device_is_valid(dev)) {
         return DM9051_ERR_PARAM;
     }
 
-    return DM9051_ERR_NOT_READY;
+    if (dm9051_uip_attached_dev == 0) {
+        return DM9051_ERR_NOT_READY;
+    }
+
+    return DM9051_OK;
+}
+
+int dm9051_uip_attach(dm9051_device_t *dev)
+{
+    if ((dev == 0) || !dm9051_core_device_found(dev)) {
+        return DM9051_ERR_PARAM;
+    }
+
+    dm9051_uip_attached_dev = dev;
+    return DM9051_OK;
+}
+
+uint16_t dm9051_uip_input(uint8_t *buf, uint16_t buf_len)
+{
+    if (dm9051_uip_attached_dev == 0) {
+        return 0u;
+    }
+
+    return dm9051_core_receive(dm9051_uip_attached_dev, buf, buf_len);
+}
+
+int dm9051_uip_output(const uint8_t *buf, uint16_t len)
+{
+    if (dm9051_uip_attached_dev == 0) {
+        return DM9051_ERR_NOT_READY;
+    }
+
+    return dm9051_core_send(dm9051_uip_attached_dev, buf, len);
 }
 
 void dm9051_uip_poll(void)

@@ -61,18 +61,25 @@ int main(void)
 
         rx_len = dm9051_uip_mh2030a_smoke_receive(dm9051_smoke_rx_buf,
                                                   sizeof(dm9051_smoke_rx_buf));
+        ++loops;
+
         if (rx_len != 0u) {
-            printf("[DM9051 staging] rx len=%u first=%02X %02X %02X %02X\r\n",
+            printf("[DM9051 staging] rx len=%u first=%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\r\n",
                    rx_len,
                    dm9051_smoke_rx_buf[0],
                    dm9051_smoke_rx_buf[1],
                    dm9051_smoke_rx_buf[2],
-                   dm9051_smoke_rx_buf[3]);
-        } else {
+                   dm9051_smoke_rx_buf[3],
+                   dm9051_smoke_rx_buf[4],
+                   dm9051_smoke_rx_buf[5],
+                   dm9051_smoke_rx_buf[6],
+                   dm9051_smoke_rx_buf[7],
+                   dm9051_smoke_rx_buf[8],
+                   dm9051_smoke_rx_buf[9]);
+        } else if ((loops % 5u) == 0u) {
             printf("[DM9051 staging] rx len=0\r\n");
         }
 
-        ++loops;
         if ((loops % 5u) == 0u) {
             status = dm9051_uip_mh2030a_smoke_send(dm9051_smoke_tx_buf,
                                                    sizeof(dm9051_smoke_tx_buf));

@@ -34,10 +34,20 @@
 #define DM9051_MH2030A_DIAG       1
 #endif
 
+#ifndef DM9051_MH2030A_TRACE
+#define DM9051_MH2030A_TRACE      0
+#endif
+
 #if DM9051_MH2030A_DIAG
 #define DM9051_MH2030A_DIAG_PRINTF(...) printf(__VA_ARGS__)
 #else
 #define DM9051_MH2030A_DIAG_PRINTF(...) do { } while (0)
+#endif
+
+#if DM9051_MH2030A_TRACE
+#define DM9051_MH2030A_TRACE_PRINTF(...) printf(__VA_ARGS__)
+#else
+#define DM9051_MH2030A_TRACE_PRINTF(...) do { } while (0)
 #endif
 
 static int dm9051_mh2030a_staging_read_reg(void *ctx,
@@ -323,23 +333,23 @@ static int dm9051_mh2030a_polling_read_reg(void *ctx,
     cmd = (uint8_t)(reg | DM9051_OPC_REG_R);
     dm9051_mh2030a_select();
     status = dm9051_mh2030a_transfer_byte(config, cmd, &dummy);
-    DM9051_MH2030A_DIAG_PRINTF("[DM9051 HAL] read reg=0x%02X cmd=0x%02X cmd_status=%d dummy=0x%02X\r\n",
-                               reg,
-                               cmd,
-                               status,
-                               dummy);
+    DM9051_MH2030A_TRACE_PRINTF("[DM9051 HAL] read reg=0x%02X cmd=0x%02X cmd_status=%d dummy=0x%02X\r\n",
+                                reg,
+                                cmd,
+                                status,
+                                dummy);
     if (status == DM9051_HAL_OK) {
         status = dm9051_mh2030a_transfer_byte(config, 0x00u, val);
-        DM9051_MH2030A_DIAG_PRINTF("[DM9051 HAL] read reg=0x%02X data_status=%d val=0x%02X\r\n",
-                                   reg,
-                                   status,
-                                   *val);
+        DM9051_MH2030A_TRACE_PRINTF("[DM9051 HAL] read reg=0x%02X data_status=%d val=0x%02X\r\n",
+                                    reg,
+                                    status,
+                                    *val);
     }
     if (status == DM9051_HAL_OK) {
         status = dm9051_mh2030a_finish_transfer(config);
-        DM9051_MH2030A_DIAG_PRINTF("[DM9051 HAL] read reg=0x%02X finish_status=%d\r\n",
-                                   reg,
-                                   status);
+        DM9051_MH2030A_TRACE_PRINTF("[DM9051 HAL] read reg=0x%02X finish_status=%d\r\n",
+                                    reg,
+                                    status);
     } else {
         (void)dm9051_mh2030a_finish_transfer(config);
     }
@@ -364,24 +374,24 @@ static int dm9051_mh2030a_polling_write_reg(void *ctx,
     cmd = (uint8_t)(reg | DM9051_OPC_REG_W);
     dm9051_mh2030a_select();
     status = dm9051_mh2030a_transfer_byte(config, cmd, &dummy);
-    DM9051_MH2030A_DIAG_PRINTF("[DM9051 HAL] write reg=0x%02X cmd=0x%02X cmd_status=%d dummy=0x%02X\r\n",
-                               reg,
-                               cmd,
-                               status,
-                               dummy);
+    DM9051_MH2030A_TRACE_PRINTF("[DM9051 HAL] write reg=0x%02X cmd=0x%02X cmd_status=%d dummy=0x%02X\r\n",
+                                reg,
+                                cmd,
+                                status,
+                                dummy);
     if (status == DM9051_HAL_OK) {
         status = dm9051_mh2030a_transfer_byte(config, val, &dummy);
-        DM9051_MH2030A_DIAG_PRINTF("[DM9051 HAL] write reg=0x%02X data=0x%02X data_status=%d dummy=0x%02X\r\n",
-                                   reg,
-                                   val,
-                                   status,
-                                   dummy);
+        DM9051_MH2030A_TRACE_PRINTF("[DM9051 HAL] write reg=0x%02X data=0x%02X data_status=%d dummy=0x%02X\r\n",
+                                    reg,
+                                    val,
+                                    status,
+                                    dummy);
     }
     if (status == DM9051_HAL_OK) {
         status = dm9051_mh2030a_finish_transfer(config);
-        DM9051_MH2030A_DIAG_PRINTF("[DM9051 HAL] write reg=0x%02X finish_status=%d\r\n",
-                                   reg,
-                                   status);
+        DM9051_MH2030A_TRACE_PRINTF("[DM9051 HAL] write reg=0x%02X finish_status=%d\r\n",
+                                    reg,
+                                    status);
     } else {
         (void)dm9051_mh2030a_finish_transfer(config);
     }
