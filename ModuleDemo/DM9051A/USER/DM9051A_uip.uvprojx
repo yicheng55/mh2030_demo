@@ -591,31 +591,6 @@
               <FileType>1</FileType>
               <FilePath>..\dm9051_driver\ports\mh2030a\mh2030a_uip_clock.c</FilePath>
             </File>
-            <File>
-              <FileName>mh2030a_platform.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\dm9051_driver\ports\mh2030a\mh2030a_platform.h</FilePath>
-            </File>
-            <File>
-              <FileName>mh2030a_board.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\dm9051_driver\ports\mh2030a\mh2030a_board.h</FilePath>
-            </File>
-            <File>
-              <FileName>mh2030a_uip_clock.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\dm9051_driver\ports\mh2030a\mh2030a_uip_clock.h</FilePath>
-            </File>
-            <File>
-              <FileName>netconf_mh2030a.c</FileName>
-              <FileType>0</FileType>
-              <FilePath>..\port\uip\netconf_mh2030a.c</FilePath>
-            </File>
-            <File>
-              <FileName>dm9051_uip_adapter.c</FileName>
-              <FileType>0</FileType>
-              <FilePath>..\port\uip\dm9051_uip_adapter.c</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
@@ -642,9 +617,9 @@
               <FilePath>..\dm9051_driver\adapters\uip\dm9051_uip_stack.c</FilePath>
             </File>
             <File>
-              <FileName>dm9051_uip_hooks.c</FileName>
+              <FileName>main_unix.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\dm9051_driver\adapters\uip\dm9051_uip_hooks.c</FilePath>
+              <FilePath>..\..\..\apps\uip_dm9051_example_e1\uip_arch_src\UNIX\main_unix.c</FilePath>
             </File>
             <File>
               <FileName>dm9051_hal_mh2030a.c</FileName>
