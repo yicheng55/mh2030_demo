@@ -1,6 +1,7 @@
 #include "mh2030a_board.h"
 #include "mh2030a_platform.h"
 #include "dm9051_uip_mh2030a_smoke.h"
+#include "../../adapters/uip/dm9051_uip.h"
 
 #include <stdio.h>
 
@@ -39,6 +40,7 @@ int main(void)
 {
     const dm9051_device_t *dev;
     uint32_t loops = 0u;
+    int adapter_status;
     int status;
 
     mh2030a_uip_board_init(115200);
@@ -56,11 +58,16 @@ int main(void)
            dm9051_core_product_id(dev),
            dm9051_core_chip_revision(dev));
 
+    adapter_status = dm9051_uip_attach(dm9051_uip_mh2030a_smoke_mutable_device());
+    printf("[DM9051 staging] uip attach status=%d mode=%s\r\n",
+           adapter_status,
+           dm9051_uip_target_mode());
+
     while (1) {
         uint16_t rx_len;
 
-        rx_len = dm9051_uip_mh2030a_smoke_receive(dm9051_smoke_rx_buf,
-                                                  sizeof(dm9051_smoke_rx_buf));
+        rx_len = dm9051_uip_input(dm9051_smoke_rx_buf,
+                                  sizeof(dm9051_smoke_rx_buf));
         ++loops;
 
         if (rx_len != 0u) {
@@ -81,8 +88,8 @@ int main(void)
         }
 
         if ((loops % 5u) == 0u) {
-            status = dm9051_uip_mh2030a_smoke_send(dm9051_smoke_tx_buf,
-                                                   sizeof(dm9051_smoke_tx_buf));
+            status = dm9051_uip_output(dm9051_smoke_tx_buf,
+                                       sizeof(dm9051_smoke_tx_buf));
             printf("[DM9051 staging] tx len=%u status=%d\r\n",
                    (unsigned int)sizeof(dm9051_smoke_tx_buf),
                    status);

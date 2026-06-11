@@ -66,6 +66,11 @@ const dm9051_device_t *dm9051_uip_mh2030a_smoke_device(void)
     return &dm9051_uip_mh2030a_smoke_dev;
 }
 
+dm9051_device_t *dm9051_uip_mh2030a_smoke_mutable_device(void)
+{
+    return &dm9051_uip_mh2030a_smoke_dev;
+}
+
 int dm9051_uip_mh2030a_smoke_last_status(void)
 {
     return dm9051_uip_mh2030a_smoke_status;
