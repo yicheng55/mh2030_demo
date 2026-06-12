@@ -4,6 +4,7 @@
 
 #include "../../adapters/uip/dm9051_uip.h"
 #include "../../adapters/uip/dm9051_uip_stack.h"
+#include "app_call.h"
 #if DM9051_MH2030A_USE_IRQ
 #include "../../ports/mh2030a/dm9051_hal_mh2030a_int.h"
 #endif
@@ -174,6 +175,11 @@ int main(void)
         while (1) {
         }
     }
+
+#if WEB_EN
+    httpd_init();
+    printf("[DM9051 uIP] HTTP server listening on port 80\r\n");
+#endif
 
     while (1) {
         (void)dm9051_demo_handle_link_detection(mutable_dev,
