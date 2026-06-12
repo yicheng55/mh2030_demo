@@ -55,6 +55,37 @@ int dm9051_uip_output(const uint8_t *buf, uint16_t len)
     return dm9051_core_send(dm9051_uip_attached_dev, buf, len);
 }
 
+int dm9051_uip_interrupt_mode(void)
+{
+    if (dm9051_uip_attached_dev == 0) {
+        return DM9051_INPUT_MODE_POLL;
+    }
+
+    return dm9051_uip_attached_dev->runtime.config.interrupt_mode;
+}
+
+int dm9051_uip_interrupt_take(void)
+{
+    if (dm9051_uip_attached_dev == 0) {
+        return 0;
+    }
+
+    if (dm9051_uip_attached_dev->runtime.config.interrupt_mode == DM9051_INPUT_MODE_POLL) {
+        return 1;
+    }
+
+    return dm9051_core_interrupt_take(dm9051_uip_attached_dev);
+}
+
+void dm9051_uip_interrupt_reset(void)
+{
+    if (dm9051_uip_attached_dev == 0) {
+        return;
+    }
+
+    dm9051_core_interrupt_reset(dm9051_uip_attached_dev);
+}
+
 void dm9051_uip_poll(void)
 {
 }

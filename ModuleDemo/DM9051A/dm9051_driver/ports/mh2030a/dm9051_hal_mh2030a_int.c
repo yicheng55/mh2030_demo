@@ -6,6 +6,7 @@
 #if DM9051_MH2030A_ENABLE_IRQ
 
 static volatile dm9051_device_t *dm9051_mh2030a_irq_device;
+static volatile uint32_t dm9051_mh2030a_irq_event_count;
 
 void dm9051_mh2030a_irq_init_if_enabled(const dm9051_mh2030a_config_t *config)
 {
@@ -87,6 +88,11 @@ uint32_t dm9051_mh2030a_irq_line(void)
     return DM9051_MH2030A_INT_LINE;
 }
 
+uint32_t dm9051_mh2030a_irq_count(void)
+{
+    return dm9051_mh2030a_irq_event_count;
+}
+
 void dm9051_mh2030a_irq_handler(void)
 {
     dm9051_device_t *dev;
@@ -94,6 +100,8 @@ void dm9051_mh2030a_irq_handler(void)
     if (EXTI_GetITStatus(DM9051_MH2030A_INT_LINE) == RESET) {
         return;
     }
+
+    ++dm9051_mh2030a_irq_event_count;
 
     dev = (dm9051_device_t *)dm9051_mh2030a_irq_device;
     if (dev != 0) {

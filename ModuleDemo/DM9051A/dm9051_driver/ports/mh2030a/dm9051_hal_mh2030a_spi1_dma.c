@@ -163,6 +163,10 @@ static int dm9051_mh2030a_dma_read_mem(void *ctx,
     }
     dm9051_mh2030a_deselect();
 
+    DM9051_MH2030A_DIAG_PRINTF("[DM9051 HAL] dma read mem len=%u status=%d\r\n",
+                               len,
+                               status);
+
     return status;
 }
 

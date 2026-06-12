@@ -18,6 +18,15 @@
 
 #define DM9051_UIP_RX_BURST_MAX 8u
 
+#ifndef DM9051_UIP_DIAG
+#define DM9051_UIP_DIAG 1
+#endif
+
+#if DM9051_UIP_DIAG
+#define DM9051_UIP_DIAG_PRINTF(...) printf(__VA_ARGS__)
+#else
+#define DM9051_UIP_DIAG_PRINTF(...) do { } while (0)
+#endif
 
 
 #ifndef DM9051_UIP_ENABLE_PERIODIC
@@ -51,7 +60,7 @@ static void dm9051_uip_stack_send_if_needed(void)
     }
 }
 
-static void dm9051_uip_stack_drain_rx(void)
+static int dm9051_uip_stack_drain_rx(void)
 {
     uint8_t rx_burst;
 
@@ -75,6 +84,25 @@ static void dm9051_uip_stack_drain_rx(void)
         }
 
         ++rx_burst;
+    }
+
+    return rx_burst;
+}
+
+static uint8_t dm9051_uip_stack_rx_pending_from_burst(int rx_burst)
+{
+    return (rx_burst >= DM9051_UIP_RX_BURST_MAX) ? 1u : 0u;
+}
+
+static void dm9051_uip_stack_print_rx_burst(const char *reason,
+                                            int rx_burst,
+                                            uint8_t drain_pending)
+{
+    if (rx_burst > 0) {
+        DM9051_UIP_DIAG_PRINTF("[DM9051 uIP] rx burst=%d pending=%u reason=%s\r\n",
+                               rx_burst,
+                               drain_pending,
+                               reason);
     }
 }
 
@@ -135,7 +163,26 @@ int dm9051_uip_stack_init(const dm9051_netif_device_t *dev)
 
 void dm9051_uip_stack_poll(void)
 {
-    dm9051_uip_stack_drain_rx();
+    static uint8_t dm9051_uip_rx_drain_pending;
+    int rx_burst;
+    int irq_mode;
+
+    irq_mode = dm9051_uip_interrupt_mode();
+    if ((irq_mode == DM9051_INPUT_MODE_POLL) ||
+        (dm9051_uip_rx_drain_pending != 0u) ||
+        (dm9051_uip_interrupt_take() != 0)) {
+        rx_burst = dm9051_uip_stack_drain_rx();
+        dm9051_uip_rx_drain_pending =
+            dm9051_uip_stack_rx_pending_from_burst(rx_burst);
+        dm9051_uip_stack_print_rx_burst("rx",
+                                        rx_burst,
+                                        dm9051_uip_rx_drain_pending);
+
+        if ((irq_mode != DM9051_INPUT_MODE_POLL) &&
+            (dm9051_uip_rx_drain_pending == 0u)) {
+            dm9051_uip_interrupt_reset();
+        }
+    }
 
 #if DM9051_UIP_ENABLE_PERIODIC
     if (timer_expired(&dm9051_uip_periodic_timer)) {
@@ -176,7 +223,21 @@ void dm9051_uip_stack_poll(void)
 
     if ((dm9051_uip_tcp_periodic_pending != 0u) ||
         (dm9051_uip_udp_periodic_pending != 0u)) {
-        dm9051_uip_stack_drain_rx();
+        if ((irq_mode == DM9051_INPUT_MODE_POLL) ||
+            (dm9051_uip_rx_drain_pending != 0u) ||
+            (dm9051_uip_interrupt_take() != 0)) {
+            rx_burst = dm9051_uip_stack_drain_rx();
+            dm9051_uip_rx_drain_pending =
+                dm9051_uip_stack_rx_pending_from_burst(rx_burst);
+            dm9051_uip_stack_print_rx_burst("periodic",
+                                            rx_burst,
+                                            dm9051_uip_rx_drain_pending);
+
+            if ((irq_mode != DM9051_INPUT_MODE_POLL) &&
+                (dm9051_uip_rx_drain_pending == 0u)) {
+                dm9051_uip_interrupt_reset();
+            }
+        }
     }
 
     if (timer_expired(&dm9051_uip_arp_timer)) {

@@ -11,6 +11,7 @@ extern "C" {
 void dm9051_mh2030a_irq_attach_device(dm9051_device_t *dev);
 void dm9051_mh2030a_irq_detach_device(void);
 uint32_t dm9051_mh2030a_irq_line(void);
+uint32_t dm9051_mh2030a_irq_count(void);
 void dm9051_mh2030a_irq_handler(void);
 
 #ifdef __cplusplus

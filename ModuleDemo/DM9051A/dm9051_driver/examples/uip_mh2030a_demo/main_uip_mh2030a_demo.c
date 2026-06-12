@@ -4,6 +4,9 @@
 
 #include "../../adapters/uip/dm9051_uip.h"
 #include "../../adapters/uip/dm9051_uip_stack.h"
+#if DM9051_MH2030A_USE_IRQ
+#include "../../ports/mh2030a/dm9051_hal_mh2030a_int.h"
+#endif
 
 #include <stdio.h>
 
@@ -13,6 +16,10 @@
 #define DM9051_LINKUP_STATUS_PRINT_COUNT 5u
 #define DM9051_STATUS_PRINT_LIMIT        50u
 #define DM9051_STATUS_PRINT_STEP         10u
+
+#if !DM9051_MH2030A_USE_IRQ
+#define dm9051_mh2030a_irq_count()       0u
+#endif
 
 #define DM9051_UIP_IP0    192u
 #define DM9051_UIP_IP1    168u
@@ -105,20 +112,22 @@ static int dm9051_demo_handle_link_detection(dm9051_device_t *dev,
 
         on_dhcp = 0;
         if (linkup_print_count > 0u) {
-            printf("[DM9051 uIP] Network Status: Link=%s, DHCP=%s, IP=%u.%u.%u.%u (LinkUp count: %lu)\r\n",
+            printf("[DM9051 uIP] Network Status: Link=%s, DHCP=%s, IP=%u.%u.%u.%u, IRQ=%lu (LinkUp count: %lu)\r\n",
                    on_linkup ? "UP" : "DOWN",
                    on_dhcp ? "ON" : "OFF",
                    netif->static_ip[0], netif->static_ip[1],
                    netif->static_ip[2], netif->static_ip[3],
+                   (unsigned long)dm9051_mh2030a_irq_count(),
                    (unsigned long)linkup_print_count);
             linkup_print_count--;
         } else if (status_timer <= DM9051_STATUS_PRINT_LIMIT) {
             if ((status_timer % DM9051_STATUS_PRINT_STEP) == 0u) {
-                printf("[DM9051 uIP] Network Status: Link=%s, DHCP=%s, IP=%u.%u.%u.%u\r\n",
+                printf("[DM9051 uIP] Network Status: Link=%s, DHCP=%s, IP=%u.%u.%u.%u, IRQ=%lu\r\n",
                        on_linkup ? "UP" : "DOWN",
                        on_dhcp ? "ON" : "OFF",
                        netif->static_ip[0], netif->static_ip[1],
-                       netif->static_ip[2], netif->static_ip[3]);
+                       netif->static_ip[2], netif->static_ip[3],
+                       (unsigned long)dm9051_mh2030a_irq_count());
             }
             status_timer++;
         }
