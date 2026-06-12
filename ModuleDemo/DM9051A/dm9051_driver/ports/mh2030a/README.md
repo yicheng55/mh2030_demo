@@ -7,17 +7,20 @@ HAL interface.
 
 | File | Role |
 | --- | --- |
-| `dm9051_hal_mh2030a_spi1.c/.h` | Staging DM9051 HAL binding for MH2030A SPI1 polling, GPIO, IRQ mode selection, and delay. |
+| `dm9051_hal_mh2030a_spi1.c/.h` | DM9051 HAL binding for MH2030A SPI1 polling, GPIO, delay, and transport selection. |
+| `dm9051_hal_mh2030a_spi1_priv.h` | Private shared SPI1/pin definitions used by optional MH2030A port files. |
+| `dm9051_hal_mh2030a_spi1_dma.c/.h` | Optional SPI1 DMA FIFO transfer implementation. |
+| `dm9051_hal_mh2030a_int.c/.h` | Optional PF6 / EXTI line 6 interrupt implementation. |
 | `mh2030a_platform.h` | Local MH2030A platform include shim for `mh20xx.h` and `delay.h`. |
 | `mh2030a_board.c/.h` | MH2030A board bring-up helpers for clock, debug UART, and printf retargeting. |
 
 ## Port File Naming Plan
 
 Use names that expose both the platform and the bus. The current staging
-implementation is the SPI1 polling baseline; later transports should be added
-as separate files instead of hiding the mode behind a generic filename:
+implementation keeps the default SPI1 polling path in the base file and puts
+optional DMA / interrupt behavior in independently named files:
 
-| Planned file class | Responsibility |
+| File class | Responsibility |
 | --- | --- |
 | `dm9051_hal_mh2030a_spi1.c/.h` | SPI1 polling transfer, CS control, reset GPIO, and delay binding. |
 | `dm9051_hal_mh2030a_spi1_dma.c/.h` | SPI1 DMA transfer implementation selected by `DM9051_MH2030A_TRANSPORT_DMA`. |
@@ -52,7 +55,7 @@ portable build should make the transport selection explicit to avoid duplicate
 
 See `../../docs/BUILD_SELECTION.md` for the current target matrix.
 
-## Future Port API
+## Port API
 
 The staging header `dm9051_hal_mh2030a_spi1.h` defines an explicit config model:
 
@@ -61,14 +64,14 @@ The staging header `dm9051_hal_mh2030a_spi1.h` defines an explicit config model:
 - `dm9051_mh2030a_pins_t`: pin assignment for CS/SCK/MISO/MOSI/RST/INT.
 - `dm9051_mh2030a_config_t`: transport, IRQ, pins, and timeout.
 
-The future implementation should bind this config into `dm9051_hal_t` with
-`dm9051_mh2030a_hal_bind()`. Until that function is implemented and wired into
-a target, the production code remains the current flat `hal_*` implementation.
+The staged implementation binds this config into `dm9051_hal_t` with
+`dm9051_mh2030a_hal_bind()`. The legacy production code still uses the current
+flat `hal_*` implementation.
 
 Current staging implementation status:
 
 - `dm9051_mh2030a_default_config()` sets a transport/IRQ/timeout default without
-  touching hardware.
+  touching hardware and records the current MH2030A DM9051 pin mapping.
 - `dm9051_mh2030a_config_is_valid()` validates transport, IRQ mode, and timeout
   without requiring platform headers.
 - `dm9051_mh2030a_transport_name()` and `dm9051_mh2030a_irq_name()` are usable
@@ -77,7 +80,29 @@ Current staging implementation status:
   internal HAL context.
 - Polling transport binds real SPI register/FIFO operations based on the
   current `mh2030a_dm9051_spi.c` behavior.
-- DMA transport still binds the staging vtable and returns
-  `DM9051_HAL_ERR_NOT_READY`.
-- The staging vtable implements argument checks and zero-length FIFO success,
-  but its real register/FIFO transfers return `DM9051_HAL_ERR_NOT_READY`.
+- DMA transport lives in `dm9051_hal_mh2030a_spi1_dma.c`; it keeps register
+  access on byte polling and uses DMA for FIFO `read_mem` / `write_mem`, based
+  on `mh2030a_dm9051_spi_dma.c`.
+- EXTI IRQ mode lives in `dm9051_hal_mh2030a_int.c`; it configures PF6 / EXTI
+  line 6 and provides
+  `dm9051_mh2030a_irq_attach_device()` plus `dm9051_mh2030a_irq_handler()` for
+  the instance-based core interrupt flag.
+- Define `DM9051_MH2030A_OWN_EXTI4_15_HANDLER=0` if the application already
+  owns `EXTI4_15_IRQHandler()` and call `dm9051_mh2030a_irq_handler()` from the
+  shared handler.
+
+## Keil Options
+
+The `MH2030A_DM9051_uIP` target includes the optional DMA and interrupt source
+files. Feature availability and smoke-demo runtime selection are controlled by
+preprocessor defines:
+
+| Define | Meaning |
+| --- | --- |
+| `DM9051_MH2030A_ENABLE_DMA=1` | Compile and link the SPI1 DMA transport file. |
+| `DM9051_MH2030A_ENABLE_IRQ=1` | Compile and link the PF6 / EXTI interrupt file. |
+| `DM9051_MH2030A_USE_DMA=1` | Select DMA transport in the staged smoke glue. |
+| `DM9051_MH2030A_USE_IRQ=1` | Select core interrupt mode and EXTI IRQ mode in the staged smoke glue. |
+
+Default staged target values keep runtime behavior conservative:
+`DM9051_MH2030A_USE_DMA=0` and `DM9051_MH2030A_USE_IRQ=0`.

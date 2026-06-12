@@ -3,26 +3,48 @@
 
 #include <stdint.h>
 
+#include "../../core/inc/dm9051_types.h"
 #include "../../hal/inc/dm9051_hal.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Future MH2030A port binding for the DM9051 HAL interface.
+/* MH2030A port binding for the DM9051 HAL interface.
  *
- * Naming note:
- *   This staging header covers the MH2030A SPI1 polling baseline.
- *   Future split headers should keep the bus/mode visible in the filename:
- *     dm9051_hal_mh2030a_spi1.h
- *     dm9051_hal_mh2030a_spi1_dma.h
- *     dm9051_hal_mh2030a_int.h
- *
- * Current closest source:
- *   ModuleDemo/DM9051A/port/mh2030a/dm9051_hal_mh2030a.h
- *
- * This staging header is not included by existing Keil targets yet.
+ * File split:
+ *   dm9051_hal_mh2030a_spi1.c      - SPI1 polling, GPIO, delay, HAL bind
+ *   dm9051_hal_mh2030a_spi1_dma.c  - optional SPI1 DMA FIFO transport
+ *   dm9051_hal_mh2030a_int.c       - optional PF6/EXTI6 interrupt support
  */
+
+#ifndef DM9051_MH2030A_ENABLE_DMA
+#define DM9051_MH2030A_ENABLE_DMA 0
+#endif
+
+#ifndef DM9051_MH2030A_ENABLE_IRQ
+#define DM9051_MH2030A_ENABLE_IRQ 0
+#endif
+
+#ifndef DM9051_MH2030A_USE_DMA
+#define DM9051_MH2030A_USE_DMA 0
+#endif
+
+#ifndef DM9051_MH2030A_USE_IRQ
+#define DM9051_MH2030A_USE_IRQ 0
+#endif
+
+#ifndef DM9051_MH2030A_DIAG
+#define DM9051_MH2030A_DIAG 1
+#endif
+
+#ifndef DM9051_MH2030A_TRACE
+#define DM9051_MH2030A_TRACE 0
+#endif
+
+#ifndef DM9051_MH2030A_OWN_EXTI4_15_HANDLER
+#define DM9051_MH2030A_OWN_EXTI4_15_HANDLER 1
+#endif
 
 typedef enum dm9051_mh2030a_transport {
     DM9051_MH2030A_TRANSPORT_POLLING = 0,
@@ -64,6 +86,13 @@ int dm9051_mh2030a_hal_bind(dm9051_hal_t *hal,
                              const dm9051_mh2030a_config_t *config);
 const char *dm9051_mh2030a_transport_name(dm9051_mh2030a_transport_t transport);
 const char *dm9051_mh2030a_irq_name(dm9051_mh2030a_irq_mode_t irq_mode);
+
+/* Optional IRQ helpers. Link dm9051_hal_mh2030a_int.c and define
+ * DM9051_MH2030A_ENABLE_IRQ=1 before calling these. */
+void dm9051_mh2030a_irq_attach_device(dm9051_device_t *dev);
+void dm9051_mh2030a_irq_detach_device(void);
+uint32_t dm9051_mh2030a_irq_line(void);
+void dm9051_mh2030a_irq_handler(void);
 
 #ifdef __cplusplus
 }

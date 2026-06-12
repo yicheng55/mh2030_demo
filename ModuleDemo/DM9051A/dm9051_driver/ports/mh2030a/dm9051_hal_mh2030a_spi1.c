@@ -1,173 +1,48 @@
 /*
- * Future MH2030A SPI/GPIO/IRQ/delay implementation for DM9051.
+ * MH2030A SPI1 polling/GPIO/delay binding for DM9051.
  *
- * Naming note:
- *   This aggregate staging file currently implements the SPI1 polling path.
- *   If the port is split later, classify the files by transport/peripheral:
- *     dm9051_hal_mh2030a_spi1.c      - SPI1 polling + GPIO/delay
- *     dm9051_hal_mh2030a_spi1_dma.c  - SPI1 DMA transfer path
- *     dm9051_hal_mh2030a_int.c       - DM9051 INT/EXTI helpers
- *
- * Current sources:
- *   ModuleDemo/DM9051A/port/mh2030a/mh2030a_dm9051_spi.c
- *   ModuleDemo/DM9051A/port/mh2030a/mh2030a_dm9051_spi_dma.c
- *   ModuleDemo/DM9051A/port/mh2030a/mh2030a_dm9051_int.c
- *
- * This file is intentionally not implemented yet. The current production
- * driver still selects polling/DMA/IRQ through Keil file options and flat
- * hal_* symbols.
+ * Optional transports are split out by feature:
+ *   dm9051_hal_mh2030a_spi1_dma.c  - SPI1 DMA FIFO transfer path
+ *   dm9051_hal_mh2030a_int.c       - DM9051 INT/EXTI helpers
  */
 
-#include "dm9051_hal_mh2030a_spi1.h"
-#include "mh2030a_platform.h"
+#include "dm9051_hal_mh2030a_spi1_priv.h"
 
-#include "../../core/inc/dm9051_regs.h"
-
-#include <stdio.h>
-
-#define DM9051_MH2030A_SPI        SPI1
-#define DM9051_MH2030A_CS_PORT    GPIOA
-#define DM9051_MH2030A_CS_PIN     GPIO_Pin_15
-#define DM9051_MH2030A_SCK_PORT   GPIOB
-#define DM9051_MH2030A_SCK_PIN    GPIO_Pin_3
-#define DM9051_MH2030A_MOSI_PORT  GPIOB
-#define DM9051_MH2030A_MOSI_PIN   GPIO_Pin_5
-#define DM9051_MH2030A_MISO_PORT  GPIOB
-#define DM9051_MH2030A_MISO_PIN   GPIO_Pin_4
-#define DM9051_MH2030A_RST_PORT   GPIOF
-#define DM9051_MH2030A_RST_PIN    GPIO_Pin_7
-
-#ifndef DM9051_MH2030A_DIAG
-#define DM9051_MH2030A_DIAG       1
-#endif
-
-#ifndef DM9051_MH2030A_TRACE
-#define DM9051_MH2030A_TRACE      0
-#endif
-
-#if DM9051_MH2030A_DIAG
-#define DM9051_MH2030A_DIAG_PRINTF(...) printf(__VA_ARGS__)
-#else
-#define DM9051_MH2030A_DIAG_PRINTF(...) do { } while (0)
-#endif
-
-#if DM9051_MH2030A_TRACE
-#define DM9051_MH2030A_TRACE_PRINTF(...) printf(__VA_ARGS__)
-#else
-#define DM9051_MH2030A_TRACE_PRINTF(...) do { } while (0)
-#endif
-
-static int dm9051_mh2030a_staging_read_reg(void *ctx,
-                                            uint8_t reg,
-                                            uint8_t *val)
-{
-    (void)ctx;
-    (void)reg;
-
-    if (val == 0) {
-        return DM9051_HAL_ERR_PARAM;
-    }
-
-    return DM9051_HAL_ERR_NOT_READY;
-}
-
-static int dm9051_mh2030a_staging_write_reg(void *ctx,
-                                             uint8_t reg,
-                                             uint8_t val)
-{
-    (void)ctx;
-    (void)reg;
-    (void)val;
-    return DM9051_HAL_ERR_NOT_READY;
-}
-
-static int dm9051_mh2030a_staging_read_mem(void *ctx,
-                                            uint8_t *buf,
-                                            uint16_t len)
-{
-    (void)ctx;
-
-    if ((buf == 0) && (len != 0u)) {
-        return DM9051_HAL_ERR_PARAM;
-    }
-
-    if (len == 0u) {
-        return DM9051_HAL_OK;
-    }
-
-    return DM9051_HAL_ERR_NOT_READY;
-}
-
-static int dm9051_mh2030a_staging_write_mem(void *ctx,
-                                             const uint8_t *buf,
-                                             uint16_t len)
-{
-    (void)ctx;
-
-    if ((buf == 0) && (len != 0u)) {
-        return DM9051_HAL_ERR_PARAM;
-    }
-
-    if (len == 0u) {
-        return DM9051_HAL_OK;
-    }
-
-    return DM9051_HAL_ERR_NOT_READY;
-}
-
-static void dm9051_mh2030a_staging_reset(void *ctx)
-{
-    (void)ctx;
-}
-
-static void dm9051_mh2030a_staging_delay_ms(uint32_t ms)
-{
-    (void)ms;
-}
-
-static void dm9051_mh2030a_staging_delay_us(uint32_t us)
-{
-    (void)us;
-}
-
-static void dm9051_mh2030a_staging_irq_enable(void *ctx)
-{
-    (void)ctx;
-}
-
-static void dm9051_mh2030a_staging_irq_disable(void *ctx)
-{
-    (void)ctx;
-}
-
-static const dm9051_hal_ops_t dm9051_mh2030a_staging_ops = {
-    dm9051_mh2030a_staging_read_reg,
-    dm9051_mh2030a_staging_write_reg,
-    dm9051_mh2030a_staging_read_mem,
-    dm9051_mh2030a_staging_write_mem,
-    dm9051_mh2030a_staging_reset,
-    dm9051_mh2030a_staging_delay_ms,
-    dm9051_mh2030a_staging_delay_us,
-    dm9051_mh2030a_staging_irq_enable,
-    dm9051_mh2030a_staging_irq_disable,
+const dm9051_hal_ops_t dm9051_mh2030a_polling_ops = {
+    dm9051_mh2030a_polling_read_reg,
+    dm9051_mh2030a_polling_write_reg,
+    dm9051_mh2030a_polling_read_mem,
+    dm9051_mh2030a_polling_write_mem,
+    dm9051_mh2030a_polling_reset,
+    dm9051_mh2030a_delay_ms,
+    dm9051_mh2030a_delay_us,
+    dm9051_mh2030a_irq_enable_if_enabled,
+    dm9051_mh2030a_irq_disable_if_enabled,
     0,
     0
 };
 
-static void dm9051_mh2030a_select(void)
+static dm9051_mh2030a_config_t dm9051_mh2030a_bound_config;
+
+void dm9051_mh2030a_select(void)
 {
     GPIO_ResetBits(DM9051_MH2030A_CS_PORT, DM9051_MH2030A_CS_PIN);
 }
 
-static void dm9051_mh2030a_deselect(void)
+void dm9051_mh2030a_deselect(void)
 {
     GPIO_SetBits(DM9051_MH2030A_CS_PORT, DM9051_MH2030A_CS_PIN);
 }
 
-static int dm9051_mh2030a_wait_spi_idle(const dm9051_mh2030a_config_t *config)
+int dm9051_mh2030a_wait_spi_idle(const dm9051_mh2030a_config_t *config)
 {
-    uint32_t timeout = config->spi_timeout;
+    uint32_t timeout;
 
+    if (config == 0) {
+        return DM9051_HAL_ERR_PARAM;
+    }
+
+    timeout = config->spi_timeout;
     while (SPI_I2S_GetFlagStatus(DM9051_MH2030A_SPI, SPI_I2S_FLAG_BSY) == SET) {
         if (timeout == 0u) {
             DM9051_MH2030A_DIAG_PRINTF("[DM9051 HAL] SPI timeout: BSY\r\n");
@@ -179,13 +54,13 @@ static int dm9051_mh2030a_wait_spi_idle(const dm9051_mh2030a_config_t *config)
     return DM9051_HAL_OK;
 }
 
-static int dm9051_mh2030a_transfer_byte(const dm9051_mh2030a_config_t *config,
-                                        uint8_t tx,
-                                        uint8_t *rx)
+int dm9051_mh2030a_transfer_byte(const dm9051_mh2030a_config_t *config,
+                                 uint8_t tx,
+                                 uint8_t *rx)
 {
     uint32_t timeout;
 
-    if (rx == 0) {
+    if ((config == 0) || (rx == 0)) {
         return DM9051_HAL_ERR_PARAM;
     }
 
@@ -212,7 +87,7 @@ static int dm9051_mh2030a_transfer_byte(const dm9051_mh2030a_config_t *config,
     return DM9051_HAL_OK;
 }
 
-static int dm9051_mh2030a_finish_transfer(const dm9051_mh2030a_config_t *config)
+int dm9051_mh2030a_finish_transfer(const dm9051_mh2030a_config_t *config)
 {
     int status;
 
@@ -224,7 +99,7 @@ static int dm9051_mh2030a_finish_transfer(const dm9051_mh2030a_config_t *config)
     return status;
 }
 
-static void dm9051_mh2030a_polling_bus_init(void)
+void dm9051_mh2030a_spi1_polling_bus_init(void)
 {
     GPIO_InitTypeDef gpio;
     SPI_InitTypeDef spi;
@@ -289,17 +164,24 @@ static void dm9051_mh2030a_polling_bus_init(void)
     printf("[MH2030A uIP] DM9051 SPI bus initialized (polling transfer)\r\n");
 }
 
-static void dm9051_mh2030a_polling_reset(void *ctx)
+void dm9051_mh2030a_reset_gpio_sequence(void)
 {
-    (void)ctx;
-    dm9051_mh2030a_polling_bus_init();
     GPIO_ResetBits(DM9051_MH2030A_RST_PORT, DM9051_MH2030A_RST_PIN);
     Delay_Ms(2u);
     GPIO_SetBits(DM9051_MH2030A_RST_PORT, DM9051_MH2030A_RST_PIN);
     Delay_Ms(10u);
 }
 
-static void dm9051_mh2030a_polling_delay_ms(uint32_t ms)
+void dm9051_mh2030a_polling_reset(void *ctx)
+{
+    const dm9051_mh2030a_config_t *config = (const dm9051_mh2030a_config_t *)ctx;
+
+    dm9051_mh2030a_spi1_polling_bus_init();
+    dm9051_mh2030a_irq_init_if_enabled(config);
+    dm9051_mh2030a_reset_gpio_sequence();
+}
+
+void dm9051_mh2030a_delay_ms(uint32_t ms)
 {
     while (ms > 0xffffu) {
         Delay_Ms(0xffffu);
@@ -309,24 +191,14 @@ static void dm9051_mh2030a_polling_delay_ms(uint32_t ms)
     Delay_Ms((uint16_t)ms);
 }
 
-static void dm9051_mh2030a_polling_delay_us(uint32_t us)
+void dm9051_mh2030a_delay_us(uint32_t us)
 {
     Delay_Us(us);
 }
 
-static void dm9051_mh2030a_polling_irq_enable(void *ctx)
-{
-    (void)ctx;
-}
-
-static void dm9051_mh2030a_polling_irq_disable(void *ctx)
-{
-    (void)ctx;
-}
-
-static int dm9051_mh2030a_polling_read_reg(void *ctx,
-                                           uint8_t reg,
-                                           uint8_t *val)
+int dm9051_mh2030a_polling_read_reg(void *ctx,
+                                    uint8_t reg,
+                                    uint8_t *val)
 {
     const dm9051_mh2030a_config_t *config = (const dm9051_mh2030a_config_t *)ctx;
     uint8_t dummy = 0u;
@@ -354,9 +226,6 @@ static int dm9051_mh2030a_polling_read_reg(void *ctx,
     }
     if (status == DM9051_HAL_OK) {
         status = dm9051_mh2030a_finish_transfer(config);
-        DM9051_MH2030A_TRACE_PRINTF("[DM9051 HAL] read reg=0x%02X finish_status=%d\r\n",
-                                    reg,
-                                    status);
     } else {
         (void)dm9051_mh2030a_finish_transfer(config);
     }
@@ -365,9 +234,9 @@ static int dm9051_mh2030a_polling_read_reg(void *ctx,
     return status;
 }
 
-static int dm9051_mh2030a_polling_write_reg(void *ctx,
-                                            uint8_t reg,
-                                            uint8_t val)
+int dm9051_mh2030a_polling_write_reg(void *ctx,
+                                     uint8_t reg,
+                                     uint8_t val)
 {
     const dm9051_mh2030a_config_t *config = (const dm9051_mh2030a_config_t *)ctx;
     uint8_t dummy = 0u;
@@ -381,24 +250,11 @@ static int dm9051_mh2030a_polling_write_reg(void *ctx,
     cmd = (uint8_t)(reg | DM9051_OPC_REG_W);
     dm9051_mh2030a_select();
     status = dm9051_mh2030a_transfer_byte(config, cmd, &dummy);
-    DM9051_MH2030A_TRACE_PRINTF("[DM9051 HAL] write reg=0x%02X cmd=0x%02X cmd_status=%d dummy=0x%02X\r\n",
-                                reg,
-                                cmd,
-                                status,
-                                dummy);
     if (status == DM9051_HAL_OK) {
         status = dm9051_mh2030a_transfer_byte(config, val, &dummy);
-        DM9051_MH2030A_TRACE_PRINTF("[DM9051 HAL] write reg=0x%02X data=0x%02X data_status=%d dummy=0x%02X\r\n",
-                                    reg,
-                                    val,
-                                    status,
-                                    dummy);
     }
     if (status == DM9051_HAL_OK) {
         status = dm9051_mh2030a_finish_transfer(config);
-        DM9051_MH2030A_TRACE_PRINTF("[DM9051 HAL] write reg=0x%02X finish_status=%d\r\n",
-                                    reg,
-                                    status);
     } else {
         (void)dm9051_mh2030a_finish_transfer(config);
     }
@@ -407,9 +263,9 @@ static int dm9051_mh2030a_polling_write_reg(void *ctx,
     return status;
 }
 
-static int dm9051_mh2030a_polling_read_mem(void *ctx,
-                                           uint8_t *buf,
-                                           uint16_t len)
+int dm9051_mh2030a_polling_read_mem(void *ctx,
+                                    uint8_t *buf,
+                                    uint16_t len)
 {
     const dm9051_mh2030a_config_t *config = (const dm9051_mh2030a_config_t *)ctx;
     uint8_t dummy;
@@ -441,9 +297,9 @@ static int dm9051_mh2030a_polling_read_mem(void *ctx,
     return status;
 }
 
-static int dm9051_mh2030a_polling_write_mem(void *ctx,
-                                            const uint8_t *buf,
-                                            uint16_t len)
+int dm9051_mh2030a_polling_write_mem(void *ctx,
+                                     const uint8_t *buf,
+                                     uint16_t len)
 {
     const dm9051_mh2030a_config_t *config = (const dm9051_mh2030a_config_t *)ctx;
     uint8_t dummy;
@@ -479,22 +335,6 @@ static int dm9051_mh2030a_polling_write_mem(void *ctx,
     return status;
 }
 
-static const dm9051_hal_ops_t dm9051_mh2030a_polling_ops = {
-    dm9051_mh2030a_polling_read_reg,
-    dm9051_mh2030a_polling_write_reg,
-    dm9051_mh2030a_polling_read_mem,
-    dm9051_mh2030a_polling_write_mem,
-    dm9051_mh2030a_polling_reset,
-    dm9051_mh2030a_polling_delay_ms,
-    dm9051_mh2030a_polling_delay_us,
-    dm9051_mh2030a_polling_irq_enable,
-    dm9051_mh2030a_polling_irq_disable,
-    0,
-    0
-};
-
-static dm9051_mh2030a_config_t dm9051_mh2030a_bound_config;
-
 void dm9051_mh2030a_default_config(dm9051_mh2030a_config_t *config)
 {
     if (config == 0) {
@@ -503,18 +343,18 @@ void dm9051_mh2030a_default_config(dm9051_mh2030a_config_t *config)
 
     config->transport = DM9051_MH2030A_TRANSPORT_POLLING;
     config->irq_mode = DM9051_MH2030A_IRQ_OFF;
-    config->pins.cs_port = 0u;
-    config->pins.cs_pin = 0u;
-    config->pins.sck_port = 0u;
-    config->pins.sck_pin = 0u;
-    config->pins.miso_port = 0u;
-    config->pins.miso_pin = 0u;
-    config->pins.mosi_port = 0u;
-    config->pins.mosi_pin = 0u;
-    config->pins.rst_port = 0u;
-    config->pins.rst_pin = 0u;
-    config->pins.int_port = 0u;
-    config->pins.int_pin = 0u;
+    config->pins.cs_port = (uint32_t)DM9051_MH2030A_CS_PORT;
+    config->pins.cs_pin = DM9051_MH2030A_CS_PIN;
+    config->pins.sck_port = (uint32_t)DM9051_MH2030A_SCK_PORT;
+    config->pins.sck_pin = DM9051_MH2030A_SCK_PIN;
+    config->pins.miso_port = (uint32_t)DM9051_MH2030A_MISO_PORT;
+    config->pins.miso_pin = DM9051_MH2030A_MISO_PIN;
+    config->pins.mosi_port = (uint32_t)DM9051_MH2030A_MOSI_PORT;
+    config->pins.mosi_pin = DM9051_MH2030A_MOSI_PIN;
+    config->pins.rst_port = (uint32_t)DM9051_MH2030A_RST_PORT;
+    config->pins.rst_pin = DM9051_MH2030A_RST_PIN;
+    config->pins.int_port = (uint32_t)DM9051_MH2030A_INT_PORT;
+    config->pins.int_pin = DM9051_MH2030A_INT_PIN;
     config->spi_timeout = DM9051_MH2030A_DEFAULT_SPI_TIMEOUT;
 }
 
@@ -554,6 +394,18 @@ int dm9051_mh2030a_hal_bind(dm9051_hal_t *hal,
         return DM9051_HAL_ERR_PARAM;
     }
 
+#if !DM9051_MH2030A_ENABLE_DMA
+    if (config->transport == DM9051_MH2030A_TRANSPORT_DMA) {
+        return DM9051_HAL_ERR_NOT_READY;
+    }
+#endif
+
+#if !DM9051_MH2030A_ENABLE_IRQ
+    if (config->irq_mode == DM9051_MH2030A_IRQ_EXTI) {
+        return DM9051_HAL_ERR_NOT_READY;
+    }
+#endif
+
     dm9051_mh2030a_bound_config = *config;
     hal->ctx = &dm9051_mh2030a_bound_config;
 
@@ -562,8 +414,12 @@ int dm9051_mh2030a_hal_bind(dm9051_hal_t *hal,
         return DM9051_HAL_OK;
     }
 
-    hal->ops = &dm9051_mh2030a_staging_ops;
+#if DM9051_MH2030A_ENABLE_DMA
+    hal->ops = &dm9051_mh2030a_dma_ops;
+    return DM9051_HAL_OK;
+#else
     return DM9051_HAL_ERR_NOT_READY;
+#endif
 }
 
 const char *dm9051_mh2030a_transport_name(dm9051_mh2030a_transport_t transport)
@@ -589,11 +445,3 @@ const char *dm9051_mh2030a_irq_name(dm9051_mh2030a_irq_mode_t irq_mode)
         return "unknown";
     }
 }
-
-/* Implementation plan:
- * 1. Add static polling transport ops copied from mh2030a_dm9051_spi.c.
- * 2. Add static DMA transport ops copied from mh2030a_dm9051_spi_dma.c.
- * 3. Add IRQ setup copied from mh2030a_dm9051_int.c.
- * 4. Select transport via dm9051_mh2030a_config_t instead of IncludeInBuild.
- * 5. Bind the selected ops into dm9051_hal_t.
- */
