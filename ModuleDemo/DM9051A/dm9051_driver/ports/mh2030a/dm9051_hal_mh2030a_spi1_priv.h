@@ -46,6 +46,7 @@ int dm9051_mh2030a_transfer_byte(const dm9051_mh2030a_config_t *config,
                                  uint8_t *rx);
 int dm9051_mh2030a_finish_transfer(const dm9051_mh2030a_config_t *config);
 void dm9051_mh2030a_spi1_polling_bus_init(void);
+void dm9051_mh2030a_spi1_bus_init_common(void);
 void dm9051_mh2030a_reset_gpio_sequence(void);
 void dm9051_mh2030a_delay_ms(uint32_t ms);
 void dm9051_mh2030a_delay_us(uint32_t us);

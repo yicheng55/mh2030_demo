@@ -99,7 +99,7 @@ int dm9051_mh2030a_finish_transfer(const dm9051_mh2030a_config_t *config)
     return status;
 }
 
-void dm9051_mh2030a_spi1_polling_bus_init(void)
+void dm9051_mh2030a_spi1_bus_init_common(void)
 {
     GPIO_InitTypeDef gpio;
     SPI_InitTypeDef spi;
@@ -160,7 +160,11 @@ void dm9051_mh2030a_spi1_polling_bus_init(void)
     SPI_Init(DM9051_MH2030A_SPI, &spi);
     SPI_RxFIFOThresholdConfig(DM9051_MH2030A_SPI, SPI_RxFIFOThreshold_QF);
     SPI_Cmd(DM9051_MH2030A_SPI, ENABLE);
+}
 
+void dm9051_mh2030a_spi1_polling_bus_init(void)
+{
+    dm9051_mh2030a_spi1_bus_init_common();
     printf("[MH2030A uIP] DM9051 SPI bus initialized (polling transfer)\r\n");
 }
 

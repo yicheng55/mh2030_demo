@@ -13,7 +13,7 @@ static uint8_t dm9051_mh2030a_dma_dummy_rx_byte;
 
 static void dm9051_mh2030a_dma_bus_init(void)
 {
-    dm9051_mh2030a_spi1_polling_bus_init();
+    dm9051_mh2030a_spi1_bus_init_common();
     RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
     DMA_RemapConfig(DMA1, DMA1_CH2_SPI1_RX);
     DMA_RemapConfig(DMA1, DMA1_CH3_SPI1_TX);

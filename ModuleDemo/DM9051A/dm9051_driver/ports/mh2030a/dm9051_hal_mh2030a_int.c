@@ -36,6 +36,8 @@ void dm9051_mh2030a_irq_init_if_enabled(const dm9051_mh2030a_config_t *config)
     exti.EXTI_LineCmd = ENABLE;
     EXTI_Init(&exti);
     EXTI_ClearITPendingBit(DM9051_MH2030A_INT_LINE);
+
+    printf("[MH2030A uIP] DM9051 interrupt initialized (INT PF6, EXTI line 6, falling edge)\r\n");
 }
 
 void dm9051_mh2030a_irq_enable_if_enabled(void *ctx)
