@@ -1,6 +1,13 @@
 /*
  * Future MH2030A SPI/GPIO/IRQ/delay implementation for DM9051.
  *
+ * Naming note:
+ *   This aggregate staging file currently implements the SPI1 polling path.
+ *   If the port is split later, classify the files by transport/peripheral:
+ *     dm9051_hal_mh2030a_spi1.c      - SPI1 polling + GPIO/delay
+ *     dm9051_hal_mh2030a_spi1_dma.c  - SPI1 DMA transfer path
+ *     dm9051_hal_mh2030a_int.c       - DM9051 INT/EXTI helpers
+ *
  * Current sources:
  *   ModuleDemo/DM9051A/port/mh2030a/mh2030a_dm9051_spi.c
  *   ModuleDemo/DM9051A/port/mh2030a/mh2030a_dm9051_spi_dma.c
@@ -11,7 +18,7 @@
  * hal_* symbols.
  */
 
-#include "dm9051_hal_mh2030a.h"
+#include "dm9051_hal_mh2030a_spi1.h"
 #include "mh2030a_platform.h"
 
 #include "../../core/inc/dm9051_regs.h"

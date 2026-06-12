@@ -118,8 +118,8 @@ drivers/
 
 ModuleDemo/DM9051A/port/
   mh2030a/
-    dm9051_hal_mh2030a.c
-    dm9051_hal_mh2030a.h
+    dm9051_hal_mh2030a_spi1.c
+    dm9051_hal_mh2030a_spi1.h
   uip/
     dm9051_uip_adapter.c
     dm9051_uip_adapter.h

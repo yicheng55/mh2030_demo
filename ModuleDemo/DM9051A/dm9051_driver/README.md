@@ -30,7 +30,7 @@ MH2030A SPI / GPIO / IRQ / delay
 | `hal/inc/dm9051_hal.h` | `drivers/dm9051_edriver_v1.6.1a_beta/include/dm9051_hal.h` | Portable HAL vtable contract. |
 | `adapters/uip/dm9051_uip.*` | `ModuleDemo/DM9051A/port/uip/dm9051_uip_adapter.*` | uIP stack adapter. |
 | `adapters/lwip/dm9051_lwip.*` | none yet | Future lwIP adapter. |
-| `ports/mh2030a/dm9051_hal_mh2030a.*` | `ModuleDemo/DM9051A/port/mh2030a/*` | MH2030A SPI/GPIO/IRQ/delay implementation. |
+| `ports/mh2030a/dm9051_hal_mh2030a_spi1.*` | `ModuleDemo/DM9051A/port/mh2030a/*` | MH2030A SPI1/GPIO/IRQ/delay implementation. |
 | `examples/uip_mh2030a_demo/` | `ModuleDemo/DM9051A/USER/main_uip_mh2030a.c`, `ModuleDemo/DM9051A/port/uip/netconf_mh2030a.c` | Current uIP demo shape. |
 | `examples/lwip_mh2030a_demo/` | none yet | Future lwIP demo. |
 
@@ -102,9 +102,9 @@ The current uIP/lwIP staging behavior is documented in
 - `core/src/dm9051_core.c` currently provides staging-only config/netif
   validation, minimum HAL binding validation, MAC state copy, chip-ID probe,
   interrupt event state, and neutral not-ready RX/TX/PHY behavior.
-- `ports/mh2030a/dm9051_hal_mh2030a.h` contains the future MH2030A transport
+- `ports/mh2030a/dm9051_hal_mh2030a_spi1.h` contains the future MH2030A transport
   and IRQ config model.
-- `ports/mh2030a/dm9051_hal_mh2030a.c` binds the MH2030A polling SPI HAL to
+- `ports/mh2030a/dm9051_hal_mh2030a_spi1.c` binds the MH2030A SPI1 polling HAL to
   the staged vtable; DMA transport still reports `DM9051_HAL_ERR_NOT_READY`.
 - `examples/uip_mh2030a_demo/dm9051_uip_mh2030a_smoke.c` binds one staged
   MH2030A polling HAL/device pair and runs `dm9051_core_open()` for chip-ID

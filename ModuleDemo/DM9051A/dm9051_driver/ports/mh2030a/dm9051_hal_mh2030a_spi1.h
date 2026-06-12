@@ -1,5 +1,5 @@
-#ifndef DM9051_HAL_MH2030A_H
-#define DM9051_HAL_MH2030A_H
+#ifndef DM9051_HAL_MH2030A_SPI1_H
+#define DM9051_HAL_MH2030A_SPI1_H
 
 #include <stdint.h>
 
@@ -10,6 +10,13 @@ extern "C" {
 #endif
 
 /* Future MH2030A port binding for the DM9051 HAL interface.
+ *
+ * Naming note:
+ *   This staging header covers the MH2030A SPI1 polling baseline.
+ *   Future split headers should keep the bus/mode visible in the filename:
+ *     dm9051_hal_mh2030a_spi1.h
+ *     dm9051_hal_mh2030a_spi1_dma.h
+ *     dm9051_hal_mh2030a_int.h
  *
  * Current closest source:
  *   ModuleDemo/DM9051A/port/mh2030a/dm9051_hal_mh2030a.h
@@ -62,4 +69,4 @@ const char *dm9051_mh2030a_irq_name(dm9051_mh2030a_irq_mode_t irq_mode);
 }
 #endif
 
-#endif /* DM9051_HAL_MH2030A_H */
+#endif /* DM9051_HAL_MH2030A_SPI1_H */

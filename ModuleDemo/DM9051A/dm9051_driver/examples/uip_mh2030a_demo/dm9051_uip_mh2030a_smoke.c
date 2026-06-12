@@ -8,7 +8,7 @@
 #include "dm9051_uip_mh2030a_smoke.h"
 
 #include "../../hal/inc/dm9051_hal.h"
-#include "../../ports/mh2030a/dm9051_hal_mh2030a.h"
+#include "../../ports/mh2030a/dm9051_hal_mh2030a_spi1.h"
 
 static dm9051_device_t dm9051_uip_mh2030a_smoke_dev;
 static dm9051_hal_t dm9051_uip_mh2030a_smoke_hal;

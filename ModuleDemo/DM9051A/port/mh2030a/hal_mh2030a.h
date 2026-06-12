@@ -6,6 +6,12 @@
  * mh2030a_dm9051_int.c) need only include THIS header.  It re-exports
  * dm9051_hal_api.h (HAL function declarations) and the board-level API
  * from mh2030a_board.h.
+ *
+ * Naming note:
+ *   The current production files already separate SPI polling, SPI DMA, and
+ *   interrupt support. In the reusable driver staging tree, keep that
+ *   classification explicit as *_spi1.c/.h, *_spi1_dma.c/.h, and *_int.c/.h
+ *   so a future SPI2 or non-DMA transport can be added without ambiguity.
  */
 
 #ifndef __HAL_MH2030A_PORT_H

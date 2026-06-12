@@ -7,9 +7,25 @@ HAL interface.
 
 | File | Role |
 | --- | --- |
-| `dm9051_hal_mh2030a.c/.h` | DM9051 HAL binding for MH2030A SPI/GPIO/IRQ/delay. |
+| `dm9051_hal_mh2030a_spi1.c/.h` | Staging DM9051 HAL binding for MH2030A SPI1 polling, GPIO, IRQ mode selection, and delay. |
 | `mh2030a_platform.h` | Local MH2030A platform include shim for `mh20xx.h` and `delay.h`. |
 | `mh2030a_board.c/.h` | MH2030A board bring-up helpers for clock, debug UART, and printf retargeting. |
+
+## Port File Naming Plan
+
+Use names that expose both the platform and the bus. The current staging
+implementation is the SPI1 polling baseline; later transports should be added
+as separate files instead of hiding the mode behind a generic filename:
+
+| Planned file class | Responsibility |
+| --- | --- |
+| `dm9051_hal_mh2030a_spi1.c/.h` | SPI1 polling transfer, CS control, reset GPIO, and delay binding. |
+| `dm9051_hal_mh2030a_spi1_dma.c/.h` | SPI1 DMA transfer implementation selected by `DM9051_MH2030A_TRANSPORT_DMA`. |
+| `dm9051_hal_mh2030a_int.c/.h` | DM9051 INT pin / EXTI setup, enable, disable, and ISR handoff helpers. |
+
+This mirrors the current production split under `ModuleDemo/DM9051A/port/mh2030a`
+while making the SPI instance explicit for future ports that may use another
+SPI peripheral.
 
 ## Current Pin Mapping
 
@@ -38,7 +54,7 @@ See `../../docs/BUILD_SELECTION.md` for the current target matrix.
 
 ## Future Port API
 
-The staging header `dm9051_hal_mh2030a.h` defines an explicit config model:
+The staging header `dm9051_hal_mh2030a_spi1.h` defines an explicit config model:
 
 - `dm9051_mh2030a_transport_t`: polling or DMA SPI.
 - `dm9051_mh2030a_irq_mode_t`: IRQ off or EXTI IRQ.
