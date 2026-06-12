@@ -104,5 +104,10 @@ preprocessor defines:
 | `DM9051_MH2030A_USE_DMA=1` | Select DMA transport in the staged smoke glue. |
 | `DM9051_MH2030A_USE_IRQ=1` | Select core interrupt mode and EXTI IRQ mode in the staged smoke glue. |
 
+When `DM9051_MH2030A_ENABLE_DMA` or `DM9051_MH2030A_ENABLE_IRQ` is not defined,
+it defaults to the matching `DM9051_MH2030A_USE_*` value. Define `ENABLE_*`
+explicitly only when the feature should be compiled in but not selected by the
+current smoke-demo runtime mode, for example `ENABLE_DMA=1, USE_DMA=0`.
+
 Default staged target values keep runtime behavior conservative:
 `DM9051_MH2030A_USE_DMA=0` and `DM9051_MH2030A_USE_IRQ=0`.
