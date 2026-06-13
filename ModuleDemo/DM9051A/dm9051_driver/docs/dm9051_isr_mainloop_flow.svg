@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="620" viewBox="0 0 1040 620">
+  <style>.b{fill:#f8fafc;stroke:#334155;stroke-width:2;rx:6}.i{fill:#fefce8;stroke:#a16207;stroke-width:2;rx:6}.c{fill:#ecfeff;stroke:#0e7490;stroke-width:2;rx:6}.t{font:15px Arial;fill:#111827}.s{font:12px Arial;fill:#374151}.a{stroke:#334155;stroke-width:2;fill:none;marker-end:url(#m)}</style>
+  <defs><marker id="m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#334155"/></marker></defs>
+  <rect class="b" x="60" y="55" width="210" height="58"/><text class="t" x="165" y="81" text-anchor="middle">DM9051 INT pin</text><text class="s" x="165" y="100" text-anchor="middle">PF6 falling edge</text>
+  <rect class="i" x="365" y="55" width="250" height="58"/><text class="t" x="490" y="81" text-anchor="middle">EXTI4_15_IRQHandler</text><text class="s" x="490" y="100" text-anchor="middle">no SPI, no stack calls</text>
+  <rect class="i" x="365" y="155" width="250" height="58"/><text class="t" x="490" y="181" text-anchor="middle">dm9051_core_interrupt_set</text><text class="s" x="490" y="200" text-anchor="middle">interrupt_event = 1</text>
+  <rect class="c" x="365" y="275" width="250" height="58"/><text class="t" x="490" y="301" text-anchor="middle">Main loop poll</text><text class="s" x="490" y="320" text-anchor="middle">take event or polling mode</text>
+  <rect class="c" x="120" y="395" width="250" height="70"/><text class="t" x="245" y="421" text-anchor="middle">uIP path</text><text class="s" x="245" y="441" text-anchor="middle">drain burst, uip_input, timers</text>
+  <rect class="c" x="610" y="395" width="250" height="70"/><text class="t" x="735" y="421" text-anchor="middle">lwIP path</text><text class="s" x="735" y="441" text-anchor="middle">rx frame, pbuf, netif input</text>
+  <rect class="i" x="365" y="520" width="250" height="58"/><text class="t" x="490" y="546" text-anchor="middle">Reset interrupt state</text><text class="s" x="490" y="565" text-anchor="middle">clear ISR/IMR and re-enable IRQ</text>
+  <path class="a" d="M270 84 L365 84"/><path class="a" d="M490 113 L490 155"/><path class="a" d="M490 213 L490 275"/><path class="a" d="M430 333 L300 395"/><path class="a" d="M550 333 L680 395"/><path class="a" d="M245 465 C280 520 330 549 365 549"/><path class="a" d="M735 465 C700 520 650 549 615 549"/>
+</svg>
+
