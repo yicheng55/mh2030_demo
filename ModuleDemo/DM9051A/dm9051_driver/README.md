@@ -32,7 +32,7 @@ MH2030A SPI / GPIO / IRQ / delay
 | `adapters/lwip/dm9051_lwip.*` | none yet | Future lwIP adapter. |
 | `ports/mh2030a/dm9051_hal_mh2030a_spi1.*` | `ModuleDemo/DM9051A/port/mh2030a/*` | MH2030A SPI1/GPIO/IRQ/delay implementation. |
 | `examples/uip_mh2030a_demo/` | `ModuleDemo/DM9051A/USER/main_uip_mh2030a.c`, `ModuleDemo/DM9051A/port/uip/netconf_mh2030a.c` | Current uIP demo shape. |
-| `examples/lwip_mh2030a_demo/` | none yet | Future lwIP demo. |
+| `examples/lwip_mh2030a_demo/` | `main_dm9051_lwip_example.c` | MH2030A lwIP demo. |
 
 ## Compatibility Rule
 

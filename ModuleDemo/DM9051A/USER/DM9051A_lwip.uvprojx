@@ -454,7 +454,7 @@
             <File>
               <FileName>main_dm9051_lwip_example.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\apps\lwip_web2403v2_freelw\main_dm9051_lwip_example.c</FilePath>
+              <FilePath>..\dm9051_driver\examples\lwip_mh2030a_demo\main_dm9051_lwip_example.c</FilePath>
               <FileOption>
                 <CommonProperty>
                   <UseCPPCompiler>2</UseCPPCompiler>
@@ -4097,7 +4097,7 @@
             <File>
               <FileName>main_dm9051_lwip_example.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\apps\lwip_web2403v2_freelw\main_dm9051_lwip_example.c</FilePath>
+              <FilePath>..\dm9051_driver\examples\lwip_mh2030a_demo\main_dm9051_lwip_example.c</FilePath>
             </File>
             <File>
               <FileName>mh20xx_it.c</FileName>

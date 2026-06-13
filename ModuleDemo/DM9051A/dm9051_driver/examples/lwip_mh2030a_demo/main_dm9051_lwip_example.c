@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include "mh20xx.h"
+#include "mh2030a_board.h"
 
 #include "lwip/init.h"
 #include "lwip/ip4_addr.h"
@@ -38,6 +39,8 @@ static void platform_init(void)
      *
      * DM9051A 晶片本身的初始化由 dm9051_if_init() 內部呼叫 dm9051_init()。
      */
+
+    mh2030a_uip_board_init(115200U);
 
     /*
      * lwIP 的 sys_now() 由 middlewares/3rd_party/lwip-2.1.2/port/sys_arch.c
