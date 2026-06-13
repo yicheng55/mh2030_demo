@@ -1,11 +1,11 @@
 ---
 name: api
-description: "Skill for the Api area of mh2030_demo. 239 symbols across 44 files."
+description: "Skill for the Api area of mh2030_demo. 237 symbols across 43 files."
 ---
 
 # Api
 
-239 symbols | 44 files | Cohesion: 69%
+237 symbols | 43 files | Cohesion: 69%
 
 ## When to Use
 
@@ -23,8 +23,8 @@ description: "Skill for the Api area of mh2030_demo. 239 symbols across 44 files
 | `middlewares/3rd_party/lwip-2.1.2/src/core/tcp.c` | tcp_free, tcp_backlog_accepted, tcp_process_refused_data, tcp_pcb_purge, tcp_pcb_remove (+9) |
 | `middlewares/3rd_party/lwip-2.1.2/test/unit/api/test_sockets.c` | test_sockets_get_used_count, sockets_teardown, test_sockets_alloc_socket_nonblocking, test_sockets_allfunctions_basic_domain, test_sockets_init_loopback_addr (+6) |
 | `middlewares/3rd_party/lwip-2.1.2/src/core/udp.c` | udp_new_port, udp_bind, udp_connect, udp_recv, udp_remove (+6) |
-| `middlewares/3rd_party/lwip-2.1.2/src/core/dns.c` | dns_init_local, dns_init, dns_alloc_random_port, dns_lookup, dns_alloc_pcb (+3) |
-| `middlewares/3rd_party/lwip-2.1.2/src/api/tcpip.c` | tcpip_thread_poll_one, tcpip_callback, tcpip_send_msg_wait_sem, tcpip_callbackmsg_delete, tcpip_thread_handle_msg (+2) |
+| `middlewares/3rd_party/lwip-2.1.2/src/api/tcpip.c` | tcpip_thread_poll_one, tcpip_callback, tcpip_send_msg_wait_sem, tcpip_thread_handle_msg, tcpip_timeouts_mbox_fetch (+2) |
+| `middlewares/3rd_party/lwip-2.1.2/src/core/dns.c` | dns_init_local, dns_init, dns_alloc_random_port, dns_lookup, dns_alloc_pcb (+2) |
 | `middlewares/3rd_party/lwip-2.1.2/src/core/raw.c` | raw_bind, raw_connect, raw_remove, raw_sendto, raw_send (+1) |
 | `middlewares/3rd_party/lwip-2.1.2/src/core/netif.c` | netif_name_to_index, netif_find, netif_add_ext_callback, netif_index_to_name, netif_get_by_index |
 
@@ -79,9 +79,9 @@ Start here when exploring this area:
 | Ipv4 | 9 calls |
 | Tcp | 9 calls |
 | Sntp | 8 calls |
-| Http | 8 calls |
 | Tcp_ | 8 calls |
 | Sockets | 6 calls |
+| Http | 5 calls |
 | Lwiperf | 3 calls |
 
 ## How to Explore

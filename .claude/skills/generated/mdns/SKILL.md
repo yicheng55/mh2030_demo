@@ -60,8 +60,9 @@ Start here when exploring this area:
 | Area | Connections |
 |------|-------------|
 | Ppp | 22 calls |
-| Http | 5 calls |
+| Http | 3 calls |
 | Api | 3 calls |
+| Lwip_web2403v2_freelw | 2 calls |
 | Ipv4 | 2 calls |
 | Sntp | 2 calls |
 

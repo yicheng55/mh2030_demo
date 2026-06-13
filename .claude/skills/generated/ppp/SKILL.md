@@ -1,11 +1,11 @@
 ---
 name: ppp
-description: "Skill for the Ppp area of mh2030_demo. 674 symbols across 79 files."
+description: "Skill for the Ppp area of mh2030_demo. 687 symbols across 82 files."
 ---
 
 # Ppp
 
-674 symbols | 79 files | Cohesion: 75%
+687 symbols | 82 files | Cohesion: 74%
 
 ## When to Use
 
@@ -83,13 +83,13 @@ Start here when exploring this area:
 | Area | Connections |
 |------|-------------|
 | Ipv4 | 40 calls |
-| Api | 37 calls |
+| Api | 39 calls |
 | Sntp | 15 calls |
-| Http | 13 calls |
+| Http | 14 calls |
 | Netif | 5 calls |
 | Tcp | 3 calls |
 | Ipv6 | 3 calls |
-| Lwiperf | 2 calls |
+| Altcp_tls | 3 calls |
 
 ## How to Explore
 
