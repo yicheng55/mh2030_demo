@@ -108,6 +108,11 @@ void dm9051_uip_interrupt_reset(void)
 
 void dm9051_uip_poll(void)
 {
+#if !DM9051_TX_WAIT_DONE
+    if (dm9051_uip_attached_dev != 0) {
+        (void)dm9051_core_tx_poll_done(dm9051_uip_attached_dev);
+    }
+#endif
 }
 
 const char *dm9051_uip_target_mode(void)

@@ -32,7 +32,7 @@
 #endif
 
 #ifndef DM9051_LWIP_RX_STRIP_FCS
-#define DM9051_LWIP_RX_STRIP_FCS 1
+#define DM9051_LWIP_RX_STRIP_FCS 0
 #endif
 
 #ifndef DM9051_LWIP_HAS_LINK_STATUS
@@ -335,6 +335,9 @@ void dm9051_lwip_input(struct netif *netif)
 #endif
 
     if (len < 14U) {
+        DM9051_LWIP_DIAG_PRINTF("[DM9051 lwIP] RX short frame raw=%u len=%u\r\n",
+                                (unsigned)raw_len,
+                                (unsigned)len);
         LINK_STATS_INC(link.lenerr);
         LINK_STATS_INC(link.drop);
         return;
@@ -394,4 +397,7 @@ int dm9051_lwip_init(struct netif *netif, const void *dev)
 void dm9051_lwip_poll(struct netif *netif)
 {
     dm9051_lwip_input(netif);
+#if DM9051_LWIP_USE_LEGACY_CORE && !DM9051_TX_WAIT_DONE
+    (void)dm9051_core_tx_poll_done(&dm9051_lwip_dev);
+#endif
 }

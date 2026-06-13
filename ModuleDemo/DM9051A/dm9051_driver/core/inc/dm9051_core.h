@@ -10,6 +10,10 @@
 extern "C" {
 #endif
 
+#ifndef DM9051_TX_WAIT_DONE
+#define DM9051_TX_WAIT_DONE 1
+#endif
+
 struct dm9051_hal;
 
 /* Staging snapshot of the current public DM9051 core API.
@@ -41,7 +45,10 @@ int dm9051_core_receive_ex(dm9051_device_t *dev,
 int dm9051_core_send(dm9051_device_t *dev,
                      const uint8_t *buf,
                      uint16_t len);
+#if !DM9051_TX_WAIT_DONE
+/* Useful when DM9051_TX_WAIT_DONE is overridden to 0 for non-blocking TX. */
 int dm9051_core_tx_poll_done(dm9051_device_t *dev);
+#endif
 
 uint16_t dm9051_core_phy_read(dm9051_device_t *dev, uint16_t reg);
 int dm9051_core_phy_write(dm9051_device_t *dev, uint16_t reg, uint16_t value);

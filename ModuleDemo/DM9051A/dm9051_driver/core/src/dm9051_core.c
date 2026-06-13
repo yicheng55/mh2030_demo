@@ -147,6 +147,16 @@ static int dm9051_core_mac_addr_is_valid(const uint8_t *mac_addr)
     return 1;
 }
 
+static int dm9051_core_hal_supports_critical(const dm9051_hal_t *hal)
+{
+    if ((hal == 0) || (hal->ops == 0)) {
+        return 0;
+    }
+
+    return ((hal->ops->enter_critical != 0) &&
+            (hal->ops->exit_critical != 0)) ? 1 : 0;
+}
+
 static uint32_t dm9051_core_ipv4_to_u32(const uint8_t ip[4])
 {
     return ((uint32_t)ip[0] << 24) |
@@ -1040,6 +1050,11 @@ int dm9051_core_open(dm9051_device_t *dev,
         return DM9051_ERR_PARAM;
     }
 
+    if ((config->interrupt_mode != DM9051_INPUT_MODE_POLL) &&
+        !dm9051_core_hal_supports_critical((const dm9051_hal_t *)hal)) {
+        return DM9051_ERR_PARAM;
+    }
+
     dev->runtime.config = *config;
     dev->runtime.irq_line = 0u;
     dev->runtime.interrupt_event = 0u;
@@ -1211,6 +1226,7 @@ int dm9051_core_send(dm9051_device_t *dev, const uint8_t *buf, uint16_t len)
     return status;
 }
 
+#if !DM9051_TX_WAIT_DONE
 int dm9051_core_tx_poll_done(dm9051_device_t *dev)
 {
     const dm9051_hal_t *hal;
@@ -1235,6 +1251,7 @@ int dm9051_core_tx_poll_done(dm9051_device_t *dev)
 
     return ((tcr & DM9051_TCR_TXREQ) == 0u) ? DM9051_OK : DM9051_ERR_NOT_READY;
 }
+#endif
 
 uint16_t dm9051_core_phy_read(dm9051_device_t *dev, uint16_t reg)
 {
