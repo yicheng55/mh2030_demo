@@ -201,6 +201,44 @@ static int dm9051_core_netmask_is_valid(const uint8_t netmask[4])
     return (((inverted + 1u) & inverted) == 0u) ? 1 : 0;
 }
 
+static int dm9051_core_ipv4_host_is_valid(const uint8_t ip[4],
+                                          const uint8_t netmask[4])
+{
+    uint32_t addr;
+    uint32_t mask;
+    uint32_t host;
+
+    if (!dm9051_core_ipv4_is_unicast(ip) ||
+        !dm9051_core_netmask_is_valid(netmask)) {
+        return 0;
+    }
+
+    addr = dm9051_core_ipv4_to_u32(ip);
+    mask = dm9051_core_ipv4_to_u32(netmask);
+    host = addr & ~mask;
+
+    if ((host == 0u) || (host == ~mask)) {
+        return 0;
+    }
+
+    return 1;
+}
+
+static int dm9051_core_ipv4_same_subnet(const uint8_t a[4],
+                                        const uint8_t b[4],
+                                        const uint8_t netmask[4])
+{
+    uint32_t mask;
+
+    if ((a == 0) || (b == 0) || !dm9051_core_netmask_is_valid(netmask)) {
+        return 0;
+    }
+
+    mask = dm9051_core_ipv4_to_u32(netmask);
+    return ((dm9051_core_ipv4_to_u32(a) & mask) ==
+            (dm9051_core_ipv4_to_u32(b) & mask)) ? 1 : 0;
+}
+
 static int dm9051_core_read_reg(const dm9051_hal_t *hal,
                                 uint8_t reg,
                                 uint8_t *val)
@@ -918,17 +956,35 @@ int dm9051_netif_device_is_valid(const dm9051_netif_device_t *dev)
         return 0;
     }
 
-    if (!dm9051_core_ipv4_is_unicast(dev->static_ip)) {
+    if (!dm9051_core_netmask_is_valid(dev->netmask_ip)) {
         return 0;
     }
 
-    if (!dm9051_core_netmask_is_valid(dev->netmask_ip)) {
+    if (!dm9051_core_ipv4_host_is_valid(dev->static_ip, dev->netmask_ip)) {
         return 0;
     }
 
     if (!dm9051_core_ipv4_is_zero(dev->gateway_ip) &&
         !dm9051_core_ipv4_is_unicast(dev->gateway_ip)) {
         return 0;
+    }
+
+    if (!dm9051_core_ipv4_is_zero(dev->gateway_ip)) {
+        if (!dm9051_core_ipv4_host_is_valid(dev->gateway_ip,
+                                            dev->netmask_ip)) {
+            return 0;
+        }
+
+        if (!dm9051_core_ipv4_same_subnet(dev->static_ip,
+                                          dev->gateway_ip,
+                                          dev->netmask_ip)) {
+            return 0;
+        }
+
+        if (dm9051_core_ipv4_to_u32(dev->static_ip) ==
+            dm9051_core_ipv4_to_u32(dev->gateway_ip)) {
+            return 0;
+        }
     }
 
     return 1;
@@ -992,20 +1048,39 @@ uint16_t dm9051_core_receive(dm9051_device_t *dev,
                              uint8_t *buf,
                              uint16_t buf_len)
 {
+    uint16_t rx_len;
+
+    rx_len = 0u;
+    if (dm9051_core_receive_ex(dev, buf, buf_len, &rx_len) != DM9051_OK) {
+        return 0u;
+    }
+
+    return rx_len;
+}
+
+int dm9051_core_receive_ex(dm9051_device_t *dev,
+                           uint8_t *buf,
+                           uint16_t buf_len,
+                           uint16_t *out_len)
+{
     const dm9051_hal_t *hal;
     uint8_t ready_byte;
     uint8_t header[DM9051_RX_HEAD_SIZE];
     uint16_t rx_len;
     int status;
 
+    if (out_len != 0) {
+        *out_len = 0u;
+    }
+
     if ((dev == 0) || (dev->hal == 0)) {
-        return 0u;
+        return DM9051_ERR_PARAM;
     }
 
     hal = (const dm9051_hal_t *)dev->hal;
     status = dm9051_core_rx_ready(dev, &ready_byte);
     if (status != DM9051_OK) {
-        return 0u;
+        return status;
     }
 
     status = dm9051_core_rx_header(hal, header, &rx_len);
@@ -1015,25 +1090,29 @@ uint16_t dm9051_core_receive(dm9051_device_t *dev,
         } else if (status == DM9051_ERR) {
             (void)dm9051_core_reset_after_error(dev);
         }
-        return 0u;
+        return status;
     }
 
     if ((buf == 0) || (buf_len < rx_len)) {
         (void)dm9051_core_rx_discard(hal, rx_len);
-        return 0u;
+        return DM9051_ERR_PARAM;
     }
 
     status = dm9051_core_read_mem(hal, buf, dm9051_core_rx_pad_len(rx_len));
     if (status != DM9051_OK) {
-        return 0u;
+        return status;
     }
 
     status = dm9051_core_write_reg(hal, DM9051_ISR, DM9051_ISR_CLEAR_RX);
     if (status != DM9051_OK) {
-        return 0u;
+        return status;
     }
 
-    return rx_len;
+    if (out_len != 0) {
+        *out_len = rx_len;
+    }
+
+    return DM9051_OK;
 }
 
 int dm9051_core_send(dm9051_device_t *dev, const uint8_t *buf, uint16_t len)

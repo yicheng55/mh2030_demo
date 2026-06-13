@@ -34,6 +34,10 @@ int dm9051_core_close(dm9051_device_t *dev);
 uint16_t dm9051_core_receive(dm9051_device_t *dev,
                              uint8_t *buf,
                              uint16_t buf_len);
+int dm9051_core_receive_ex(dm9051_device_t *dev,
+                           uint8_t *buf,
+                           uint16_t buf_len,
+                           uint16_t *out_len);
 int dm9051_core_send(dm9051_device_t *dev,
                      const uint8_t *buf,
                      uint16_t len);

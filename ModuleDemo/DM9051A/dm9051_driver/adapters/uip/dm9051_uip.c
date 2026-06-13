@@ -13,6 +13,7 @@
 #include "../../core/inc/dm9051_core.h"
 
 static dm9051_device_t *dm9051_uip_attached_dev;
+static int dm9051_uip_last_rx_status_value = DM9051_ERR_NOT_READY;
 
 int dm9051_uip_init(const dm9051_netif_device_t *dev)
 {
@@ -39,11 +40,30 @@ int dm9051_uip_attach(dm9051_device_t *dev)
 
 uint16_t dm9051_uip_input(uint8_t *buf, uint16_t buf_len)
 {
+    uint16_t rx_len;
+    int status;
+
     if (dm9051_uip_attached_dev == 0) {
+        dm9051_uip_last_rx_status_value = DM9051_ERR_NOT_READY;
         return 0u;
     }
 
-    return dm9051_core_receive(dm9051_uip_attached_dev, buf, buf_len);
+    rx_len = 0u;
+    status = dm9051_core_receive_ex(dm9051_uip_attached_dev,
+                                    buf,
+                                    buf_len,
+                                    &rx_len);
+    dm9051_uip_last_rx_status_value = status;
+    if (status != DM9051_OK) {
+        return 0u;
+    }
+
+    return rx_len;
+}
+
+int dm9051_uip_last_rx_status(void)
+{
+    return dm9051_uip_last_rx_status_value;
 }
 
 int dm9051_uip_output(const uint8_t *buf, uint16_t len)
