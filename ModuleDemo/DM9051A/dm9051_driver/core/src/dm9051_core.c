@@ -26,6 +26,10 @@
 #define DM9051_TX_WAIT_DONE 1
 #endif
 
+#ifndef DM9051_TX_WAIT_TIMEOUT_US
+#define DM9051_TX_WAIT_TIMEOUT_US 100000u
+#endif
+
 #ifndef DM9051_RXB_RESET_THRESHOLD
 #define DM9051_RXB_RESET_THRESHOLD 10u
 #endif
@@ -299,6 +303,40 @@ static void dm9051_core_exit_critical(const dm9051_hal_t *hal, uint32_t state)
     }
 
     hal->ops->exit_critical(hal->ctx, state);
+}
+
+static int dm9051_core_bus_acquire(dm9051_device_t *dev,
+                                   const dm9051_hal_t *hal)
+{
+    uint32_t state;
+
+    if (dev == 0) {
+        return DM9051_ERR_PARAM;
+    }
+
+    state = dm9051_core_enter_critical(hal);
+    if (dev->runtime.bus_busy != 0u) {
+        dm9051_core_exit_critical(hal, state);
+        return DM9051_ERR_NOT_READY;
+    }
+
+    dev->runtime.bus_busy = 1u;
+    dm9051_core_exit_critical(hal, state);
+    return DM9051_OK;
+}
+
+static void dm9051_core_bus_release(dm9051_device_t *dev,
+                                    const dm9051_hal_t *hal)
+{
+    uint32_t state;
+
+    if (dev == 0) {
+        return;
+    }
+
+    state = dm9051_core_enter_critical(hal);
+    dev->runtime.bus_busy = 0u;
+    dm9051_core_exit_critical(hal, state);
 }
 
 static int dm9051_core_probe(dm9051_device_t *dev, const dm9051_hal_t *hal)
@@ -877,7 +915,7 @@ static int dm9051_core_tx_set_len(const dm9051_hal_t *hal, uint16_t len)
 #if DM9051_TX_WAIT_DONE
 static int dm9051_core_tx_wait_done(const dm9051_hal_t *hal)
 {
-    uint32_t timeout = 100000u;
+    uint32_t timeout = DM9051_TX_WAIT_TIMEOUT_US;
     uint8_t tcr;
     int status;
 
@@ -1005,6 +1043,7 @@ int dm9051_core_open(dm9051_device_t *dev,
     dev->runtime.config = *config;
     dev->runtime.irq_line = 0u;
     dev->runtime.interrupt_event = 0u;
+    dev->runtime.bus_busy = 0u;
     dev->runtime.device_found = 0u;
     dev->runtime.vendor_id = 0u;
     dev->runtime.product_id = 0u;
@@ -1078,8 +1117,14 @@ int dm9051_core_receive_ex(dm9051_device_t *dev,
     }
 
     hal = (const dm9051_hal_t *)dev->hal;
+    status = dm9051_core_bus_acquire(dev, hal);
+    if (status != DM9051_OK) {
+        return status;
+    }
+
     status = dm9051_core_rx_ready(dev, &ready_byte);
     if (status != DM9051_OK) {
+        dm9051_core_bus_release(dev, hal);
         return status;
     }
 
@@ -1090,21 +1135,25 @@ int dm9051_core_receive_ex(dm9051_device_t *dev,
         } else if (status == DM9051_ERR) {
             (void)dm9051_core_reset_after_error(dev);
         }
+        dm9051_core_bus_release(dev, hal);
         return status;
     }
 
     if ((buf == 0) || (buf_len < rx_len)) {
         (void)dm9051_core_rx_discard(hal, rx_len);
+        dm9051_core_bus_release(dev, hal);
         return DM9051_ERR_PARAM;
     }
 
     status = dm9051_core_read_mem(hal, buf, dm9051_core_rx_pad_len(rx_len));
     if (status != DM9051_OK) {
+        dm9051_core_bus_release(dev, hal);
         return status;
     }
 
     status = dm9051_core_write_reg(hal, DM9051_ISR, DM9051_ISR_CLEAR_RX);
     if (status != DM9051_OK) {
+        dm9051_core_bus_release(dev, hal);
         return status;
     }
 
@@ -1112,6 +1161,7 @@ int dm9051_core_receive_ex(dm9051_device_t *dev,
         *out_len = rx_len;
     }
 
+    dm9051_core_bus_release(dev, hal);
     return DM9051_OK;
 }
 
@@ -1129,26 +1179,61 @@ int dm9051_core_send(dm9051_device_t *dev, const uint8_t *buf, uint16_t len)
     }
 
     hal = (const dm9051_hal_t *)dev->hal;
+    status = dm9051_core_bus_acquire(dev, hal);
+    if (status != DM9051_OK) {
+        return status;
+    }
+
     status = dm9051_core_tx_set_len(hal, len);
     if (status != DM9051_OK) {
+        dm9051_core_bus_release(dev, hal);
         return status;
     }
 
     status = dm9051_core_write_mem(hal, buf, dm9051_core_tx_pad_len(len));
     if (status != DM9051_OK) {
+        dm9051_core_bus_release(dev, hal);
         return status;
     }
 
     status = dm9051_core_write_reg(hal, DM9051_TCR, DM9051_TCR_TXREQ);
     if (status != DM9051_OK) {
+        dm9051_core_bus_release(dev, hal);
         return status;
     }
 
 #if DM9051_TX_WAIT_DONE
-    return dm9051_core_tx_wait_done(hal);
+    status = dm9051_core_tx_wait_done(hal);
 #else
-    return DM9051_OK;
+    status = DM9051_OK;
 #endif
+    dm9051_core_bus_release(dev, hal);
+    return status;
+}
+
+int dm9051_core_tx_poll_done(dm9051_device_t *dev)
+{
+    const dm9051_hal_t *hal;
+    uint8_t tcr;
+    int status;
+
+    if ((dev == 0) || (dev->hal == 0)) {
+        return DM9051_ERR_PARAM;
+    }
+
+    hal = (const dm9051_hal_t *)dev->hal;
+    status = dm9051_core_bus_acquire(dev, hal);
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    status = dm9051_core_read_reg(hal, DM9051_TCR, &tcr);
+    dm9051_core_bus_release(dev, hal);
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    return ((tcr & DM9051_TCR_TXREQ) == 0u) ? DM9051_OK : DM9051_ERR_NOT_READY;
 }
 
 uint16_t dm9051_core_phy_read(dm9051_device_t *dev, uint16_t reg)

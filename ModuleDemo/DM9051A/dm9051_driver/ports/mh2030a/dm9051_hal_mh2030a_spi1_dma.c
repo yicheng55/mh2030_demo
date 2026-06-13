@@ -8,8 +8,23 @@
 #define DM9051_MH2030A_RX_DMA_FLAG  DMA1_FLAG_TC2
 #define DM9051_MH2030A_TX_DMA_FLAG  DMA1_FLAG_TC3
 
-static uint8_t dm9051_mh2030a_dma_dummy_tx_byte = 0x00u;
-static uint8_t dm9051_mh2030a_dma_dummy_rx_byte;
+#if defined(__GNUC__)
+#define DM9051_MH2030A_DMA_ALIGN4_PREFIX
+#define DM9051_MH2030A_DMA_ALIGN4_SUFFIX __attribute__((aligned(4)))
+#elif defined(__CC_ARM) || defined(__ARMCC_VERSION)
+#define DM9051_MH2030A_DMA_ALIGN4_PREFIX __align(4)
+#define DM9051_MH2030A_DMA_ALIGN4_SUFFIX
+#else
+#define DM9051_MH2030A_DMA_ALIGN4_PREFIX
+#define DM9051_MH2030A_DMA_ALIGN4_SUFFIX
+#endif
+
+DM9051_MH2030A_DMA_ALIGN4_PREFIX
+static volatile uint8_t dm9051_mh2030a_dma_dummy_tx_byte
+    DM9051_MH2030A_DMA_ALIGN4_SUFFIX = 0x00u;
+DM9051_MH2030A_DMA_ALIGN4_PREFIX
+static volatile uint8_t dm9051_mh2030a_dma_dummy_rx_byte
+    DM9051_MH2030A_DMA_ALIGN4_SUFFIX;
 
 static void dm9051_mh2030a_dma_bus_init(void)
 {
@@ -41,7 +56,7 @@ static void dm9051_mh2030a_dma_configure(uint8_t *rx,
     dma.DMA_DIR = DMA_DIR_PeripheralSRC;
     dma.DMA_BufferSize = len;
     dma.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-    dma.DMA_MemoryInc = (rx == &dm9051_mh2030a_dma_dummy_rx_byte) ?
+    dma.DMA_MemoryInc = (rx == (uint8_t *)&dm9051_mh2030a_dma_dummy_rx_byte) ?
                          DMA_MemoryInc_Disable : DMA_MemoryInc_Enable;
     dma.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
     dma.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
@@ -57,7 +72,7 @@ static void dm9051_mh2030a_dma_configure(uint8_t *rx,
     dma.DMA_DIR = DMA_DIR_PeripheralDST;
     dma.DMA_BufferSize = len;
     dma.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-    dma.DMA_MemoryInc = (tx == &dm9051_mh2030a_dma_dummy_tx_byte) ?
+    dma.DMA_MemoryInc = (tx == (const uint8_t *)&dm9051_mh2030a_dma_dummy_tx_byte) ?
                          DMA_MemoryInc_Disable : DMA_MemoryInc_Enable;
     dma.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
     dma.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
@@ -153,7 +168,7 @@ static int dm9051_mh2030a_dma_read_mem(void *ctx,
     if (status == DM9051_HAL_OK) {
         status = dm9051_mh2030a_dma_transfer(config,
                                              buf,
-                                             &dm9051_mh2030a_dma_dummy_tx_byte,
+                                             (const uint8_t *)&dm9051_mh2030a_dma_dummy_tx_byte,
                                              len);
     }
     if (status == DM9051_HAL_OK) {
@@ -192,7 +207,7 @@ static int dm9051_mh2030a_dma_write_mem(void *ctx,
                                           &dummy);
     if (status == DM9051_HAL_OK) {
         status = dm9051_mh2030a_dma_transfer(config,
-                                             &dm9051_mh2030a_dma_dummy_rx_byte,
+                                             (uint8_t *)&dm9051_mh2030a_dma_dummy_rx_byte,
                                              buf,
                                              len);
     }

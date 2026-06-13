@@ -17,6 +17,10 @@ extern "C" {
 #define DM9051_INPUT_MODE_INTERRUPT         1
 #define DM9051_INPUT_MODE_INTERRUPT_CLKOUT  2
 
+#if defined(DM9051_USE_UIP) && defined(DM9051_USE_LWIP)
+#error "DM9051 driver supports only one active stack owner per device instance"
+#endif
+
 #define DM9051_OK                 0
 #define DM9051_ERR               -1
 #define DM9051_ERR_TIMEOUT       -2
@@ -42,6 +46,7 @@ typedef struct dm9051_runtime {
     uint16_t product_id;
     uint32_t irq_line;
     volatile uint8_t interrupt_event;
+    volatile uint8_t bus_busy;
     uint8_t rxb_error_hist[DM9051_RXB_HIST_SIZE];
     uint8_t chip_revision;
     uint8_t device_found;

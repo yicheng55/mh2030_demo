@@ -41,6 +41,7 @@ int dm9051_core_receive_ex(dm9051_device_t *dev,
 int dm9051_core_send(dm9051_device_t *dev,
                      const uint8_t *buf,
                      uint16_t len);
+int dm9051_core_tx_poll_done(dm9051_device_t *dev);
 
 uint16_t dm9051_core_phy_read(dm9051_device_t *dev, uint16_t reg);
 int dm9051_core_phy_write(dm9051_device_t *dev, uint16_t reg, uint16_t value);

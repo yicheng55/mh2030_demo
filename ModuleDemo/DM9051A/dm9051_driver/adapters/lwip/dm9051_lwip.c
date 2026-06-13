@@ -334,6 +334,12 @@ void dm9051_lwip_input(struct netif *netif)
     }
 #endif
 
+    if (len < 14U) {
+        LINK_STATS_INC(link.lenerr);
+        LINK_STATS_INC(link.drop);
+        return;
+    }
+
     DM9051_LWIP_DIAG_PRINTF("[DM9051 lwIP] RX raw=%u len=%u type=%s(0x%04X) dst=%02X:%02X:%02X:%02X:%02X:%02X src=%02X:%02X:%02X:%02X:%02X:%02X\r\n",
                             (unsigned)raw_len,
                             (unsigned)len,
