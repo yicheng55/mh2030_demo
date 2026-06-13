@@ -111,6 +111,38 @@ static int dm9051_core_hal_is_valid(const dm9051_hal_t *hal)
     return 1;
 }
 
+static int dm9051_core_mac_addr_is_valid(const uint8_t *mac_addr)
+{
+    uint8_t i;
+    uint8_t all_zero;
+    uint8_t all_one;
+
+    if (mac_addr == 0) {
+        return 0;
+    }
+
+    all_zero = 1u;
+    all_one = 1u;
+    for (i = 0u; i < DM9051_MAC_ADDR_LENGTH; ++i) {
+        if (mac_addr[i] != 0x00u) {
+            all_zero = 0u;
+        }
+        if (mac_addr[i] != 0xffu) {
+            all_one = 0u;
+        }
+    }
+
+    if ((all_zero != 0u) || (all_one != 0u)) {
+        return 0;
+    }
+
+    if ((mac_addr[0] & 0x01u) != 0u) {
+        return 0;
+    }
+
+    return 1;
+}
+
 static int dm9051_core_read_reg(const dm9051_hal_t *hal,
                                 uint8_t reg,
                                 uint8_t *val)
@@ -821,6 +853,10 @@ int dm9051_core_config_is_valid(const dm9051_config_t *config)
 int dm9051_netif_device_is_valid(const dm9051_netif_device_t *dev)
 {
     if (dev == 0) {
+        return 0;
+    }
+
+    if (!dm9051_core_mac_addr_is_valid(dev->mac_addr)) {
         return 0;
     }
 
