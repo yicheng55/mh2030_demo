@@ -143,6 +143,64 @@ static int dm9051_core_mac_addr_is_valid(const uint8_t *mac_addr)
     return 1;
 }
 
+static uint32_t dm9051_core_ipv4_to_u32(const uint8_t ip[4])
+{
+    return ((uint32_t)ip[0] << 24) |
+           ((uint32_t)ip[1] << 16) |
+           ((uint32_t)ip[2] << 8) |
+           (uint32_t)ip[3];
+}
+
+static int dm9051_core_ipv4_is_unicast(const uint8_t ip[4])
+{
+    if (ip == 0) {
+        return 0;
+    }
+
+    if ((ip[0] == 0u) || (ip[0] >= 224u) || (ip[0] == 127u)) {
+        return 0;
+    }
+
+    if ((ip[0] == 255u) &&
+        (ip[1] == 255u) &&
+        (ip[2] == 255u) &&
+        (ip[3] == 255u)) {
+        return 0;
+    }
+
+    return 1;
+}
+
+static int dm9051_core_ipv4_is_zero(const uint8_t ip[4])
+{
+    if (ip == 0) {
+        return 0;
+    }
+
+    return ((ip[0] == 0u) &&
+            (ip[1] == 0u) &&
+            (ip[2] == 0u) &&
+            (ip[3] == 0u)) ? 1 : 0;
+}
+
+static int dm9051_core_netmask_is_valid(const uint8_t netmask[4])
+{
+    uint32_t mask;
+    uint32_t inverted;
+
+    if (netmask == 0) {
+        return 0;
+    }
+
+    mask = dm9051_core_ipv4_to_u32(netmask);
+    if ((mask == 0u) || (mask == 0xffffffffu)) {
+        return 0;
+    }
+
+    inverted = ~mask;
+    return (((inverted + 1u) & inverted) == 0u) ? 1 : 0;
+}
+
 static int dm9051_core_read_reg(const dm9051_hal_t *hal,
                                 uint8_t reg,
                                 uint8_t *val)
@@ -857,6 +915,19 @@ int dm9051_netif_device_is_valid(const dm9051_netif_device_t *dev)
     }
 
     if (!dm9051_core_mac_addr_is_valid(dev->mac_addr)) {
+        return 0;
+    }
+
+    if (!dm9051_core_ipv4_is_unicast(dev->static_ip)) {
+        return 0;
+    }
+
+    if (!dm9051_core_netmask_is_valid(dev->netmask_ip)) {
+        return 0;
+    }
+
+    if (!dm9051_core_ipv4_is_zero(dev->gateway_ip) &&
+        !dm9051_core_ipv4_is_unicast(dev->gateway_ip)) {
         return 0;
     }
 
