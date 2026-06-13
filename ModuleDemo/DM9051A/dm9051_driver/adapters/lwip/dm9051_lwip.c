@@ -35,6 +35,10 @@
 #define DM9051_LWIP_RX_STRIP_FCS 1
 #endif
 
+#ifndef DM9051_LWIP_HAS_LINK_STATUS
+#define DM9051_LWIP_HAS_LINK_STATUS 0
+#endif
+
 #if DM9051_LWIP_DIAG
 #define DM9051_LWIP_DIAG_PRINTF(...) printf(__VA_ARGS__)
 #else
@@ -124,6 +128,16 @@ static uint16_t dm9051_lwip_packet_send(uint8_t *packet, uint16_t len)
     return (dm9051_core_send(&dm9051_lwip_dev, packet, len) == DM9051_OK) ?
            len : 0u;
 }
+
+int dm9051_lwip_link_is_up(void)
+{
+    if (dm9051_lwip_status != DM9051_OK) {
+        return 0;
+    }
+
+    return dm9051_core_link_is_up(&dm9051_lwip_dev);
+}
+
 #define dm9051_packet_receive(packet, max_len) dm9051_lwip_packet_receive((packet), (max_len))
 #define dm9051_packet_send(packet, len) dm9051_lwip_packet_send((packet), (len))
 #else
@@ -136,10 +150,22 @@ static uint16_t dm9051_lwip_packet_send(uint8_t *packet, uint16_t len)
 void dm9051_init(uint8_t *macaddr);
 uint16_t dm9051_packet_send(uint8_t *packet, uint16_t len);
 uint16_t dm9051_packet_receive(uint8_t *packet, uint16_t max_len);
+#if DM9051_LWIP_HAS_LINK_STATUS
+int dm9051_link_is_up(void);
+#endif
 static err_t dm9051_lwip_hw_init(uint8_t *macaddr)
 {
     dm9051_init(macaddr);
     return ERR_OK;
+}
+
+int dm9051_lwip_link_is_up(void)
+{
+#if DM9051_LWIP_HAS_LINK_STATUS
+    return dm9051_link_is_up() ? 1 : 0;
+#else
+    return 1;
+#endif
 }
 #endif
 
@@ -206,8 +232,7 @@ err_t dm9051_if_init(struct netif *netif)
     netif->mtu = DM9051_LWIP_MTU;
     netif->flags = NETIF_FLAG_BROADCAST |
                    NETIF_FLAG_ETHARP |
-                   NETIF_FLAG_ETHERNET |
-                   NETIF_FLAG_LINK_UP;
+                   NETIF_FLAG_ETHERNET;
 
     /*
      * 應用層應在 netif_add() 前先填好 netif->hwaddr。
@@ -238,6 +263,11 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
 
     if (p == NULL) {
         return ERR_ARG;
+    }
+
+    if (!netif_is_link_up(netif)) {
+        LINK_STATS_INC(link.drop);
+        return ERR_RTE;
     }
 
     if (p->tot_len > sizeof(tx_buf)) {

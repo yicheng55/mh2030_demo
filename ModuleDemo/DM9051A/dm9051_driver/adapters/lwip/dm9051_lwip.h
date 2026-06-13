@@ -34,6 +34,14 @@ err_t dm9051_if_init(struct netif *netif);
  */
 void dm9051_lwip_input(struct netif *netif);
 
+/**
+ * @brief 讀取目前 DM9051A 實體 link 狀態。
+ *
+ * 回傳 1 表示 link up，0 表示 link down。若使用尚未提供 link 狀態 API
+ * 的 legacy-free 底層介面，預設回傳 up，避免破壞既有移植。
+ */
+int dm9051_lwip_link_is_up(void);
+
 /* 舊 staging API 的相容 wrapper，方便既有工程逐步切換。 */
 int dm9051_lwip_init(struct netif *netif, const void *dev);
 void dm9051_lwip_poll(struct netif *netif);
