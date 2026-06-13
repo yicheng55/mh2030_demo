@@ -27,3 +27,11 @@ void lwip_web2403v2_freelw_poll(void)
      * Bare-metal main loop 中仍保留此 hook，方便未來放應用層週期工作。
      */
 }
+
+void lwip_platform_assert(const char *msg)
+{
+    (void)msg;
+
+    while (1) {
+    }
+}

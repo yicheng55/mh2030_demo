@@ -28,12 +28,88 @@
 
 #if DM9051_LWIP_USE_LEGACY_CORE
 #include "../../core/inc/dm9051_core.h"
-#define dm9051_packet_receive(packet, max_len) dm9051_rx((packet), (max_len))
+#include "../../hal/inc/dm9051_hal.h"
+#include "../../ports/mh2030a/dm9051_hal_mh2030a_spi1.h"
+
+static dm9051_device_t dm9051_lwip_dev;
+static dm9051_hal_t dm9051_lwip_hal;
+static int dm9051_lwip_status = DM9051_ERR_NOT_READY;
+
+static err_t dm9051_lwip_hw_init(uint8_t *macaddr)
+{
+    dm9051_config_t core_config;
+    dm9051_mh2030a_config_t port_config;
+    const uint8_t *active_mac;
+    int status;
+
+    dm9051_core_default_config(&core_config);
+    core_config.mac_addr = macaddr;
+#if DM9051_MH2030A_USE_IRQ
+    core_config.interrupt_mode = DM9051_INPUT_MODE_INTERRUPT;
+#else
+    core_config.interrupt_mode = DM9051_INPUT_MODE_POLL;
+#endif
+    core_config.flow_control = 0u;
+
+    dm9051_mh2030a_default_config(&port_config);
+#if DM9051_MH2030A_USE_DMA
+    port_config.transport = DM9051_MH2030A_TRANSPORT_DMA;
+#else
+    port_config.transport = DM9051_MH2030A_TRANSPORT_POLLING;
+#endif
+#if DM9051_MH2030A_USE_IRQ
+    port_config.irq_mode = DM9051_MH2030A_IRQ_EXTI;
+#else
+    port_config.irq_mode = DM9051_MH2030A_IRQ_OFF;
+#endif
+
+    status = dm9051_mh2030a_hal_bind(&dm9051_lwip_hal, &port_config);
+    if (status != DM9051_HAL_OK) {
+        dm9051_lwip_status = DM9051_ERR_NOT_READY;
+        return ERR_IF;
+    }
+
+#if DM9051_MH2030A_USE_IRQ
+    dm9051_mh2030a_irq_attach_device(&dm9051_lwip_dev);
+#endif
+
+    dm9051_lwip_status = dm9051_core_open(&dm9051_lwip_dev,
+                                          &core_config,
+                                          &dm9051_lwip_hal);
+    if (dm9051_lwip_status != DM9051_OK) {
+#if DM9051_MH2030A_USE_IRQ
+        dm9051_mh2030a_irq_detach_device();
+#endif
+        return ERR_IF;
+    }
+
+    active_mac = dm9051_core_mac(&dm9051_lwip_dev);
+    if (active_mac != NULL) {
+        memcpy(macaddr, active_mac, ETH_HWADDR_LEN);
+    }
+
+    return ERR_OK;
+}
+
+static uint16_t dm9051_lwip_packet_receive(uint8_t *packet, uint16_t max_len)
+{
+    if (dm9051_lwip_status != DM9051_OK) {
+        return 0u;
+    }
+
+    return dm9051_core_receive(&dm9051_lwip_dev, packet, max_len);
+}
+
 static uint16_t dm9051_lwip_packet_send(uint8_t *packet, uint16_t len)
 {
-    dm9051_tx(packet, len);
-    return len;
+    if (dm9051_lwip_status != DM9051_OK) {
+        return 0u;
+    }
+
+    return (dm9051_core_send(&dm9051_lwip_dev, packet, len) == DM9051_OK) ?
+           len : 0u;
 }
+#define dm9051_packet_receive(packet, max_len) dm9051_lwip_packet_receive((packet), (max_len))
 #define dm9051_packet_send(packet, len) dm9051_lwip_packet_send((packet), (len))
 #else
 /*
@@ -45,6 +121,11 @@ static uint16_t dm9051_lwip_packet_send(uint8_t *packet, uint16_t len)
 void dm9051_init(uint8_t *macaddr);
 uint16_t dm9051_packet_send(uint8_t *packet, uint16_t len);
 uint16_t dm9051_packet_receive(uint8_t *packet, uint16_t max_len);
+static err_t dm9051_lwip_hw_init(uint8_t *macaddr)
+{
+    dm9051_init(macaddr);
+    return ERR_OK;
+}
 #endif
 
 #ifndef DM9051_LWIP_MTU
@@ -94,9 +175,11 @@ err_t dm9051_if_init(struct netif *netif)
 
     /*
      * 應用層應在 netif_add() 前先填好 netif->hwaddr。
-     * dm9051_init() 會初始化 SPI/PHY/DM9051A，並將 MAC 寫入晶片。
+     * dm9051_lwip_hw_init() 會初始化 SPI/PHY/DM9051A，並將 MAC 寫入晶片。
      */
-    dm9051_init(netif->hwaddr);
+    if (dm9051_lwip_hw_init(netif->hwaddr) != ERR_OK) {
+        return ERR_IF;
+    }
 
     return ERR_OK;
 }
