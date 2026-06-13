@@ -220,8 +220,8 @@ const dm9051_hal_ops_t dm9051_mh2030a_dma_ops = {
     dm9051_mh2030a_delay_us,
     dm9051_mh2030a_irq_enable_if_enabled,
     dm9051_mh2030a_irq_disable_if_enabled,
-    0,
-    0
+    dm9051_mh2030a_enter_critical,
+    dm9051_mh2030a_exit_critical
 };
 
 #endif /* DM9051_MH2030A_ENABLE_DMA */

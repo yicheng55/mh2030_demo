@@ -50,6 +50,8 @@ void dm9051_mh2030a_spi1_bus_init_common(void);
 void dm9051_mh2030a_reset_gpio_sequence(void);
 void dm9051_mh2030a_delay_ms(uint32_t ms);
 void dm9051_mh2030a_delay_us(uint32_t us);
+uint32_t dm9051_mh2030a_enter_critical(void *ctx);
+void dm9051_mh2030a_exit_critical(void *ctx, uint32_t state);
 void dm9051_mh2030a_polling_reset(void *ctx);
 int dm9051_mh2030a_polling_read_reg(void *ctx, uint8_t reg, uint8_t *val);
 int dm9051_mh2030a_polling_write_reg(void *ctx, uint8_t reg, uint8_t val);

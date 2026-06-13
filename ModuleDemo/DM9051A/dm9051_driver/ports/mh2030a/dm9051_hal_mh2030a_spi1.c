@@ -18,8 +18,8 @@ const dm9051_hal_ops_t dm9051_mh2030a_polling_ops = {
     dm9051_mh2030a_delay_us,
     dm9051_mh2030a_irq_enable_if_enabled,
     dm9051_mh2030a_irq_disable_if_enabled,
-    0,
-    0
+    dm9051_mh2030a_enter_critical,
+    dm9051_mh2030a_exit_critical
 };
 
 static dm9051_mh2030a_config_t dm9051_mh2030a_bound_config;
@@ -198,6 +198,22 @@ void dm9051_mh2030a_delay_ms(uint32_t ms)
 void dm9051_mh2030a_delay_us(uint32_t us)
 {
     Delay_Us(us);
+}
+
+uint32_t dm9051_mh2030a_enter_critical(void *ctx)
+{
+    uint32_t primask;
+
+    (void)ctx;
+    primask = __get_PRIMASK();
+    __disable_irq();
+    return primask;
+}
+
+void dm9051_mh2030a_exit_critical(void *ctx, uint32_t state)
+{
+    (void)ctx;
+    __set_PRIMASK(state);
 }
 
 int dm9051_mh2030a_polling_read_reg(void *ctx,
@@ -389,6 +405,21 @@ int dm9051_mh2030a_config_is_valid(const dm9051_mh2030a_config_t *config)
     }
 
     if (config->spi_timeout == 0u) {
+        return 0;
+    }
+
+    if ((config->pins.cs_port != (uint32_t)DM9051_MH2030A_CS_PORT) ||
+        (config->pins.cs_pin != DM9051_MH2030A_CS_PIN) ||
+        (config->pins.sck_port != (uint32_t)DM9051_MH2030A_SCK_PORT) ||
+        (config->pins.sck_pin != DM9051_MH2030A_SCK_PIN) ||
+        (config->pins.miso_port != (uint32_t)DM9051_MH2030A_MISO_PORT) ||
+        (config->pins.miso_pin != DM9051_MH2030A_MISO_PIN) ||
+        (config->pins.mosi_port != (uint32_t)DM9051_MH2030A_MOSI_PORT) ||
+        (config->pins.mosi_pin != DM9051_MH2030A_MOSI_PIN) ||
+        (config->pins.rst_port != (uint32_t)DM9051_MH2030A_RST_PORT) ||
+        (config->pins.rst_pin != DM9051_MH2030A_RST_PIN) ||
+        (config->pins.int_port != (uint32_t)DM9051_MH2030A_INT_PORT) ||
+        (config->pins.int_pin != DM9051_MH2030A_INT_PIN)) {
         return 0;
     }
 

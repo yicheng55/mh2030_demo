@@ -155,6 +155,24 @@ static int dm9051_core_write_mem(const dm9051_hal_t *hal,
     return dm9051_core_hal_status(hal->ops->write_mem(hal->ctx, buf, len));
 }
 
+static uint32_t dm9051_core_enter_critical(const dm9051_hal_t *hal)
+{
+    if ((hal == 0) || (hal->ops == 0) || (hal->ops->enter_critical == 0)) {
+        return 0u;
+    }
+
+    return hal->ops->enter_critical(hal->ctx);
+}
+
+static void dm9051_core_exit_critical(const dm9051_hal_t *hal, uint32_t state)
+{
+    if ((hal == 0) || (hal->ops == 0) || (hal->ops->exit_critical == 0)) {
+        return;
+    }
+
+    hal->ops->exit_critical(hal->ctx, state);
+}
+
 static int dm9051_core_probe(dm9051_device_t *dev, const dm9051_hal_t *hal)
 {
     uint8_t vidl;
@@ -671,12 +689,9 @@ static int dm9051_core_rx_header(const dm9051_hal_t *hal,
         return DM9051_ERR_PARAM;
     }
 
-    status = dm9051_core_read_mem(hal, header, DM9051_RX_HEAD_SIZE);
-    if (status != DM9051_OK) {
-        return status;
-    }
+    *rx_len = 0u;
 
-    status = dm9051_core_write_reg(hal, DM9051_ISR, DM9051_ISR_CLEAR_RX);
+    status = dm9051_core_read_mem(hal, header, DM9051_RX_HEAD_SIZE);
     if (status != DM9051_OK) {
         return status;
     }
@@ -748,6 +763,9 @@ static int dm9051_core_tx_wait_done(const dm9051_hal_t *hal)
             return DM9051_OK;
         }
 
+        if ((hal != 0) && (hal->ops != 0) && (hal->ops->delay_us != 0)) {
+            hal->ops->delay_us(1u);
+        }
         --timeout;
     } while (timeout != 0u);
 
@@ -885,6 +903,11 @@ uint16_t dm9051_core_receive(dm9051_device_t *dev,
 
     status = dm9051_core_rx_header(hal, header, &rx_len);
     if (status != DM9051_OK) {
+        if ((rx_len != 0u) && (rx_len <= DM9051_ETH_FRAME_MAX)) {
+            (void)dm9051_core_rx_discard(hal, rx_len);
+        } else if (status == DM9051_ERR) {
+            (void)dm9051_core_reset_after_error(dev);
+        }
         return 0u;
     }
 
@@ -1000,21 +1023,33 @@ void dm9051_core_interrupt_set(dm9051_device_t *dev, uint32_t irq_line)
 
 int dm9051_core_interrupt_take(dm9051_device_t *dev)
 {
+    const dm9051_hal_t *hal;
+    uint32_t state;
+    int taken;
+
     if (dev == 0) {
         return 0;
     }
 
+    hal = (const dm9051_hal_t *)dev->hal;
+    state = dm9051_core_enter_critical(hal);
+    taken = 0;
+
     if (dev->runtime.interrupt_event == 0u) {
-        return 0;
+        dm9051_core_exit_critical(hal, state);
+        return taken;
     }
 
     dev->runtime.interrupt_event = 0u;
-    return 1;
+    taken = 1;
+    dm9051_core_exit_critical(hal, state);
+    return taken;
 }
 
 void dm9051_core_interrupt_reset(dm9051_device_t *dev)
 {
     const dm9051_hal_t *hal;
+    uint32_t state;
     uint8_t isr;
 
     if (dev == 0) {
@@ -1029,6 +1064,10 @@ void dm9051_core_interrupt_reset(dm9051_device_t *dev)
     }
 
     hal = (const dm9051_hal_t *)dev->hal;
+    state = dm9051_core_enter_critical(hal);
+    dev->runtime.interrupt_event = 0u;
+    dm9051_core_exit_critical(hal, state);
+
     if (dm9051_core_read_reg(hal, DM9051_ISR, &isr) == DM9051_OK) {
         (void)dm9051_core_write_reg(hal, DM9051_ISR, isr);
     }
