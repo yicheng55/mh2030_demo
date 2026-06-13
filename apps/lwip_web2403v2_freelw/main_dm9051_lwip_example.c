@@ -12,6 +12,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "mh20xx.h"
+
 #include "lwip/init.h"
 #include "lwip/ip4_addr.h"
 #include "lwip/netif.h"
@@ -36,6 +38,17 @@ static void platform_init(void)
      *
      * DM9051A 晶片本身的初始化由 dm9051_if_init() 內部呼叫 dm9051_init()。
      */
+
+    /*
+     * lwIP 的 sys_now() 由 middlewares/3rd_party/lwip-2.1.2/port/sys_arch.c
+     * 中的 lwip_sys_now 提供；SysTick_Handler() 會在 MH2030A_LWIP_PORT
+     * target 下每 1ms 遞增此計數。
+     */
+    if (SysTick_Config(SystemCoreClock / 1000U) != 0U) {
+        while (1) {
+            /* SysTick 啟動失敗：可在此閃燈或輸出 debug 訊息。 */
+        }
+    }
 }
 
 static void network_init(void)

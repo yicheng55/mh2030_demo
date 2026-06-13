@@ -22,6 +22,20 @@
 #include "lwip/stats.h"
 #include "lwip/prot/ethernet.h"
 
+#ifndef DM9051_LWIP_USE_LEGACY_CORE
+#define DM9051_LWIP_USE_LEGACY_CORE 0
+#endif
+
+#if DM9051_LWIP_USE_LEGACY_CORE
+#include "../../core/inc/dm9051_core.h"
+#define dm9051_packet_receive(packet, max_len) dm9051_rx((packet), (max_len))
+static uint16_t dm9051_lwip_packet_send(uint8_t *packet, uint16_t len)
+{
+    dm9051_tx(packet, len);
+    return len;
+}
+#define dm9051_packet_send(packet, len) dm9051_lwip_packet_send((packet), (len))
+#else
 /*
  * 底層 DM9051A 驅動 API。
  *
@@ -31,6 +45,7 @@
 void dm9051_init(uint8_t *macaddr);
 uint16_t dm9051_packet_send(uint8_t *packet, uint16_t len);
 uint16_t dm9051_packet_receive(uint8_t *packet, uint16_t max_len);
+#endif
 
 #ifndef DM9051_LWIP_MTU
 #define DM9051_LWIP_MTU 1500U
