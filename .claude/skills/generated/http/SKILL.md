@@ -5,7 +5,7 @@ description: "Skill for the Http area of mh2030_demo. 174 symbols across 25 file
 
 # Http
 
-174 symbols | 25 files | Cohesion: 65%
+174 symbols | 25 files | Cohesion: 64%
 
 ## When to Use
 
@@ -17,7 +17,7 @@ description: "Skill for the Http area of mh2030_demo. 174 symbols across 25 file
 
 | File | Symbols |
 |------|---------|
-| `middlewares/3rd_party/lwip-2.1.2/src/apps/http/httpd.c` | http_close_or_abort_conn, http_accept, http_check_eof, http_write, http_send_headers (+34) |
+| `middlewares/3rd_party/lwip-2.1.2/src/apps/http/httpd.c` | http_close_or_abort_conn, http_accept, httpd_init_pcb, httpd_init, httpd_inits (+34) |
 | `middlewares/3rd_party/lwip-2.1.2/src/core/altcp.c` | altcp_new, altcp_arg, altcp_recv, altcp_sent, altcp_poll (+26) |
 | `middlewares/3rd_party/lwip-2.1.2/src/apps/http/http_client.c` | httpc_free_state, httpc_create_request_string, httpc_init_connection_common, httpc_init_connection_addr, httpc_get_file (+18) |
 | `middlewares/3rd_party/lwip-2.1.2/src/apps/http/altcp_proxyconnect.c` | altcp_proxyconnect_lower_recv, altcp_proxyconnect_setup_callbacks, altcp_proxyconnect_set_poll, altcp_proxyconnect_format_request, altcp_proxyconnect_send_request (+10) |
@@ -53,15 +53,15 @@ Start here when exploring this area:
 | `altcp_abort` | Function | `middlewares/3rd_party/lwip-2.1.2/src/core/altcp.c` | 340 |
 | `altcp_close` | Function | `middlewares/3rd_party/lwip-2.1.2/src/core/altcp.c` | 352 |
 | `altcp_default_set_poll` | Function | `middlewares/3rd_party/lwip-2.1.2/src/core/altcp.c` | 516 |
-| `fs_canread_custom` | Function | `middlewares/3rd_party/lwip-2.1.2/src/apps/http/fs.c` | 46 |
-| `fs_wait_read_custom` | Function | `middlewares/3rd_party/lwip-2.1.2/src/apps/http/fs.c` | 47 |
-| `fs_read_async` | Function | `middlewares/3rd_party/lwip-2.1.2/src/apps/http/fs.c` | 110 |
-| `fs_read` | Function | `middlewares/3rd_party/lwip-2.1.2/src/apps/http/fs.c` | 113 |
-| `fs_is_file_ready` | Function | `middlewares/3rd_party/lwip-2.1.2/src/apps/http/fs.c` | 148 |
-| `fs_bytes_left` | Function | `middlewares/3rd_party/lwip-2.1.2/src/apps/http/fs.c` | 169 |
-| `altcp_sndbuf` | Function | `middlewares/3rd_party/lwip-2.1.2/src/core/altcp.c` | 417 |
-| `altcp_sndqueuelen` | Function | `middlewares/3rd_party/lwip-2.1.2/src/core/altcp.c` | 430 |
-| `altcp_nagle_enable` | Function | `middlewares/3rd_party/lwip-2.1.2/src/core/altcp.c` | 447 |
+| `httpd_init` | Function | `middlewares/3rd_party/lwip-2.1.2/src/apps/http/httpd.c` | 2657 |
+| `httpd_inits` | Function | `middlewares/3rd_party/lwip-2.1.2/src/apps/http/httpd.c` | 2683 |
+| `altcp_accept` | Function | `middlewares/3rd_party/lwip-2.1.2/src/core/altcp.c` | 223 |
+| `altcp_bind` | Function | `middlewares/3rd_party/lwip-2.1.2/src/core/altcp.c` | 301 |
+| `altcp_listen_with_backlog_and_err` | Function | `middlewares/3rd_party/lwip-2.1.2/src/core/altcp.c` | 327 |
+| `altcp_setprio` | Function | `middlewares/3rd_party/lwip-2.1.2/src/core/altcp.c` | 468 |
+| `altcp_default_bind` | Function | `middlewares/3rd_party/lwip-2.1.2/src/core/altcp.c` | 532 |
+| `altcp_default_setprio` | Function | `middlewares/3rd_party/lwip-2.1.2/src/core/altcp.c` | 626 |
+| `altcp_tls_new` | Function | `middlewares/3rd_party/lwip-2.1.2/src/core/altcp_alloc.c` | 59 |
 
 ## Execution Flows
 
@@ -83,7 +83,7 @@ Start here when exploring this area:
 | Smtp | 4 calls |
 | Altcp_tls | 3 calls |
 | Sntp | 2 calls |
-| Cluster_251 | 2 calls |
+| Cluster_257 | 2 calls |
 | Mqtt | 2 calls |
 
 ## How to Explore

@@ -1,16 +1,16 @@
 ---
 name: develop
-description: "Skill for the Develop area of mh2030_demo. 27 symbols across 14 files."
+description: "Skill for the Develop area of mh2030_demo. 28 symbols across 15 files."
 ---
 
 # Develop
 
-27 symbols | 14 files | Cohesion: 77%
+28 symbols | 15 files | Cohesion: 77%
 
 ## When to Use
 
 - Working with code in `apps/`
-- Understanding how uip_log, htons, httpd_fs_strcmp work
+- Understanding how resolv_found, uip_log, htons work
 - Modifying develop-related functionality
 
 ## Key Files
@@ -32,16 +32,17 @@ description: "Skill for the Develop area of mh2030_demo. 27 symbols across 14 fi
 
 Start here when exploring this area:
 
+- **`resolv_found`** (Function) — `apps/uip_dm9051_example_e1/uip_arch_src/UNIX/main_unix.c:47`
 - **`uip_log`** (Function) — `middlewares/3rd_party/uip/src/uip.c:240`
 - **`htons`** (Function) — `middlewares/3rd_party/uip/src/uip.c:1883`
 - **`httpd_fs_strcmp`** (Function) — `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd-fs.c:86`
 - **`httpd_fs_count`** (Function) — `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd-fs.c:271`
-- **`DM9051_DoRXDUMP`** (Function) — `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd.c:78`
 
 ## Key Symbols
 
 | Symbol | Type | File | Line |
 |--------|------|------|------|
+| `resolv_found` | Function | `apps/uip_dm9051_example_e1/uip_arch_src/UNIX/main_unix.c` | 47 |
 | `uip_log` | Function | `middlewares/3rd_party/uip/src/uip.c` | 240 |
 | `htons` | Function | `middlewares/3rd_party/uip/src/uip.c` | 1883 |
 | `httpd_fs_strcmp` | Function | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd-fs.c` | 86 |
@@ -61,7 +62,6 @@ Start here when exploring this area:
 | `generate_tcp_stats` | Function | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/Develop/httpd-cgi.c` | 288 |
 | `generate_tcp_stats` | Function | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/IOT/httpd-cgi-test1.c` | 844 |
 | `generate_tcp_stats` | Function | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/org/httpd-cgi.c` | 140 |
-| `generate_tcp_stats` | Function | `apps/uip_dm9051_example_e1/uip_app_src/webserver/src/uip-1-0 - do/httpd-cgi.c` | 140 |
 
 ## Connected Areas
 
@@ -72,6 +72,6 @@ Start here when exploring this area:
 
 ## How to Explore
 
-1. `context({name: "uip_log"})` — see callers and callees
+1. `context({name: "resolv_found"})` — see callers and callees
 2. `query({query: "develop"})` — find related execution flows
 3. Read key files listed above for implementation details

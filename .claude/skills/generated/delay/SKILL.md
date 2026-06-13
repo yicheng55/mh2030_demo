@@ -1,11 +1,11 @@
 ---
 name: delay
-description: "Skill for the Delay area of mh2030_demo. 54 symbols across 54 files."
+description: "Skill for the Delay area of mh2030_demo. 55 symbols across 55 files."
 ---
 
 # Delay
 
-54 symbols | 54 files | Cohesion: 100%
+55 symbols | 55 files | Cohesion: 100%
 
 ## When to Use
 
@@ -53,6 +53,7 @@ Start here when exploring this area:
 | `Delay_Init` | Function | `ModuleDemo/DIVSQRT/Division/SYSTEM/delay/delay.c` | 5 |
 | `Delay_Init` | Function | `ModuleDemo/DIVSQRT/Sqrt/SYSTEM/delay/delay.c` | 5 |
 | `Delay_Init` | Function | `ModuleDemo/DM9051A/SYSTEM/delay/delay.c` | 5 |
+| `Delay_Init` | Function | `ModuleDemo/DM9051A/dm9051_driver/ports/mh2030a/delay.c` | 5 |
 | `Delay_Init` | Function | `ModuleDemo/FLASH/FLASH_EraseProgram/SYSTEM/delay/delay.c` | 5 |
 | `Delay_Init` | Function | `ModuleDemo/GPIO/GPIO_BEEP/SYSTEM/delay/delay.c` | 5 |
 | `Delay_Init` | Function | `ModuleDemo/GPIO/GPIO_IOInput/SYSTEM/delay/delay.c` | 5 |
@@ -61,7 +62,6 @@ Start here when exploring this area:
 | `Delay_Init` | Function | `ModuleDemo/GPIO/GPIO_KEY/SYSTEM/delay/delay.c` | 5 |
 | `Delay_Init` | Function | `ModuleDemo/GPIO/GPIO_LED/SYSTEM/delay/delay.c` | 5 |
 | `Delay_Init` | Function | `ModuleDemo/IAP/App/SYSTEM/delay/delay.c` | 5 |
-| `Delay_Init` | Function | `ModuleDemo/IAP/BootLoader/SYSTEM/delay/delay.c` | 5 |
 
 ## How to Explore
 
