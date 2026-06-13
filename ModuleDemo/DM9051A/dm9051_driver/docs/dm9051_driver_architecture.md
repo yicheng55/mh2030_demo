@@ -37,7 +37,7 @@ Layer ownership:
 
 ## Initialization flow
 
-`dm9051_uip_mh2030a_smoke_open()` and the optional lwIP core mode both build a
+`dm9051_uip_mh2030a_smoke_open()` and the lwIP adapter both build a
 `dm9051_config_t`, bind `dm9051_hal_t` with `dm9051_mh2030a_hal_bind()`, then
 call `dm9051_core_open()`.
 
@@ -82,8 +82,6 @@ main loop. This is the right shape for bare-metal main-loop + ISR systems.
 
 `core/inc/dm9051_types.h` rejects simultaneous `DM9051_USE_UIP` and
 `DM9051_USE_LWIP`, which is good for one physical device. uIP currently keeps a
-single static attached device pointer. lwIP default mode uses external
-`dm9051_init`, `dm9051_packet_send`, and `dm9051_packet_receive` names, while
-`DM9051_LWIP_USE_LEGACY_CORE=1` binds the staged core directly. Do not run uIP
-and lwIP against the same chip instance at the same time.
-
+single static attached device pointer. lwIP owns one staged core device and
+binds the MH2030A HAL directly. Do not run uIP and lwIP against the same chip
+instance at the same time.

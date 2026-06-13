@@ -82,7 +82,7 @@ static void platform_init(void)
      *   - SPI pinmux/clock
      *   - SysTick 或 lwIP sys_now() 所需的 millisecond timer
      *
-     * DM9051A 晶片本身的初始化由 dm9051_if_init() 內部呼叫 dm9051_init()。
+     * DM9051A 晶片本身的初始化由 dm9051_if_init() 透過 staged core/HAL 完成。
      */
 
     mh2030a_uip_board_init(115200U);

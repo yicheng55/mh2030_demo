@@ -22,7 +22,7 @@ extern "C" {
  * @brief 初始化 DM9051A 對應的 lwIP netif。
  *
  * dm9051_if_init() 會設定 netif name/output/linkoutput/MTU/flags，
- * 並呼叫底層 dm9051_init(netif->hwaddr) 完成硬體初始化與 MAC 設定。
+ * 並透過 staged core/HAL 完成硬體初始化與 MAC 設定。
  */
 err_t dm9051_if_init(struct netif *netif);
 
@@ -37,8 +37,7 @@ void dm9051_lwip_input(struct netif *netif);
 /**
  * @brief 讀取目前 DM9051A 實體 link 狀態。
  *
- * 回傳 1 表示 link up，0 表示 link down。若使用尚未提供 link 狀態 API
- * 的 legacy-free 底層介面，預設回傳 up，避免破壞既有移植。
+ * 回傳 1 表示 link up，0 表示 link down。
  */
 int dm9051_lwip_link_is_up(void);
 

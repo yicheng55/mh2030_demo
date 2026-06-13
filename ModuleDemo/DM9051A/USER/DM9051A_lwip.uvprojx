@@ -3931,7 +3931,7 @@
             <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>USE_STDPERIPH_DRIVER,MH2030A_LWIP_PORT,NO_SYS=1,DM9051_MH2030A_DIAG=1,DM9051_TX_WAIT_DONE=0,DM9051_MH2030A_USE_DMA=1,DM9051_MH2030A_USE_IRQ=1,DM9051_LWIP_USE_LEGACY_CORE=1</Define>
+              <Define>USE_STDPERIPH_DRIVER,MH2030A_LWIP_PORT,NO_SYS=1,DM9051_MH2030A_DIAG=1,DM9051_TX_WAIT_DONE=0,DM9051_MH2030A_USE_DMA=1,DM9051_MH2030A_USE_IRQ=1</Define>
               <Undefine></Undefine>
               <IncludePath>..\USER;..\bsp;..\..\..\Libraries\MH20xxLib\inc;..\..\..\Libraries\CMSIS\Include;..\dm9051_driver\core\inc;..\dm9051_driver\hal\inc;..\dm9051_driver\ports\mh2030a;..\dm9051_driver\adapters\lwip;..\..\..\middlewares\3rd_party\lwip-2.1.2\src\include;..\..\..\middlewares\3rd_party\lwip-2.1.2\port;..\..\..\apps\lwip_web2403v2_freelw</IncludePath>
             </VariousControls>

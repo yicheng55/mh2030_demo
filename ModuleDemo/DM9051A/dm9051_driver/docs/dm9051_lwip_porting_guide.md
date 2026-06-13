@@ -23,9 +23,8 @@ expects the raw API. The main loop must call `sys_check_timeouts()` when
 ## TX path
 
 lwIP may pass a pbuf chain. `low_level_output()` copies the full Ethernet frame
-into a static `tx_buf`, validates total length, then calls
-`dm9051_packet_send()` or the staged core wrapper when
-`DM9051_LWIP_USE_LEGACY_CORE=1`.
+into a static `tx_buf`, validates total length, then sends it through the
+staged core/HAL wrapper.
 
 ## RX path
 
@@ -35,9 +34,8 @@ strips FCS when configured, rejects short frames, allocates `PBUF_RAW` from
 
 ## Link handling
 
-The example polls link every 500 ms. If the staged core is enabled,
-`dm9051_core_link_is_up()` reads NSR. In default external API mode, link is
-reported as up unless `DM9051_LWIP_HAS_LINK_STATUS` is enabled.
+The example polls link every 500 ms. `dm9051_lwip_link_is_up()` uses
+`dm9051_core_link_is_up()` to read NSR through the staged core.
 
 ## Safety notes
 
@@ -46,6 +44,5 @@ reported as up unless `DM9051_LWIP_HAS_LINK_STATUS` is enabled.
 - In `NO_SYS=1`, do not call lwIP raw API from ISR.
 - Do not enable socket/netconn APIs unless migrating to `NO_SYS=0` and a real
   OS/tcpip thread.
-- The default lwIP adapter does not own the staged core unless
-  `DM9051_LWIP_USE_LEGACY_CORE=1`; confirm which lower API is linked.
-
+- The lwIP adapter owns one staged core instance; do not share that chip
+  instance with another stack adapter.
