@@ -3,12 +3,12 @@
 
 /**
  * @file dm9051_lwip.h
- * @brief lwIP netif adapter for the DM9051A SPI Ethernet controller.
+ * @brief DM9051A SPI Ethernet 控制器的 lwIP standard netif 適配層。
  *
- * This adapter keeps lwIP-facing code separate from the DM9051A low-level
- * driver.  Add the interface with lwIP's netif_add(), using dm9051_if_init()
- * as the init callback, then call dm9051_lwip_input() from the main loop or
- * from an interrupt-deferred RX handler.
+ * 使用方式：
+ *   1. 應用程式先設定 struct netif 的 MAC 位址欄位。
+ *   2. 呼叫 netif_add()，並把 dm9051_if_init() 當作 init callback。
+ *   3. 在 bare-metal main loop 或中斷延後處理中呼叫 dm9051_lwip_input()。
  */
 
 #include "lwip/err.h"
@@ -19,22 +19,22 @@ extern "C" {
 #endif
 
 /**
- * @brief Initialize one lwIP netif instance for the DM9051A.
+ * @brief 初始化 DM9051A 對應的 lwIP netif。
  *
- * Expected usage:
- *   netif_add(&netif, &ip, &mask, &gw, NULL, dm9051_if_init, netif_input);
+ * dm9051_if_init() 會設定 netif name/output/linkoutput/MTU/flags，
+ * 並呼叫底層 dm9051_init(netif->hwaddr) 完成硬體初始化與 MAC 設定。
  */
 err_t dm9051_if_init(struct netif *netif);
 
 /**
- * @brief Poll/read one received Ethernet frame and submit it to lwIP.
+ * @brief 從 DM9051A 收一包 Ethernet frame，並送進 lwIP。
  *
- * Call this from the main loop, an RTOS task, or a deferred interrupt handler.
- * The function returns immediately when no frame is pending.
+ * 此函式適合在 NO_SYS=1 的 bare-metal 主迴圈中輪詢呼叫。
+ * 若硬體目前沒有封包，函式會立即返回。
  */
 void dm9051_lwip_input(struct netif *netif);
 
-/* Compatibility wrappers for the earlier staging API. */
+/* 舊 staging API 的相容 wrapper，方便既有工程逐步切換。 */
 int dm9051_lwip_init(struct netif *netif, const void *dev);
 void dm9051_lwip_poll(struct netif *netif);
 
