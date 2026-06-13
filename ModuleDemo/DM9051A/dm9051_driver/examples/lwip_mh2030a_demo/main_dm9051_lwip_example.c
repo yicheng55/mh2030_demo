@@ -10,6 +10,7 @@
  */
 
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "mh20xx.h"
@@ -67,9 +68,9 @@ static void network_init(void)
         0x00U, 0x60U, 0x6EU, 0x11U, 0x22U, 0x33U
     };
 
-    IP4_ADDR(&ipaddr, 192, 168, 1, 203);
+    IP4_ADDR(&ipaddr, 192, 168, 249, 37);
     IP4_ADDR(&netmask, 255, 255, 255, 0);
-    IP4_ADDR(&gateway, 192, 168, 1, 1);
+    IP4_ADDR(&gateway, 192, 168, 249, 1);
 
     /*
      * NO_SYS=1 bare-metal 模式使用 lwip_init()。
@@ -98,7 +99,22 @@ static void network_init(void)
     }
 
     netif_set_default(&g_dm9051_netif);
+    netif_set_link_up(&g_dm9051_netif);
     netif_set_up(&g_dm9051_netif);
+
+    printf("[DM9051 lwIP] netif up IP=%u.%u.%u.%u mask=%u.%u.%u.%u gw=%u.%u.%u.%u\r\n",
+           ip4_addr1(&ipaddr),
+           ip4_addr2(&ipaddr),
+           ip4_addr3(&ipaddr),
+           ip4_addr4(&ipaddr),
+           ip4_addr1(&netmask),
+           ip4_addr2(&netmask),
+           ip4_addr3(&netmask),
+           ip4_addr4(&netmask),
+           ip4_addr1(&gateway),
+           ip4_addr2(&gateway),
+           ip4_addr3(&gateway),
+           ip4_addr4(&gateway));
 
     /*
      * 啟動 Web 應用。此 wrapper 會呼叫 httpd_init_with_netif()，

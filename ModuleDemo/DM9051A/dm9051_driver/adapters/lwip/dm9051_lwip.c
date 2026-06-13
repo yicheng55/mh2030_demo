@@ -11,6 +11,7 @@
 #include "dm9051_lwip.h"
 
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "lwip/def.h"
@@ -24,6 +25,20 @@
 
 #ifndef DM9051_LWIP_USE_LEGACY_CORE
 #define DM9051_LWIP_USE_LEGACY_CORE 0
+#endif
+
+#ifndef DM9051_LWIP_DIAG
+#define DM9051_LWIP_DIAG 1
+#endif
+
+#ifndef DM9051_LWIP_RX_STRIP_FCS
+#define DM9051_LWIP_RX_STRIP_FCS 1
+#endif
+
+#if DM9051_LWIP_DIAG
+#define DM9051_LWIP_DIAG_PRINTF(...) printf(__VA_ARGS__)
+#else
+#define DM9051_LWIP_DIAG_PRINTF(...) do { } while (0)
 #endif
 
 #if DM9051_LWIP_USE_LEGACY_CORE
@@ -142,6 +157,27 @@ static uint8_t rx_buf[DM9051_LWIP_ETH_FRAME_SIZE];
 
 static err_t low_level_output(struct netif *netif, struct pbuf *p);
 
+static uint16_t dm9051_lwip_eth_type(const uint8_t *frame, uint16_t len)
+{
+    if ((frame == NULL) || (len < 14U)) {
+        return 0U;
+    }
+
+    return (uint16_t)(((uint16_t)frame[12] << 8) | frame[13]);
+}
+
+static const char *dm9051_lwip_eth_type_name(uint16_t eth_type)
+{
+    switch (eth_type) {
+    case 0x0800U:
+        return "IPv4";
+    case 0x0806U:
+        return "ARP";
+    default:
+        return "ETH";
+    }
+}
+
 err_t dm9051_if_init(struct netif *netif)
 {
     if (netif == NULL) {
@@ -181,6 +217,16 @@ err_t dm9051_if_init(struct netif *netif)
         return ERR_IF;
     }
 
+    DM9051_LWIP_DIAG_PRINTF("[DM9051 lwIP] if init MAC=%02X:%02X:%02X:%02X:%02X:%02X mtu=%u flags=0x%02X\r\n",
+                            netif->hwaddr[0],
+                            netif->hwaddr[1],
+                            netif->hwaddr[2],
+                            netif->hwaddr[3],
+                            netif->hwaddr[4],
+                            netif->hwaddr[5],
+                            (unsigned)netif->mtu,
+                            (unsigned)netif->flags);
+
     return ERR_OK;
 }
 
@@ -210,6 +256,11 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
         return ERR_BUF;
     }
 
+    DM9051_LWIP_DIAG_PRINTF("[DM9051 lwIP] TX len=%u type=%s(0x%04X)\r\n",
+                            (unsigned)p->tot_len,
+                            dm9051_lwip_eth_type_name(dm9051_lwip_eth_type(tx_buf, p->tot_len)),
+                            dm9051_lwip_eth_type(tx_buf, p->tot_len));
+
     sent_len = dm9051_packet_send(tx_buf, p->tot_len);
     if (sent_len != p->tot_len) {
         LINK_STATS_INC(link.err);
@@ -224,6 +275,7 @@ void dm9051_lwip_input(struct netif *netif)
 {
     struct pbuf *p;
     uint16_t len;
+    uint16_t raw_len;
     err_t err;
 
     if ((netif == NULL) || (netif->input == NULL)) {
@@ -244,6 +296,31 @@ void dm9051_lwip_input(struct netif *netif)
         LINK_STATS_INC(link.drop);
         return;
     }
+
+    raw_len = len;
+#if DM9051_LWIP_RX_STRIP_FCS
+    if (len > 4U) {
+        len = (uint16_t)(len - 4U);
+    }
+#endif
+
+    DM9051_LWIP_DIAG_PRINTF("[DM9051 lwIP] RX raw=%u len=%u type=%s(0x%04X) dst=%02X:%02X:%02X:%02X:%02X:%02X src=%02X:%02X:%02X:%02X:%02X:%02X\r\n",
+                            (unsigned)raw_len,
+                            (unsigned)len,
+                            dm9051_lwip_eth_type_name(dm9051_lwip_eth_type(rx_buf, len)),
+                            dm9051_lwip_eth_type(rx_buf, len),
+                            rx_buf[0],
+                            rx_buf[1],
+                            rx_buf[2],
+                            rx_buf[3],
+                            rx_buf[4],
+                            rx_buf[5],
+                            rx_buf[6],
+                            rx_buf[7],
+                            rx_buf[8],
+                            rx_buf[9],
+                            rx_buf[10],
+                            rx_buf[11]);
 
     p = pbuf_alloc(PBUF_RAW, len, PBUF_POOL);
     if (p == NULL) {
