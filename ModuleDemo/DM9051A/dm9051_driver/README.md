@@ -1,114 +1,142 @@
-# DM9051 Driver Refactor Staging Area
+# DM9051 Portable Driver
 
-This directory is a staging layout for a reusable DM9051 driver under the
-`ModuleDemo/DM9051A` demo project. It is not connected to the existing Keil
-targets yet, so the current project behavior is unchanged.
+This directory contains the staged portable DM9051 SPI Ethernet driver for the
+`ModuleDemo/DM9051A` project. It separates the chip driver, network-stack
+adapters, and MH2030A board support so the same DM9051 core can be reused by
+uIP, lwIP, or another MCU port.
+
+The original `ModuleDemo/DM9051A` production targets remain the compatibility
+baseline. This directory is used for incremental validation and refactoring; do
+not remove, rename, or redirect the legacy driver files unless a later migration
+phase explicitly switches a target.
 
 ## Layering
 
 ```text
-USER / uIP / lwIP
+application / uIP / lwIP
         |
 network stack adapter
         |
 DM9051 core driver
         |
-DM9051 HAL interface
+DM9051 HAL vtable
         |
-MH2030A SPI / GPIO / IRQ / delay
+MCU port layer
+        |
+SPI / GPIO / IRQ / delay
 ```
 
-## Current Source Mapping
+Dependency direction is one-way:
 
-| New location | Current source | Role |
-| --- | --- | --- |
-| `core/inc/dm9051_core.h` | `drivers/dm9051_edriver_v1.6.1a_beta/core/dm9051.h` | Public DM9051 API. |
-| `core/inc/dm9051_regs.h` | `drivers/dm9051_edriver_v1.6.1a_beta/core/dm9051_internal.h` | Register and bit definitions. |
-| `core/inc/dm9051_types.h` | `drivers/.../include/dm9051_hal.h`, `drivers/.../include/dm9051_netif.h`, `dm9051_internal.h` | Shared types, status codes, config. |
-| `core/src/dm9051_core.c` | `drivers/dm9051_edriver_v1.6.1a_beta/core/dm9051_beta.c` | Core init, RX, TX, PHY, interrupt state. |
-| `core/src/dm9051_debug.c` | `drivers/dm9051_edriver_v1.6.1a_beta/core/dm9051_beta.c` | Diagnostics and optional debug helpers. |
-| `hal/inc/dm9051_hal.h` | `drivers/dm9051_edriver_v1.6.1a_beta/include/dm9051_hal.h` | Portable HAL vtable contract. |
-| `adapters/uip/dm9051_uip.*` | `ModuleDemo/DM9051A/port/uip/dm9051_uip_adapter.*` | uIP stack adapter. |
-| `adapters/lwip/dm9051_lwip.*` | none yet | Future lwIP adapter. |
-| `ports/mh2030a/dm9051_hal_mh2030a_spi1.*` | `ModuleDemo/DM9051A/port/mh2030a/*` | MH2030A SPI1/GPIO/IRQ/delay implementation. |
-| `examples/uip_mh2030a_demo/` | `ModuleDemo/DM9051A/USER/main_uip_mh2030a.c`, `ModuleDemo/DM9051A/port/uip/netconf_mh2030a.c` | Current uIP demo shape. |
-| `examples/lwip_mh2030a_demo/` | `main_dm9051_lwip_example.c` | MH2030A lwIP demo. |
+- `core/` is stack-neutral and platform-neutral.
+- `hal/inc/` defines the vtable contract used by the core.
+- `ports/<mcu>/` owns SPI, GPIO, IRQ, delay, board bring-up, and MCU headers.
+- `adapters/` owns uIP/lwIP integration and must not include MCU SPI/GPIO
+  headers directly.
 
-## Compatibility Rule
+See `docs/plan/API_BOUNDARY.md` for the detailed ownership rules.
 
-The existing project remains the source of truth until a later phase explicitly
-switches a target to this directory. Do not remove, rename, or redirect existing
-files as part of the staging step.
+## Directory Map
 
-## Build Selection
+| Path | Purpose |
+| --- | --- |
+| `core/inc/` | Public core API, register definitions, portable runtime/config types. |
+| `core/src/` | Context-based DM9051 open/close, RX, TX, PHY, interrupt state, and debug helpers. |
+| `hal/inc/dm9051_hal.h` | Portable HAL vtable used by the core. |
+| `ports/mh2030a/` | MH2030A SPI1 polling transport, optional DMA FIFO transport, optional PF6/EXTI IRQ, board/clock/delay helpers. |
+| `adapters/uip/` | uIP-facing adapter and optional staged uIP polling loop helper. |
+| `adapters/lwip/` | lwIP `struct netif` adapter, `NO_SYS=1` input polling helper, and local `lwipopts.h`. |
+| `examples/uip_mh2030a_demo/` | Hardware smoke test and optional staged uIP loop entry points. |
+| `examples/lwip_mh2030a_demo/` | lwIP MH2030A example placeholder and integration notes. |
+| `docs/PORTING_GUIDE.md` | Step-by-step guide for porting the driver to another MCU. |
+| `docs/plan/` | Refactor planning notes for API boundary, HAL contract, build selection, state model, and adapter staging. |
+| `Makefile` | Staging-only helper target; current Keil projects do not build through this file. |
 
-The current Keil target transport selection is documented in
-`docs/BUILD_SELECTION.md`. The staged driver is not wired into those targets.
+## Current Status
 
-The separate `ModuleDemo/DM9051A/USER/DM9051A_uip.uvprojx` project includes
-the staged uIP/polling-driver files for incremental validation. The original
-`DM9051A.uvprojx` remains unchanged.
+- `core/src/dm9051_core.c` implements the staged context-based core API:
+  configuration validation, HAL binding validation, chip-ID probe, RX, TX, PHY
+  access, link status, MAC accessors, and interrupt event state.
+- Legacy compatibility entry points such as `dm9051_conf()`, `dm9051_init()`,
+  `dm9051_rx()`, and `dm9051_tx()` are still declared for staged migration
+  planning.
+- `ports/mh2030a/dm9051_hal_mh2030a_spi1.c` provides the MH2030A SPI1 polling
+  HAL implementation.
+- `ports/mh2030a/dm9051_hal_mh2030a_spi1_dma.c` provides optional DMA-backed
+  FIFO transfers while keeping register access on byte polling.
+- `ports/mh2030a/dm9051_hal_mh2030a_int.c` provides optional PF6 / EXTI line 6
+  IRQ support and hands events back to the instance-based core.
+- `adapters/uip/dm9051_uip.c` bridges staged core RX/TX/interrupt state to the
+  uIP-facing adapter API.
+- `adapters/uip/dm9051_uip_stack.c` contains the optional staged uIP poll loop
+  using uIP, ARP, and periodic timers.
+- `adapters/lwip/dm9051_lwip.c` provides `dm9051_if_init()`,
+  `dm9051_lwip_input()`, link status, and compatibility wrappers for staged
+  lwIP integration.
 
-## API Boundary
+## Build And Validation
 
-The intended dependency direction and adapter/core/HAL ownership rules are
-documented in `docs/API_BOUNDARY.md`.
+The original Keil `DM9051A.uvprojx` production project remains unchanged. The
+separate staged project `ModuleDemo/DM9051A/USER/DM9051A_uip.uvprojx` includes
+the staged uIP/polling-driver files for incremental validation.
 
-## Core Split Map
+Current staged validation entry points:
 
-The current `dm9051_beta.c` responsibilities and future extraction order are
-documented in `docs/CORE_SPLIT_MAP.md`.
+| Entry point | Role |
+| --- | --- |
+| `examples/uip_mh2030a_demo/main_uip_mh2030a_smoke.c` | Board bring-up, staged core open, uIP adapter attach, and hardware RX/TX smoke validation. |
+| `examples/uip_mh2030a_demo/main_uip_mh2030a_demo.c` | Optional staged uIP loop using `dm9051_uip_stack_init()` and `dm9051_uip_stack_poll()`. |
+| `examples/lwip_mh2030a_demo/main_dm9051_lwip_example.c` | lwIP `netif_add()` style example for future MH2030A lwIP target wiring. |
 
-## State Model
+Feature selection for the MH2030A staged port is controlled by preprocessor
+defines in `ports/mh2030a/dm9051_hal_mh2030a_spi1.h`:
 
-The current global state and the staged `dm9051_device_t` runtime model are
-documented in `docs/STATE_MODEL.md`.
+| Define | Meaning |
+| --- | --- |
+| `DM9051_MH2030A_USE_DMA=1` | Select DMA FIFO transport at runtime glue level. |
+| `DM9051_MH2030A_ENABLE_DMA=1` | Compile/link optional DMA transport support. |
+| `DM9051_MH2030A_USE_IRQ=1` | Select EXTI IRQ mode at runtime glue level. |
+| `DM9051_MH2030A_ENABLE_IRQ=1` | Compile/link optional IRQ support. |
+| `DM9051_MH2030A_OWN_EXTI4_15_HANDLER=0` | Let an application-owned `EXTI4_15_IRQHandler()` call `dm9051_mh2030a_irq_handler()`. |
 
-## Core API Plan
+Default staged behavior is conservative: polling SPI and no IRQ.
 
-The future context-based core API and legacy wrapper mapping are documented in
-`docs/CORE_API_PLAN.md`.
+## Porting
 
-## HAL Contract
+To port the driver to another MCU, implement a new `ports/<mcu>/` directory that
+binds `dm9051_hal_t` to the platform's SPI, GPIO, reset, delay, optional IRQ,
+and optional critical-section primitives.
 
-The staged HAL operation semantics are documented in `docs/HAL_CONTRACT.md`.
+The minimum required HAL operations are:
 
-## Adapter Staging
+- `read_reg` / `write_reg`
+- `read_mem` / `write_mem`
+- `delay_ms` / `delay_us`
 
-The current uIP/lwIP staging behavior is documented in
-`docs/ADAPTER_STAGING.md`.
+Recommended porting sequence:
 
-## Refactor Phases
+1. Copy the shape of `ports/mh2030a/dm9051_hal_mh2030a_spi1.h`.
+2. Implement polling SPI register and FIFO transactions first.
+3. Add reset GPIO and delay hooks.
+4. Bind the vtable with a platform-specific `*_hal_bind()` function.
+5. Run a chip-ID smoke test through `dm9051_core_open()`.
+6. Add IRQ or DMA only after polling mode is stable.
 
-1. Add this staging layout and document file ownership.
-2. Move pure definitions into `dm9051_regs.h` and `dm9051_types.h` in a
-   compatibility-preserving copy.
-3. Wrap the existing flat `hal_*` functions behind `dm9051_hal_t`.
-4. Split core implementation into stable init, RX, TX, PHY, and IRQ sections.
-5. Move uIP-only logic into `adapters/uip` and keep core stack-neutral.
-6. Add lwIP adapter and examples after the core/HAL boundary is stable.
+See `docs/PORTING_GUIDE.md` and `docs/plan/HAL_CONTRACT.md` for the complete
+porting contract.
 
-## Current Staging Status
+## Reference Documents
 
-- `hal/inc/dm9051_hal.h` contains a staging copy of the vtable HAL contract.
-- `core/inc/dm9051_types.h` contains portable MAC, buffer, mode, config, and
-  netif/device runtime types.
-- `core/inc/dm9051_regs.h` contains a staging subset of register and bit
-  definitions used by the current core.
-- `core/inc/dm9051_core.h` contains a staging snapshot of the current public
-  core API.
-- `core/src/dm9051_core.c` and `core/src/dm9051_debug.c` are the only planned
-  core source files at this stage.
-- `core/src/dm9051_core.c` currently provides staging-only config/netif
-  validation, minimum HAL binding validation, MAC state copy, chip-ID probe,
-  interrupt event state, and neutral not-ready RX/TX/PHY behavior.
-- `ports/mh2030a/dm9051_hal_mh2030a_spi1.h` contains the future MH2030A transport
-  and IRQ config model.
-- `ports/mh2030a/dm9051_hal_mh2030a_spi1.c` binds the MH2030A SPI1 polling HAL to
-  the staged vtable; DMA transport still reports `DM9051_HAL_ERR_NOT_READY`.
-- `examples/uip_mh2030a_demo/dm9051_uip_mh2030a_smoke.c` binds one staged
-  MH2030A polling HAL/device pair and runs `dm9051_core_open()` for chip-ID
-  smoke validation only.
-
-These files are not included by the original `DM9051A.uvprojx` project. Use
-`DM9051A_uip.uvprojx` for staged validation.
+| Document | Content |
+| --- | --- |
+| `docs/PORTING_GUIDE.md` | MCU porting steps and validation checklist. |
+| `docs/plan/API_BOUNDARY.md` | Dependency direction and layer ownership. |
+| `docs/plan/BUILD_SELECTION.md` | Keil target/file selection model. |
+| `docs/plan/CORE_API_PLAN.md` | Context-based core API and legacy wrapper plan. |
+| `docs/plan/CORE_SPLIT_MAP.md` | `dm9051_beta.c` responsibility split map. |
+| `docs/plan/HAL_CONTRACT.md` | HAL operation semantics and return codes. |
+| `docs/plan/STATE_MODEL.md` | `dm9051_device_t` runtime state model. |
+| `docs/plan/ADAPTER_STAGING.md` | uIP/lwIP adapter staging behavior. |
+| `ports/mh2030a/README.md` | MH2030A pin mapping, build defines, and port status. |
+| `examples/uip_mh2030a_demo/README.md` | uIP smoke test and optional uIP loop notes. |
+| `examples/lwip_mh2030a_demo/README.md` | lwIP example status. |
