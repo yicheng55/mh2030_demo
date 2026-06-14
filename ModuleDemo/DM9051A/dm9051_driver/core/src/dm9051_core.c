@@ -951,6 +951,7 @@ static int dm9051_core_tx_wait_done(const dm9051_hal_t *hal)
         --timeout;
     } while (timeout != 0u);
 
+    DM9051_DIAG_PRINTF("[DM9051 core] TX wait timeout TCR=0x%02X\r\n", tcr);
     return DM9051_ERR_TIMEOUT;
 }
 #endif

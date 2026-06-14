@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="650" viewBox="0 0 1120 650">
+  <style>.b{fill:#f8fafc;stroke:#334155;stroke-width:2;rx:6}.u{fill:#eff6ff;stroke:#1d4ed8;stroke-width:2;rx:6}.l{fill:#f0fdf4;stroke:#15803d;stroke-width:2;rx:6}.c{fill:#ecfeff;stroke:#0e7490;stroke-width:2;rx:6}.h{fill:#fefce8;stroke:#a16207;stroke-width:2;rx:6}.t{font:15px Arial;fill:#111827}.s{font:12px Arial;fill:#374151}.a{stroke:#334155;stroke-width:2;fill:none;marker-end:url(#m)}</style>
+  <defs><marker id="m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#334155"/></marker></defs>
+  <rect class="b" x="445" y="35" width="230" height="54"/><text class="t" x="560" y="67" text-anchor="middle">Application Main Loop</text>
+  <rect class="u" x="95" y="145" width="270" height="76"/><text class="t" x="230" y="174" text-anchor="middle">uIP Adapter</text><text class="s" x="230" y="195" text-anchor="middle">dm9051_uip_input/output</text><text class="s" x="230" y="213" text-anchor="middle">uip_buf, ARP, periodic timers</text>
+  <rect class="l" x="755" y="145" width="270" height="76"/><text class="t" x="890" y="174" text-anchor="middle">lwIP Adapter</text><text class="s" x="890" y="195" text-anchor="middle">netif, pbuf, linkoutput</text><text class="s" x="890" y="213" text-anchor="middle">NO_SYS=1 raw API</text>
+  <rect class="c" x="380" y="295" width="360" height="76"/><text class="t" x="560" y="324" text-anchor="middle">Shared DM9051 Core API</text><text class="s" x="560" y="345" text-anchor="middle">receive_ex, send, link, interrupt flag</text><text class="s" x="560" y="363" text-anchor="middle">one active stack owner per instance</text>
+  <rect class="h" x="380" y="455" width="360" height="66"/><text class="t" x="560" y="482" text-anchor="middle">HAL / MH2030A Port</text><text class="s" x="560" y="503" text-anchor="middle">SPI polling or DMA FIFO, IRQ, delay</text>
+  <rect class="h" x="380" y="565" width="360" height="50"/><text class="t" x="560" y="596" text-anchor="middle">DM9051 Chip</text>
+  <path class="a" d="M500 89 L300 145"/><path class="a" d="M620 89 L820 145"/>
+  <path class="a" d="M230 221 L445 295"/><path class="a" d="M890 221 L675 295"/>
+  <path class="a" d="M560 371 L560 455"/><path class="a" d="M560 521 L560 565"/>
+  <text class="s" x="560" y="260" text-anchor="middle">Do not run both stacks on the same device at the same time</text>
+</svg>
+

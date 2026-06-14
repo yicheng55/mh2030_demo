@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="720" viewBox="0 0 980 720">
+  <style>.b{fill:#f8fafc;stroke:#334155;stroke-width:2;rx:6}.c{fill:#ecfeff;stroke:#0e7490;stroke-width:2;rx:6}.h{fill:#fefce8;stroke:#a16207;stroke-width:2;rx:6}.t{font:15px Arial;fill:#111827}.s{font:12px Arial;fill:#374151}.a{stroke:#334155;stroke-width:2;fill:none;marker-end:url(#m)}</style>
+  <defs><marker id="m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#334155"/></marker></defs>
+  <rect class="b" x="360" y="25" width="260" height="54"/><text class="t" x="490" y="57" text-anchor="middle">Application selects stack owner</text>
+  <rect class="b" x="360" y="115" width="260" height="60"/><text class="t" x="490" y="141" text-anchor="middle">Build core and port config</text><text class="s" x="490" y="160" text-anchor="middle">MAC, poll/IRQ, polling/DMA</text>
+  <rect class="h" x="360" y="210" width="260" height="60"/><text class="t" x="490" y="236" text-anchor="middle">HAL bind</text><text class="s" x="490" y="255" text-anchor="middle">ops + MH2030A static context</text>
+  <rect class="c" x="360" y="305" width="260" height="60"/><text class="t" x="490" y="331" text-anchor="middle">dm9051_core_open</text><text class="s" x="490" y="350" text-anchor="middle">validate config, HAL, critical hooks</text>
+  <rect class="h" x="360" y="400" width="260" height="60"/><text class="t" x="490" y="426" text-anchor="middle">HAL reset</text><text class="s" x="490" y="445" text-anchor="middle">SPI1 init, IRQ init, reset GPIO</text>
+  <rect class="c" x="360" y="495" width="260" height="60"/><text class="t" x="490" y="521" text-anchor="middle">Probe chip ID</text><text class="s" x="490" y="540" text-anchor="middle">VID/PID/CHIPR via SPI regs</text>
+  <rect class="c" x="360" y="590" width="260" height="80"/><text class="t" x="490" y="616" text-anchor="middle">Reset and start RX</text><text class="s" x="490" y="637" text-anchor="middle">GPR, NCR, soft defaults, PAR/MAR</text><text class="s" x="490" y="656" text-anchor="middle">flow control, IMR, RCR RXEN</text>
+  <path class="a" d="M490 79 L490 115"/><path class="a" d="M490 175 L490 210"/><path class="a" d="M490 270 L490 305"/><path class="a" d="M490 365 L490 400"/><path class="a" d="M490 460 L490 495"/><path class="a" d="M490 555 L490 590"/>
+  <text class="s" x="680" y="335">Failures return status to caller</text><path class="a" d="M620 335 L760 335"/>
+</svg>
+

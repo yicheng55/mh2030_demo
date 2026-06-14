@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1030" height="720" viewBox="0 0 1030 720">
+  <style>.b{fill:#f8fafc;stroke:#334155;stroke-width:2;rx:6}.c{fill:#ecfeff;stroke:#0e7490;stroke-width:2;rx:6}.h{fill:#fefce8;stroke:#a16207;stroke-width:2;rx:6}.x{fill:#fff7ed;stroke:#c2410c;stroke-width:2;rx:6}.t{font:15px Arial;fill:#111827}.s{font:12px Arial;fill:#374151}.a{stroke:#334155;stroke-width:2;fill:none;marker-end:url(#m)}</style>
+  <defs><marker id="m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#334155"/></marker></defs>
+  <rect class="b" x="60" y="40" width="220" height="58"/><text class="t" x="170" y="65" text-anchor="middle">Main Loop</text><text class="s" x="170" y="84" text-anchor="middle">uIP poll or lwIP input</text>
+  <rect class="c" x="390" y="40" width="250" height="58"/><text class="t" x="515" y="65" text-anchor="middle">dm9051_core_receive_ex</text><text class="s" x="515" y="84" text-anchor="middle">acquire bus</text>
+  <rect class="h" x="390" y="135" width="250" height="58"/><text class="t" x="515" y="160" text-anchor="middle">Read MRCMDX twice</text><text class="s" x="515" y="179" text-anchor="middle">packet ready byte</text>
+  <rect class="x" x="720" y="135" width="230" height="58"/><text class="t" x="835" y="160" text-anchor="middle">No packet / bad ready</text><text class="s" x="835" y="179" text-anchor="middle">return not-ready or reset threshold</text>
+  <rect class="h" x="390" y="230" width="250" height="58"/><text class="t" x="515" y="255" text-anchor="middle">Read RX header</text><text class="s" x="515" y="274" text-anchor="middle">MRCMD 4 bytes</text>
+  <rect class="x" x="720" y="230" width="230" height="58"/><text class="t" x="835" y="255" text-anchor="middle">Status or length error</text><text class="s" x="835" y="274" text-anchor="middle">discard or reset/restart</text>
+  <rect class="c" x="390" y="325" width="250" height="58"/><text class="t" x="515" y="350" text-anchor="middle">Validate caller buffer</text><text class="s" x="515" y="369" text-anchor="middle">buf_len >= rx_len</text>
+  <rect class="h" x="390" y="420" width="250" height="58"/><text class="t" x="515" y="445" text-anchor="middle">Burst read payload</text><text class="s" x="515" y="464" text-anchor="middle">MRCMD then frame bytes</text>
+  <rect class="h" x="390" y="515" width="250" height="58"/><text class="t" x="515" y="540" text-anchor="middle">Clear RX interrupt</text><text class="s" x="515" y="559" text-anchor="middle">write ISR clear bit</text>
+  <rect class="c" x="390" y="610" width="250" height="58"/><text class="t" x="515" y="635" text-anchor="middle">Release bus</text><text class="s" x="515" y="654" text-anchor="middle">return length/status</text>
+  <path class="a" d="M280 69 L390 69"/><path class="a" d="M515 98 L515 135"/><path class="a" d="M640 164 L720 164"/><path class="a" d="M515 193 L515 230"/><path class="a" d="M640 259 L720 259"/><path class="a" d="M515 288 L515 325"/><path class="a" d="M515 383 L515 420"/><path class="a" d="M515 478 L515 515"/><path class="a" d="M515 573 L515 610"/>
+</svg>
+
