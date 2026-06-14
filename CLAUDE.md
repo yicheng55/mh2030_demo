@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **mh2030_demo** (24768 symbols, 39272 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **mh2030_demo** (24798 symbols, 39319 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
 
@@ -39,25 +39,5 @@ This project is indexed by GitNexus as **mh2030_demo** (24768 symbols, 39272 rel
 | Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
 | Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
-| Work in the Ppp area (687 symbols) | `.claude/skills/generated/ppp/SKILL.md` |
-| Work in the USER area (603 symbols) | `.claude/skills/generated/user/SKILL.md` |
-| Work in the Api area (237 symbols) | `.claude/skills/generated/api/SKILL.md` |
-| Work in the Freertos area (157 symbols) | `.claude/skills/generated/freertos/SKILL.md` |
-| Work in the Snmp area (142 symbols) | `.claude/skills/generated/snmp/SKILL.md` |
-| Work in the Ipv4 area (105 symbols) | `.claude/skills/generated/ipv4/SKILL.md` |
-| Work in the Http area (102 symbols) | `.claude/skills/generated/http/SKILL.md` |
-| Work in the Lwip_web2403v2_freelw area (78 symbols) | `.claude/skills/generated/lwip-web2403v2-freelw/SKILL.md` |
-| Work in the Tcp area (76 symbols) | `.claude/skills/generated/tcp/SKILL.md` |
-| Work in the Delay area (55 symbols) | `.claude/skills/generated/delay/SKILL.md` |
-| Work in the Altcp_tls area (50 symbols) | `.claude/skills/generated/altcp-tls/SKILL.md` |
-| Work in the Mh2030a area (50 symbols) | `.claude/skills/generated/mh2030a/SKILL.md` |
-| Work in the Lwiperf area (48 symbols) | `.claude/skills/generated/lwiperf/SKILL.md` |
-| Work in the Mdns area (44 symbols) | `.claude/skills/generated/mdns/SKILL.md` |
-| Work in the Uip area (40 symbols) | `.claude/skills/generated/uip/SKILL.md` |
-| Work in the Lwip area (39 symbols) | `.claude/skills/generated/lwip/SKILL.md` |
-| Work in the Smtp area (34 symbols) | `.claude/skills/generated/smtp/SKILL.md` |
-| Work in the Netif area (33 symbols) | `.claude/skills/generated/netif/SKILL.md` |
-| Work in the Bsp area (31 symbols) | `.claude/skills/generated/bsp/SKILL.md` |
-| Work in the Include area (30 symbols) | `.claude/skills/generated/include/SKILL.md` |
 
 <!-- gitnexus:end -->

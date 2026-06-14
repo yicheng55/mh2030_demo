@@ -23,10 +23,6 @@
 #include "lwip/stats.h"
 #include "lwip/prot/ethernet.h"
 
-#ifndef DM9051_LWIP_USE_LEGACY_CORE
-#define DM9051_LWIP_USE_LEGACY_CORE 0
-#endif
-
 #ifndef DM9051_LWIP_DIAG
 #define DM9051_LWIP_DIAG 1
 #endif
@@ -35,17 +31,12 @@
 #define DM9051_LWIP_RX_STRIP_FCS 0
 #endif
 
-#ifndef DM9051_LWIP_HAS_LINK_STATUS
-#define DM9051_LWIP_HAS_LINK_STATUS 0
-#endif
-
 #if DM9051_LWIP_DIAG
 #define DM9051_LWIP_DIAG_PRINTF(...) printf(__VA_ARGS__)
 #else
 #define DM9051_LWIP_DIAG_PRINTF(...) do { } while (0)
 #endif
 
-#if DM9051_LWIP_USE_LEGACY_CORE
 #include "../../core/inc/dm9051_core.h"
 #include "../../hal/inc/dm9051_hal.h"
 #include "../../ports/mh2030a/dm9051_hal_mh2030a_spi1.h"
@@ -140,34 +131,6 @@ int dm9051_lwip_link_is_up(void)
 
 #define dm9051_packet_receive(packet, max_len) dm9051_lwip_packet_receive((packet), (max_len))
 #define dm9051_packet_send(packet, len) dm9051_lwip_packet_send((packet), (len))
-#else
-/*
- * 底層 DM9051A 驅動 API。
- *
- * 使用者指定這三個函式為穩定、不變動的硬體介面。若實際工程中的函式名稱
- * 不同，只需要在這個區塊改成對應 wrapper，不必碰 lwIP netif 邏輯。
- */
-void dm9051_init(uint8_t *macaddr);
-uint16_t dm9051_packet_send(uint8_t *packet, uint16_t len);
-uint16_t dm9051_packet_receive(uint8_t *packet, uint16_t max_len);
-#if DM9051_LWIP_HAS_LINK_STATUS
-int dm9051_link_is_up(void);
-#endif
-static err_t dm9051_lwip_hw_init(uint8_t *macaddr)
-{
-    dm9051_init(macaddr);
-    return ERR_OK;
-}
-
-int dm9051_lwip_link_is_up(void)
-{
-#if DM9051_LWIP_HAS_LINK_STATUS
-    return dm9051_link_is_up() ? 1 : 0;
-#else
-    return 1;
-#endif
-}
-#endif
 
 #ifndef DM9051_LWIP_MTU
 #define DM9051_LWIP_MTU 1500U
@@ -397,7 +360,7 @@ int dm9051_lwip_init(struct netif *netif, const void *dev)
 void dm9051_lwip_poll(struct netif *netif)
 {
     dm9051_lwip_input(netif);
-#if DM9051_LWIP_USE_LEGACY_CORE && !DM9051_TX_WAIT_DONE
+#if !DM9051_TX_WAIT_DONE
     (void)dm9051_core_tx_poll_done(&dm9051_lwip_dev);
 #endif
 }
