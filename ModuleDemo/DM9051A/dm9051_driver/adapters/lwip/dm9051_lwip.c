@@ -306,6 +306,11 @@ void dm9051_lwip_input(struct netif *netif)
         return;
     }
 
+    if (!netif_is_link_up(netif)) {
+        netif_set_link_up(netif);
+        DM9051_LWIP_DIAG_PRINTF("[DM9051 lwIP] Link: inferred UP from RX activity\r\n");
+    }
+
     DM9051_LWIP_DIAG_PRINTF("[DM9051 lwIP] RX raw=%u len=%u type=%s(0x%04X) dst=%02X:%02X:%02X:%02X:%02X:%02X src=%02X:%02X:%02X:%02X:%02X:%02X\r\n",
                             (unsigned)raw_len,
                             (unsigned)len,
