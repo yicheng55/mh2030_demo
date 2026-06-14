@@ -30,6 +30,10 @@
 #define DM9051_TX_WAIT_TIMEOUT_US 100000u
 #endif
 
+#ifndef DM9051_TX_WAIT_POLL_DELAY_US
+#define DM9051_TX_WAIT_POLL_DELAY_US 0u
+#endif
+
 #ifndef DM9051_RXB_RESET_THRESHOLD
 #define DM9051_RXB_RESET_THRESHOLD 10u
 #endif
@@ -939,9 +943,11 @@ static int dm9051_core_tx_wait_done(const dm9051_hal_t *hal)
             return DM9051_OK;
         }
 
+#if DM9051_TX_WAIT_POLL_DELAY_US
         if ((hal != 0) && (hal->ops != 0) && (hal->ops->delay_us != 0)) {
-            hal->ops->delay_us(1u);
+            hal->ops->delay_us(DM9051_TX_WAIT_POLL_DELAY_US);
         }
+#endif
         --timeout;
     } while (timeout != 0u);
 
