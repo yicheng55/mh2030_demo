@@ -2,7 +2,7 @@
 
 > **專案**: MH2030_Demo  
 > **目錄**: `ModuleDemo/DM9051A/dm9051_driver/adapters/uip/`  
-> **MCU**: AT32F415 (ARM Cortex-M4)  
+> **MCU**: AT32F403A/AT32F407 (MH20xx, ARM Cortex-M0 via MH20xxLib)  
 > **Ethernet**: DM9051 (SPI 介面)  
 > **TCP/IP Stack**: uIP 1.0  
 > **RTOS**: Bare-metal (無 RTOS)
@@ -57,8 +57,9 @@
 └──────────────────────────┬───────────────────────────────────────┘
                            │
 ┌──────────────────────────▼───────────────────────────────────────┐
-│                    MCU HAL / SPI Peripheral                       │
-│  (AT32F415 LL/HAL library)                                       │
+│                    MCU HAL / Peripheral Layer                     │
+│  (MH20xxLib / AT32F403A_407 Standard Peripheral Library)         │
+│  CMSIS: core_cm0.h (Cortex-M0)                                   │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -75,9 +76,95 @@
 
 ---
 
-## 2. 目錄功能說明
+## 2. 實體目錄與檔案階層
 
-### `adapters/uip/` (uIP Adapter)
+### 2.1 `dm9051_driver/` 完整目錄樹
+
+```
+dm9051_driver/
+│
+├── CMakeLists.txt                              ← CMake build (跨平台)
+├── Makefile                                    ← GNU Make build
+├── README.md                                   ← Driver 說明文件
+│
+├── adapters/                                   ← TCP/IP stack adapter 層
+│   ├── lwip/                                   ← lwIP adapter
+│   │   ├── dm9051_lwip.c
+│   │   ├── dm9051_lwip.h
+│   │   └── lwipopts.h
+│   │
+│   └── uip/                                    ← uIP adapter (本文件分析主體)
+│       ├── dm9051_uip_stack.c
+│       ├── dm9051_uip_stack.h
+│       ├── dm9051_uip.c
+│       └── dm9051_uip.h
+│
+├── core/                                       ← DM9051 核心 driver
+│   ├── inc/
+│   │   ├── dm9051_core.h                      ← Context-based public API
+│   │   ├── dm9051_regs.h                      ← Register / bit definitions
+│   │   └── dm9051_types.h                     ← Device / config structs
+│   │
+│   └── src/
+│       ├── dm9051_core.c                      ← Context-based 實作 (staging)
+│       └── dm9051_debug.c                     ← 診斷工具
+│
+├── docs/                                       ← 設計文件 / porting guide
+│   ├── PORTING_GUIDE.md
+│   ├── readme.md
+│   │
+│   └── plan/                                   ← 重構規劃文件
+│       ├── ADAPTER_STAGING.md
+│       ├── API_BOUNDARY.md
+│       ├── BUILD_SELECTION.md
+│       ├── CORE_API_PLAN.md
+│       ├── CORE_SPLIT_MAP.md
+│       ├── HAL_CONTRACT.md
+│       └── STATE_MODEL.md
+│
+├── examples/                                   ← 範例應用
+│   ├── lwip_mh2030a_demo/
+│   │   ├── main_dm9051_lwip_example.c
+│   │   └── README.md
+│   │
+│   └── uip_mh2030a_demo/                      ← uIP demo (main entry)
+│       ├── dm9051_uip_mh2030a_smoke.c
+│       ├── dm9051_uip_mh2030a_smoke.h
+│       ├── main_uip_mh2030a_demo.c            ← main()
+│       ├── main_uip_mh2030a_smoke.c
+│       └── README.md
+│
+├── hal/                                        ← HAL abstraction interface
+│   └── inc/
+│       └── dm9051_hal.h                       ← HAL ops vtable
+│
+└── ports/                                      ← 平台移植實作
+    └── mh2030a/                               ← MH2030A (AT32F403A) port
+        ├── delay.c / delay.h                   ← 延時函式
+        ├── dm9051_hal_mh2030a_int.c/.h         ← IRQ (EXTI) 實作
+        ├── dm9051_hal_mh2030a_spi1.c/.h        ← SPI polling 實作
+        ├── dm9051_hal_mh2030a_spi1_dma.c/.h    ← SPI DMA 實作
+        ├── dm9051_hal_mh2030a_spi1_priv.h      ← SPI private header
+        ├── mh2030a_board.c/.h                  ← 板級初始化
+        ├── mh2030a_platform.h                  ← 平台整合 header
+        ├── mh2030a_uip_clock.c/.h              ← SysTick / clock port
+        ├── mh20xx_it.c                         ← ISR handlers
+        └── README.md
+```
+
+### 2.2 目錄與分層對應
+
+| 目錄 | 對應架構層 | 角色 |
+|------|-----------|------|
+| `adapters/uip/` | **本文件分析主體** | uIP ↔ DM9051 adapter glue |
+| `adapters/lwip/` | Adapter 層 (lwIP) | lwIP ↔ DM9051 adapter glue |
+| `core/` | DM9051 Core Driver | 裝置初始化、RX/TX、PHY、IRQ |
+| `hal/` | HAL Abstraction | SPI register/mem 操作抽象介面 |
+| `ports/mh2030a/` | Platform Port | MH2030A (AT32F403A) SPI/GPIO/IRQ 實作 |
+| `examples/` | Application 範例 | main() + demo 流程 |
+| `docs/` | — | 設計文件、porting guide |
+
+### 2.3 `adapters/uip/` (uIP Adapter — 本文件分析範圍)
 
 | 檔案 | 功能 |
 |------|------|
@@ -588,7 +675,7 @@ dm9051_demo_handle_link_detection()
 
 | 風險 | 現狀 | 評估 |
 |------|------|------|
-| **ISR 修改 `interrupt_event`** | 非 atomic write (ARM Cortex-M4 上 `uint8_t` 是 atomic) | 低風險 |
+| **ISR 修改 `interrupt_event`** | 需要 `volatile`，Cortex-M0 上 8-bit write 通常 atomic，但無 guarantee | 低風險 (critical section 保護) |
 | **Main loop 讀 `interrupt_event`** | 在 `interrupt_take()` 中用 `enter_critical()` 保護 | 安全 |
 | **`bus_busy` flag** | `enter_critical()`/`exit_critical()` 保護 | 安全 |
 | **SPI 非同步中斷** | DM9051 不產生 SPI IRQ，SPI 操作在 main loop context 進行 | 安全 |
@@ -723,13 +810,13 @@ static int mh2030a_spi_read_mem(void *ctx, uint8_t *buf, uint16_t len)
 
 ### 10.4 SPI 效能分析
 
-| 操作 | 約略 SPI clock count | @36MHz SPI 耗時 |
-|------|-------------------|----------------|
-| Read Reg (2 bytes) | 16 clocks | ~0.44μs |
-| Write Reg (2 bytes) | 16 clocks | ~0.44μs |
-| Read Mem header (4+1 bytes) | 40 clocks | ~1.11μs |
-| Read Mem frame (1518 bytes) | 12144 clocks | ~337μs |
-| Write Mem frame (1518 bytes) | 12144 clocks | ~337μs |
+| 操作 | 約略 SPI clock count | @18MHz SPI 耗時 | @36MHz SPI 耗時 |
+|------|-------------------|------------------|----------------|
+| Read Reg (2 bytes) | 16 clocks | ~0.89μs | ~0.44μs |
+| Write Reg (2 bytes) | 16 clocks | ~0.89μs | ~0.44μs |
+| Read Mem header (4+1 bytes) | 40 clocks | ~2.22μs | ~1.11μs |
+| Read Mem frame (1518 bytes) | 12144 clocks | ~675μs | ~337μs |
+| Write Mem frame (1518 bytes) | 12144 clocks | ~675μs | ~337μs |
 
 ---
 
@@ -858,7 +945,7 @@ static int dm9051_core_tx_wait_done(const dm9051_hal_t *hal)
 }
 ```
 
-**風險**: 當 `TX_WAIT_POLL_DELAY_US = 0` 時，這是 tight busy-wait loop (100k iterations)，完全佔用 CPU。在 200MHz Cortex-M4 上，每次 loop ~10 cycle (讀 register 分枝)，約 5ms 的完全佔用。
+**風險**: 當 `TX_WAIT_POLL_DELAY_US = 0` 時，這是 tight busy-wait loop (100k iterations)，完全佔用 CPU。在 120MHz Cortex-M0 上，每次 loop ~15 cycle (讀 register + 分枝)，約 12.5ms 的完全佔用。
 
 ---
 
@@ -1000,8 +1087,8 @@ graph TB
         BOARD["mh2030a_board.c"]
     end
 
-    subgraph "MCU HAL"
-        AT32["AT32F415 HAL/LL Library<br/>SPI, GPIO, EXTI, SysTick"]
+    subgraph "MCU Peripheral Layer"
+        MCU_LIB["MH20xxLib / AT32F403A_407 StdPeriph<br/>SPI, GPIO, EXTI, DMA, SysTick<br/>CMSIS: core_cm0.h (Cortex-M0)"]
     end
 
     APP --> AC
@@ -1017,9 +1104,9 @@ graph TB
     CORE_C --> REGS
     CORE_C --> TYPES
     HAL_BIND --> HAL_H
-    SPI_POLL --> AT32
-    SPI_DMA --> AT32
-    INT_C --> AT32
+    SPI_POLL --> MCU_LIB
+    SPI_DMA --> MCU_LIB
+    INT_C --> MCU_LIB
     HAL_BIND --> SPI_POLL
     HAL_BIND --> SPI_DMA
     HAL_BIND --> INT_C
@@ -1030,7 +1117,7 @@ graph TB
 ```
 [Application] ──> [Adapter] ──> [uIP Stack]
                        │
-                       └──> [Core Driver] ──> [HAL] ──> [Platform Port] ──> [MCU HAL]
+                       └──> [Core Driver] ──> [HAL Ops] ──> [Platform Port] ──> [MCU Peripheral]
 ```
 
 **關鍵設計**: Adapter layer 是唯一同時知道 uIP 和 DM9051 的層級。Core driver 完全不認識 uIP。uIP 完全不認識 DM9051。
