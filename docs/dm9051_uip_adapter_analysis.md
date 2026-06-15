@@ -2,7 +2,6 @@
 
 > **專案**: MH2030_Demo  
 > **目錄**: `ModuleDemo/DM9051A/dm9051_driver/adapters/uip/`  
-> **參考實作**: `ModuleDemo/DM9051A/port/uip/`  
 > **MCU**: AT32F415 (ARM Cortex-M4)  
 > **Ethernet**: DM9051 (SPI 介面)  
 > **TCP/IP Stack**: uIP 1.0  
@@ -15,7 +14,7 @@
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │                     Application Layer                            │
-│  (main_uip_mh2030a.c, netconf_mh2030a.c, user app callbacks)    │
+│  main_uip_mh2030a_demo.c / HTTP server callbacks                 │
 └──────────────────────────┬───────────────────────────────────────┘
                            │
 ┌──────────────────────────▼───────────────────────────────────────┐
@@ -28,27 +27,20 @@
                            │
 ┌──────────────────────────▼───────────────────────────────────────┐
 │                   Adapter Layer (Glue Code)                       │
-│                                                                   │
-│  ┌─────────────────────┐  ┌───────────────────────────────────┐  │
-│  │ adapters/uip/       │  │ port/uip/                         │  │
-│  │ [Staging - 新版]    │  │ [Production - 目前生產版本]        │  │
-│  │                     │  │                                   │  │
-│  │ dm9051_uip.h        │  │ dm9051_uip_adapter.h              │  │
-│  │ dm9051_uip.c        │  │ dm9051_uip_adapter.c              │  │
-│  │ dm9051_uip_stack.h  │  │ netconf_mh2030a.h/.c              │  │
-│  │ dm9051_uip_stack.c  │  │ clock-arch.h/.c                   │  │
-│  └─────────────────────┘  └───────────────────────────────────┘  │
+│  adapters/uip/                                                    │
+│  dm9051_uip.h / dm9051_uip.c                                      │
+│  dm9051_uip_stack.h / dm9051_uip_stack.c                          │
 └──────────────────────────┬───────────────────────────────────────┘
                            │
 ┌──────────────────────────▼───────────────────────────────────────┐
-│                    DM9051 Core Driver                            │
-│  (core/src/dm9051_core.c, core/inc/dm9051_core.h)               │
-│  dm9051_core_open(), dm9051_core_receive_ex(),                  │
-│  dm9051_core_send(), dm9051_core_interrupt_take(), ...          │
+│                    DM9051 Core Driver                             │
+│  (core/src/dm9051_core.c, core/inc/dm9051_core.h)                │
+│  dm9051_core_open(), dm9051_core_receive_ex(),                   │
+│  dm9051_core_send(), dm9051_core_interrupt_take(), ...           │
 └──────────────────────────┬───────────────────────────────────────┘
                            │
 ┌──────────────────────────▼───────────────────────────────────────┐
-│                    HAL Abstraction Layer                         │
+│                    HAL Abstraction Layer                          │
 │  (hal/inc/dm9051_hal.h)                                          │
 │  struct dm9051_hal_ops { read_reg, write_reg, read_mem,         │
 │    write_mem, reset, delay_ms, delay_us,                         │
@@ -74,9 +66,9 @@
 
 | Layer | 職責 | 檔案位置 |
 |-------|------|----------|
-| **Application** | 網路應用邏輯, main loop | `apps/uip_dm9051_example_e1/` |
+| **Application** | 網路應用邏輯, main loop, link detection | `examples/uip_mh2030a_demo/main_uip_mh2030a_demo.c` |
 | **uIP Stack** | TCP/IP 協定處理, ARP, 重組 | `middlewares/3rd_party/uip/` |
-| **Adapter** | 串接 uIP 與 DM9051 driver, RX/TX 排程 | `adapters/uip/` + `port/uip/` |
+| **Adapter** | 串接 uIP 與 DM9051 driver, RX/TX 排程 | `adapters/uip/` |
 | **Core Driver** | DM9051 初始化, PHY 存取, RX/TX 流程 | `core/src/dm9051_core.c` |
 | **HAL** | SPI register/memory 讀寫抽象介面 | `hal/inc/dm9051_hal.h` |
 | **Platform Port** | MCU 專屬 SPI 實作, GPIO, EXTI | `port/mh2030a/` |
@@ -85,7 +77,7 @@
 
 ## 2. 目錄功能說明
 
-### 2.1 `adapters/uip/` (新版 Staging Adapter)
+### `adapters/uip/` (uIP Adapter)
 
 | 檔案 | 功能 |
 |------|------|
@@ -94,19 +86,7 @@
 | `dm9051_uip_stack.h` | Stack loop header — 提供 init + poll |
 | `dm9051_uip_stack.c` | uIP stack 整合 loop — RX drain, periodic, ARP |
 
-**設計目標**: 未來取代 `port/uip/dm9051_uip_adapter.c`。  
 **當前狀態**: `staging` (`dm9051_uip_target_mode()` 回傳 `"staging"`)。
-
-### 2.2 `port/uip/` (生產版本 Production Adapter)
-
-| 檔案 | 功能 |
-|------|------|
-| `dm9051_uip_adapter.h` | 唯一對外 header, re-export `dm9051_netif.h` |
-| `dm9051_uip_adapter.c` | 生產 adapter 實作 |
-| `netconf_mh2030a.h` | 網路設定 (IP/GW/Mask 常數) |
-| `netconf_mh2030a.c` | 初始化 + main loop 包裝 |
-| `clock-arch.h` | uIP clock port (`clock_time_t`, `CLOCK_SECOND`) |
-| `clock-arch.c` | SysTick ISR + `clock_time()` |
 
 ---
 
@@ -168,21 +148,23 @@ static void dm9051_uip_stack_print_rx_burst(...);         // 診斷輸出
 
 ## 4. uIP API 對應
 
-### Staging (`adapters/uip/dm9051_uip_stack.c`)
+### Init 呼叫鏈 (`dm9051_uip_stack_init()`)
 
 ```c
-// --- Init ---
-dm9051_uip_stack_init()
-  ├── dm9051_uip_init()           // 驗證 netif_device
-  ├── uip_init()                  // uIP stack init
-  ├── uip_arp_init()              // ARP table init
-  ├── uip_setethaddr()            // 設定 MAC
-  ├── uip_sethostaddr()           // 設定 IP
-  ├── uip_setdraddr()             // 設定 Gateway
-  ├── uip_setnetmask()            // 設定 Netmask
-  └── timer_set() x2              // 啟動 periodic/ARP 計時器
+dm9051_uip_stack_init(&dev)
+  ├── dm9051_uip_init(dev)         // 驗證 netif_device
+  ├── uip_init()                    // uIP stack init
+  ├── uip_arp_init()                // ARP table init
+  ├── uip_setethaddr(mac)           // 設定 MAC
+  ├── uip_sethostaddr(ip)           // 設定 IP
+  ├── uip_setdraddr(gw)             // 設定 Gateway
+  ├── uip_setnetmask(mask)          // 設定 Netmask
+  └── timer_set() x2                // 啟動 periodic/ARP 計時器
+```
 
-// --- RX Path ---
+### RX 路徑呼叫鏈
+
+```c
 uip_len = dm9051_uip_input(uip_buf, UIP_BUFSIZE)   // 從 DM9051 讀取 frame
   if ethertype == IP:
     uip_arp_ipin()                                    // ARP IP input processing
@@ -193,13 +175,19 @@ uip_len = dm9051_uip_input(uip_buf, UIP_BUFSIZE)   // 從 DM9051 讀取 frame
   if ethertype == ARP:
     uip_arp_arpin()                                   // ARP packet processing
     dm9051_uip_output(uip_buf, uip_len)               // ARP reply
+```
 
-// --- TX Path ---
+### TX 路徑呼叫鏈
+
+```c
 dm9051_uip_stack_send_if_needed()
   ├── uip_arp_out()               // ARP resolution + Ethernet header prepend
   └── dm9051_uip_output(uip_buf, uip_len)
+```
 
-// --- Periodic ---
+### Periodic 呼叫鏈
+
+```c
 dm9051_uip_stack_poll()
   ├── dm9051_uip_stack_drain_rx()  // RX burst (up to 8 frames)
   ├── uip_periodic(i)              // TCP periodic processing (per connection)
@@ -207,37 +195,18 @@ dm9051_uip_stack_poll()
   └── uip_arp_timer()              // ARP cache cleanup (every 10s)
 ```
 
-### Production (`port/uip/dm9051_uip_adapter.c`) — 對比
-
-```c
-// 生產版本的等價呼叫鏈:
-dm9051_uip_adapter_init(dev)
-  ├── dm9051_conf()               // SPI + IRQ 配置
-  └── dm9051_netif_open(dev)
-       ├── uip_init()
-       ├── uip_arp_init()
-       ├── dm9051_init(dev->mac_addr)
-       ├── uip_setethaddr()
-       ├── uip_sethostaddr()
-       ├── uip_setdraddr()
-       └── uip_setnetmask()
-
-dm9051_uip_adapter_poll()
-  // RX phase (與 staging 邏輯相同)
-  // Periodic phase (與 staging 結構相同, 但沒有 burst pending 二次 drain)
-```
-
 ### API Mapping Table
 
-| uIP 角色 | Production API | Staging API | Core Driver API |
-|----------|---------------|-------------|-----------------|
-| Init | `dm9051_uip_adapter_init()` | `dm9051_uip_stack_init()` | `dm9051_core_open()` |
-| RX frame | `dm9051_netif_input()` | `dm9051_uip_input()` | `dm9051_core_receive_ex()` |
-| TX frame | `dm9051_netif_output()` | `dm9051_uip_output()` | `dm9051_core_send()` |
-| IRQ check | `dm9051_interrupt_get()` | `dm9051_uip_interrupt_take()` | `dm9051_core_interrupt_take()` |
-| IRQ reset | `dm9051_interrupt_reset()` | `dm9051_uip_interrupt_reset()` | `dm9051_core_interrupt_reset()` |
-| Poll | `dm9051_uip_adapter_poll()` | `dm9051_uip_stack_poll()` | — |
-| Mode | `dm9051_netif_target_mode()` | `dm9051_uip_target_mode()` | — |
+| uIP 角色 | Adapter API | Core Driver API |
+|----------|-------------|-----------------|
+| Init | `dm9051_uip_stack_init()` | `dm9051_core_open()` |
+| RX frame | `dm9051_uip_input()` | `dm9051_core_receive_ex()` |
+| TX frame | `dm9051_uip_output()` | `dm9051_core_send()` |
+| IRQ check | `dm9051_uip_interrupt_take()` | `dm9051_core_interrupt_take()` |
+| IRQ reset | `dm9051_uip_interrupt_reset()` | `dm9051_core_interrupt_reset()` |
+| Poll | `dm9051_uip_stack_poll()` | — |
+| Poll TX done | `dm9051_uip_poll()` | `dm9051_core_tx_poll_done()` |
+| Mode | `dm9051_uip_target_mode()` | — |
 
 ---
 
@@ -279,7 +248,7 @@ dm9051_core_product_id(dev)
 dm9051_core_chip_revision(dev)
 ```
 
-### Staging Adapter 對應關係
+### Adapter 對應關係
 
 | Adapter API | Core Driver API | 備註 |
 |-------------|----------------|------|
@@ -299,14 +268,14 @@ dm9051_core_chip_revision(dev)
 ### 6.1 RX 完整路徑
 
 ```
-[Application Main Loop]
+[Application Main Loop]                      [main_uip_mh2030a_demo.c:184]
     │
-    ├── mh2030a_uip_net_loop()
-    │   └── dm9051_uip_adapter_poll()          [port/uip/dm9051_uip_adapter.c]
-    │       │                                      (或 dm9051_uip_stack_poll() in staging)
+    ├── dm9051_demo_handle_link_detection()  ← link 狀態監測
+    │
+    └── dm9051_uip_stack_poll()
     │       │
     │       ├── [Poll Mode]  直接進入 RX drain
-    │       ├── [IRQ Mode]   dm9051_interrupt_get() / dm9051_uip_interrupt_take()
+    │       ├── [IRQ Mode]   dm9051_uip_interrupt_take()
     │       │                 檢查 interrupt_event flag
     │       │
     │       └── dm9051_uip_stack_drain_rx()     ── 最多 8 frames per call
@@ -428,105 +397,62 @@ uIP 應用層呼叫 (例如 httpd 回應)
 ### 7.1 完整初始化 Sequence
 
 ```
-mh2030a_uip_net_init()                              [netconf_mh2030a.c]
+main()                                          [main_uip_mh2030a_demo.c:141]
   │
-  ├── 填充 dm9051_netif_device_t:
-  │     mac_addr = 0 (使用內建 MAC)
-  │     static_ip = 192.168.249.37
-  │     gateway_ip = 192.168.249.1
-  │     netmask_ip = 255.255.255.0
+  ├── mh2030a_uip_board_init(115200)            ← 板級 init (GPIO, SPI, UART)
+  ├── mh2030a_uip_tick_init()                   ← SysTick init (10ms tick)
   │
-  └── dm9051_uip_adapter_init(&dev)                 [port/uip/dm9051_uip_adapter.c]
-        │  (或 staging: dm9051_uip_stack_init(&dev))
-        │
-        ├── dm9051_conf()
-        │   └── 配置 SPI GPIO, EXTI line, 初始化 SPI 週邊
-        │
-        └── dm9051_netif_open(&dev)
-              │ (staging: dm9051_uip_init() + uIP init)
-              │
-              ├── uip_init()
-              │   └── 清除所有 TCP/UDP connection states
-              │
-              ├── uip_arp_init()
-              │   └── 清除 ARP table
-              │
-              ├── dm9051_init(dev->mac_addr)
-              │   │ (staging: dm9051_core_open())
-              │   │
-              │   ├── dm9051_core_default_config(&config)
-              │   │     tx_checksuming = 1
-              │   │     rx_checksuming = 0
-              │   │     flow_control = 1
-              │   │     accept_all = 0
-              │   │     interrupt_mode = POLL (default)
-              │   │
-              │   ├── dm9051_core_open(dev, &config, &hal)
-              │   │   │
-              │   │   ├── 複製 config → dev->runtime.config
-              │   │   ├── dev->hal = hal
-              │   │   │
-              │   │   ├── hal->ops->reset(ctx)        ← HW reset (GPIO)
-              │   │   │
-              │   │   ├── dm9051_core_probe(dev, hal)
-              │   │   │   ├── read_reg(VIDL)          ← 0x0A
-              │   │   │   ├── read_reg(VIDH)          ← 0x46
-              │   │   │   ├── read_reg(PIDL)          ← 0x51
-              │   │   │   ├── read_reg(PIDH)          ← 0x90
-              │   │   │   ├── read_reg(CHIPR)         ← 0x19 or 0x1B
-              │   │   │   ├── vendor_id == 0x0A46?
-              │   │   │   ├── product_id == 0x9051?
-              │   │   │   └── dev->runtime.device_found = 1
-              │   │   │
-              │   │   └── dm9051_core_reset_and_start(dev)
-              │   │       │
-              │   │       ├── dm9051_core_init_device(dev, hal)
-              │   │       │   ├── write_reg(GPR, 0x00)        ← 喚醒 DM9051 (WAKEUP)
-              │   │       │   ├── delay_ms(25)
-              │   │       │   ├── write_reg(NCR, NCR_RESET)   ← 軟體重置
-              │   │       │   ├── delay_ms(5)
-              │   │       │   │
-              │   │       │   └── dm9051_core_soft_default(hal, config)
-              │   │       │       ├── write_reg(MBNDRY, 0x80)
-              │   │       │       ├── write_reg(PPCR, 0x0F)
-              │   │       │       ├── write_reg(LMCR, 0x81)   ← 新模式
-              │   │       │       ├── write_reg(INTR, 0x01)   ← Active Low
-              │   │       │       ├── write_reg(CSCR, 0x07)   ← TX checksum enable
-              │   │       │       ├── write_reg(RCSSR, 0x00)  ← RX checksum disable
-              │   │       │       └── [if CLKOUT mode] write_reg(IPCOCR, 0x81)
-              │   │       │
-              │   │       ├── dm9051_core_set_par(dev, hal)
-              │   │       │   └── write_reg(PAR+0..5, MAC addr)  ← 寫入 MAC
-              │   │       │
-              │   │       └── dm9051_core_start_receive(dev, hal)
-              │   │           ├── dev->runtime.interrupt_event = 0
-              │   │           ├── [if IRQ mode] hal->ops->irq_enable()
-              │   │           ├── dm9051_core_set_mar(hal)      ← Multicast 位址
-              │   │           ├── dm9051_core_set_flow_control(hal, config)
-              │   │           │   ├── write_reg(FCR, 0x39)
-              │   │           │   └── phy_write(ADV_REG, 0x05E1)
-              │   │           ├── write_reg(IMR, IMR value)     ← 中斷遮罩
-              │   │           └── write_reg(RCR, 0x31)          ← 啟用 RX
-              │   │
-              │   └── [MAC 回傳] → mac pointer
-              │
-              ├── uip_setethaddr(mac)                ← 設定 MAC 到 uIP
-              ├── uip_sethostaddr(192.168.249.37)
-              ├── uip_setdraddr(192.168.249.1)
-              ├── uip_setnetmask(255.255.255.0)
-              ├── timer_set(periodic_timer, 500ms)
-              └── timer_set(arp_timer, 10s)
-```
-
-### 7.2 Staging 版 Init 差異
-
-```c
-// staging 的 dm9051_uip_stack_init() 與 production 的主要差異:
-//
-// 1. 不呼叫 dm9051_conf() — 假設由外部初始化 SPI/GPIO
-// 2. 使用 dm9051_uip_attach(dev) 替代 dm9051_init()
-// 3. 需要外部先呼叫 dm9051_core_open() 和 dm9051_uip_attach()
-// 4. 純參數驗證, 不操作硬體 (dm9051_uip_init 只檢查 dev + attached)
+  ├── dm9051_uip_mh2030a_smoke_open(mac)        ← 包裝 dm9051_core_open()
+  │   │
+  │   ├── dm9051_core_default_config(&config)
+  │   │     tx_checksuming=1, rx_checksuming=0, flow_control=1
+  │   │     accept_all=0, interrupt_mode=POLL (default)
+  │   │
+  │   └── dm9051_core_open(dev, &config, &hal)
+  │         ├── hal->ops->reset(ctx)            ← HW reset (GPIO)
+  │         ├── dm9051_core_probe(dev, hal)
+  │         │     read_reg(VIDL/H) → 0x0A46
+  │         │     read_reg(PIDL/H) → 0x9051
+  │         │     read_reg(CHIPR) → 0x19
+  │         │     dev->runtime.device_found = 1
+  │         │
+  │         ├── dm9051_core_init_device(dev, hal)
+  │         │     ├── write_reg(GPR, 0) + delay_ms(25)  ← WAKEUP
+  │         │     ├── write_reg(NCR, RESET) + delay_ms(5)← 軟體重置
+  │         │     └── dm9051_core_soft_default()
+  │         │           MBNDRY, PPCR, LMCR, INTR,
+  │         │           CSCR, RCSSR
+  │         │
+  │         ├── dm9051_core_set_par(dev, hal)   ← 寫入 MAC 位址
+  │         │
+  │         └── dm9051_core_start_receive(dev, hal)
+  │               ├── [if IRQ] irq_enable()
+  │               ├── MAR, FCR, IMR, RCR (RXEN)
+  │
+  ├── dm9051_uip_attach(mutable_dev)            ← 綁定 device 到 adapter
+  │
+  ├── dm9051_demo_netif_config(&netif)
+  │     mac     = 00:60:6E:90:51:01
+  │     static  = 192.168.249.37
+  │     gateway = 192.168.249.1
+  │     netmask = 255.255.255.0
+  │
+  ├── dm9051_uip_stack_init(&netif)
+  │     ├── dm9051_uip_init(dev)               ← 驗證 netif_device
+  │     ├── uip_init()                          ← uIP stack init
+  │     ├── uip_arp_init()                      ← ARP table init
+  │     ├── uip_setethaddr(mac)
+  │     ├── uip_sethostaddr(192.168.249.37)
+  │     ├── uip_setdraddr(192.168.249.1)
+  │     ├── uip_setnetmask(255.255.255.0)
+  │     ├── timer_set(periodic_timer, 500ms)
+  │     └── timer_set(arp_timer, 10s)
+  │
+  ├── [if WEB_EN] httpd_init()                 ← HTTP 伺服器
+  │
+  └── while (1)                                 ← Main loop
+        └── dm9051_demo_handle_link_detection() ← Link 狀態監測 (500ms)
+        └── dm9051_uip_stack_poll()             ← uIP stack 處理
 ```
 
 ---
@@ -549,10 +475,11 @@ mh2030a_uip_net_init()                              [netconf_mh2030a.c]
 ```
 
 ```
-[Super Loop / Main]                            [netconf_mh2030a.c]
+[Super Loop / Main]                          [main_uip_mh2030a_demo.c:184]
     │
-    ├── mh2030a_uip_net_loop()
-    │   └── dm9051_uip_adapter_poll()
+    ├── dm9051_demo_handle_link_detection()  ← link 狀態監測 (500ms)
+    │
+    └── dm9051_uip_stack_poll()
     │       │
     │       ├── dm9051_uip_interrupt_take()
     │       │   └── dm9051_core_interrupt_take()
@@ -561,17 +488,18 @@ mh2030a_uip_net_init()                              [netconf_mh2030a.c]
     │       │       ├── if set: clear flag, return 1
     │       │       └── exit_critical()
     │       │
-    │       ├── [if take == 1] → RX drain
+    │       ├── [if take == 1 OR poll mode] → RX drain
     │       │       dm9051_uip_stack_drain_rx()
     │       │       ├── dm9051_uip_input() × N
     │       │       └── ...
     │       │
-    │       └── [if drain done] → dm9051_uip_interrupt_reset()
-    │           └── dm9051_core_interrupt_reset()
-    │               ├── read ISR register        ← 讀取 DM9051 中斷狀態
-    │               ├── writeback ISR            ← 清除 ISR bits
-    │               ├── write IMR                ← 重新啟用中斷遮罩
-    │               └── hal->ops->irq_enable()   ← 重新啟用 EXTI
+    │       └── [if drain done && IRQ mode]
+    │           └── dm9051_uip_interrupt_reset()
+    │               └── dm9051_core_interrupt_reset()
+    │                   ├── read ISR register
+    │                   ├── writeback ISR
+    │                   ├── write IMR (re-enable)
+    │                   └── hal->ops->irq_enable()
     │
     └── [其他 non-network tasks]
 ```
@@ -579,7 +507,7 @@ mh2030a_uip_net_init()                              [netconf_mh2030a.c]
 ### 8.2 Polling 模式 (`DM9051_INPUT_MODE_POLL`)
 
 ```
-dm9051_uip_adapter_poll()
+dm9051_uip_stack_poll()
     │
     ├── dm9051_uip_interrupt_mode() → POLL
     │
@@ -591,7 +519,72 @@ dm9051_uip_adapter_poll()
     └── [no IRQ operations]
 ```
 
-### 8.3 ISR 同步分析
+### 8.3 Main Loop 結構 (`main_uip_mh2030a_demo.c`)
+
+```c
+int main(void)
+{
+    // === Phase 1: Platform Init ===
+    mh2030a_uip_board_init(115200);          // UART, GPIO, SPI
+    mh2030a_uip_tick_init();                 // SysTick
+
+    // === Phase 2: DM9051 HW Init ===
+    dm9051_uip_mh2030a_smoke_open(mac);      // dm9051_core_open()
+
+    // === Phase 3: Adapter Binding ===
+    dm9051_uip_attach(dev);                  // 綁定 device
+
+    // === Phase 4: uIP Stack Init ===
+    dm9051_uip_stack_init(&netif);           // uIP init + ARP + IP config
+
+    // === Phase 5: App Services ===
+    httpd_init();                            // HTTP server on port 80
+
+    // === Phase 6: Main Loop ===
+    while (1) {
+        dm9051_demo_handle_link_detection(); // link 狀態監測 (500ms 週期)
+        dm9051_uip_stack_poll();             // RX drain + periodic + ARP
+    }
+}
+```
+
+### 8.4 Link Detection 機制
+
+```c
+// 實作在 main_uip_mh2030a_demo.c:71
+static int dm9051_demo_handle_link_detection(dev, netif, localtime)
+{
+    // 500ms 週期性讀取 NSR register
+    poll_due = (localtime - link_timer) >= DM9051_LINK_DETECTION_INTERVAL
+            || localtime overflow
+            || fallback_poll_count >= DM9051_LINK_POLL_LOOP_FALLBACK;
+
+    if (poll_due) {
+        on_linkup = dm9051_core_link_is_up(dev);   // read NSR bit 6
+
+        if (on_linkup != last_link_state) {
+            printf("Link state changed: %s → %s\r\n",
+                   last_link_state, on_linkup);
+            // 變 UP 時會列印 5 次 network status
+        }
+        last_link_state = on_linkup;
+    }
+
+    return (last_link_state == 1);  // 回傳 link up/down
+}
+```
+
+調用鏈:
+```
+dm9051_demo_handle_link_detection()
+  └── dm9051_demo_read_link_up()
+        └── dm9051_core_link_is_up(dev)
+              └── read_reg(NSR) & NSR_LINKST (bit 6)
+```
+
+**關鍵**: Link detection 發生在 `dm9051_uip_stack_poll()` 之前，確保 poll 時 link 是 up 的。
+
+### 8.5 ISR 同步分析
 
 | 風險 | 現狀 | 評估 |
 |------|------|------|
@@ -613,7 +606,6 @@ uint8_t uip_buf[UIP_BUFSIZE];     // 預設 UIP_BUFSIZE = 1200 (project config)
 uint16_t uip_len;                  // 當前 packet 長度
 uint8_t *uip_appdata;              // 指向 payload (L4 以上資料)
 
-// Ethernet header 加上 link-layer 長度
 // uip_buf layout:
 // [0..13]    Ethernet header (14 bytes)
 // [14..33]   IP + TCP/UDP/ICMP header (20 bytes)
@@ -875,101 +867,91 @@ static int dm9051_core_tx_wait_done(const dm9051_hal_t *hal)
 ### 13.1 Init Call Graph
 
 ```
-mh2030a_uip_net_init()
-  └── dm9051_uip_adapter_init()
-        ├── dm9051_conf()                          [platform: SPI/GPIO/EXTI init]
-        └── dm9051_netif_open()
-              ├── uip_init()                       [uIP stack]
-              ├── uip_arp_init()                   [uIP ARP]
-              ├── dm9051_init()                    [legacy core driver]
-              │     └── [core internal sequence]
-              │           ├── dm9051_core_default_config()
-              │           └── dm9051_core_open()
-              │                 ├── dm9051_core_probe()
-              │                 │     ├── read_reg(VIDL/H)
-              │                 │     ├── read_reg(PIDL/H)
-              │                 │     └── read_reg(CHIPR)
-              │                 ├── dm9051_core_init_device()
-              │                 │     ├── write_reg(GPR, 0) + delay
-              │                 │     ├── write_reg(NCR, RESET) + delay
-              │                 │     └── dm9051_core_soft_default()
-              │                 │           ├── write_reg(MBNDRY)
-              │                 │           ├── write_reg(PPCR)
-              │                 │           ├── write_reg(LMCR)
-              │                 │           ├── write_reg(INTR)
-              │                 │           ├── dm9051_core_set_checksum()
-              │                 │           │     ├── write_reg(CSCR)
-              │                 │           │     └── write_reg(RCSSR)
-              │                 │           └── [if CLKOUT] write_reg(IPCOCR)
-              │                 ├── dm9051_core_set_par()
-              │                 │     └── write_reg(PAR+0..5, MAC)
-              │                 └── dm9051_core_start_receive()
-              │                       ├── [if IRQ] irq_enable()
-              │                       ├── dm9051_core_set_mar()
-              │                       │     └── write_reg(MAR+0..7)
-              │                       ├── dm9051_core_set_flow_control()
-              │                       │     ├── write_reg(FCR)
-              │                       │     └── dm9051_core_phy_write_raw()
-              │                       ├── write_reg(IMR)
-              │                       └── write_reg(RCR)
-              ├── uip_setethaddr()
-              ├── uip_sethostaddr()
-              ├── uip_setdraddr()
-              └── uip_setnetmask()
+main()                                        [main_uip_mh2030a_demo.c]
+  │
+  ├── mh2030a_uip_board_init()                ← board init (GPIO, SPI, UART)
+  ├── mh2030a_uip_tick_init()                 ← SysTick
+  │
+  ├── dm9051_uip_mh2030a_smoke_open(mac)      ← DM9051 HW init
+  │   └── dm9051_core_open(dev, &config, &hal)
+  │         ├── hal->ops->reset()
+  │         ├── dm9051_core_probe()           ← VID/PID/CHIPR
+  │         ├── dm9051_core_init_device()     ← Reset + register init
+  │         ├── dm9051_core_set_par()         ← MAC
+  │         └── dm9051_core_start_receive()   ← RX enable
+  │
+  ├── dm9051_uip_attach(dev)                  ← adapter binding
+  │
+  └── dm9051_uip_stack_init(&netif)
+        ├── dm9051_uip_init(dev)              ← 驗證 netif_device
+        ├── uip_init()                        ← uIP stack init
+        ├── uip_arp_init()                    ← ARP table init
+        ├── uip_setethaddr(mac)
+        ├── uip_sethostaddr(192.168.249.37)
+        ├── uip_setdraddr(192.168.249.1)
+        ├── uip_setnetmask(255.255.255.0)
+        ├── timer_set(periodic, 500ms)
+        └── timer_set(arp, 10s)
 ```
 
-### 13.2 Poll Call Graph (Main Loop)
+### 13.2 Main Loop Call Graph
 
 ```
-mh2030a_uip_net_loop()
-  └── dm9051_uip_adapter_poll()
+main() while(1)                               [main_uip_mh2030a_demo.c:184]
+  │
+  ├── dm9051_demo_handle_link_detection()     ← link 監測 (500ms)
+  │     └── dm9051_core_link_is_up(dev)
+  │           └── read_reg(NSR) & NSR_LINKST
+  │
+  └── dm9051_uip_stack_poll()
         │
-        ├── [CHECK] dm9051_interrupt_get() / dm9051_uip_interrupt_take()
+        ├── [CHECK] dm9051_uip_interrupt_take()
+        │   └── dm9051_core_interrupt_take()
         │
         ├── [RX DRAIN] while (burst < 8)
-        │     ├── dm9051_netif_input() / dm9051_uip_input()
-        │     │     └── dm9051_rx() / dm9051_core_receive_ex()
-        │     │           ├── dm9051_core_bus_acquire()
-        │     │           │     ├── enter_critical()
-        │     │           │     ├── check bus_busy
-        │     │           │     └── exit_critical()
-        │     │           ├── dm9051_core_rx_ready()
-        │     │           │     └── read_reg(MRCMDX) × 2
-        │     │           ├── dm9051_core_rx_header()
-        │     │           │     └── read_mem(header, 4)
-        │     │           ├── dm9051_core_read_mem(buf, rx_len)
-        │     │           │     └── read_mem(buf, rx_len)
-        │     │           ├── write_reg(ISR, CLEAR_RX)
-        │     │           └── dm9051_core_bus_release()
-        │     │                 ├── enter_critical()
-        │     │                 ├── bus_busy = 0
-        │     │                 └── exit_critical()
+        │     ├── dm9051_uip_input(uip_buf, UIP_BUFSIZE)
+        │     │   └── dm9051_core_receive_ex(dev, uip_buf, buf_len, &rx_len)
+        │     │         ├── dm9051_core_bus_acquire()
+        │     │         │     ├── enter_critical()
+        │     │         │     ├── check bus_busy
+        │     │         │     └── exit_critical()
+        │     │         ├── dm9051_core_rx_ready()
+        │     │         │     └── read_reg(MRCMDX) × 2
+        │     │         ├── dm9051_core_rx_header()
+        │     │         │     └── read_mem(header, 4)
+        │     │         ├── dm9051_core_read_mem(buf, rx_len)
+        │     │         │     └── read_mem(buf, rx_len)
+        │     │         ├── write_reg(ISR, 0x80)
+        │     │         └── dm9051_core_bus_release()
+        │     │               ├── enter_critical()
+        │     │               ├── bus_busy = 0
+        │     │               └── exit_critical()
         │     │
         │     ├── [ETHER TYPE]判斷
-        │     │     ├── IP: uip_arp_ipin() → uip_input() → [response] → uip_arp_out() → dm9051_netif_output()
-        │     │     └── ARP: uip_arp_arpin() → [response] → dm9051_netif_output()
+        │     │     ├── IP: uip_arp_ipin() → uip_input()
+        │     │     │       └── [response] → dm9051_uip_stack_send_if_needed()
+        │     │     │             ├── uip_arp_out()
+        │     │     │             └── dm9051_uip_output(uip_buf, uip_len)
+        │     │     │                   └── dm9051_core_send()
+        │     │     │
+        │     │     └── ARP: uip_arp_arpin()
+        │     │             └── [response] → dm9051_uip_output()
         │     │
         │     └── [DRAIN CHECK] if burst==8 → rx_drain_pending=1
         │
-        ├── [IRQ RESET] if !poll && !pending → dm9051_interrupt_reset()
+        ├── [IRQ RESET] if !poll && !pending
+        │     └── dm9051_uip_interrupt_reset()
+        │           └── dm9051_core_interrupt_reset()
         │
         ├── [TCP PERIODIC] if timer expired (500ms)
         │     └── for i in 0..UIP_CONNS
-        │           └── uip_periodic(i)
-        │                 └── [response] uip_arp_out() → dm9051_netif_output()
-        │                       └── dm9051_tx() / dm9051_core_send()
-        │                             ├── dm9051_core_bus_acquire()
-        │                             ├── tx_set_len()
-        │                             ├── write_mem(buf, len)
-        │                             ├── write_reg(TCR, TXREQ)
-        │                             ├── dm9051_core_tx_wait_done()
-        │                             │     └── poll TCR_TXREQ (timeout 100ms)
-        │                             └── dm9051_core_bus_release()
+        │           ├── uip_periodic(i)
+        │           └── [response] → dm9051_uip_stack_send_if_needed()
         │
         ├── [UDP PERIODIC] if UIP_UDP && timer expired (500ms)
         │     └── for i in 0..UIP_UDP_CONNS
-        │           └── uip_udp_periodic(i)
-        │                 └── [response] → uip_arp_out() → dm9051_netif_output()
+        │           ├── uip_udp_periodic(i)
+        │           └── [response] → dm9051_uip_stack_send_if_needed()
         │
         └── [ARP TIMER] if timer expired (10s)
               └── uip_arp_timer()
@@ -984,8 +966,7 @@ mh2030a_uip_net_loop()
 ```mermaid
 graph TB
     subgraph "Application"
-        APP["main_uip_mh2030a.c<br/>HTTP server, Telnet, etc."]
-        NETCONF["netconf_mh2030a.c<br/>mh2030a_uip_net_init()<br/>mh2030a_uip_net_loop()"]
+        APP["main_uip_mh2030a_demo.c<br/>HTTP server callbacks<br/>Link detection"]
     end
 
     subgraph "uIP TCP/IP Stack"
@@ -995,16 +976,14 @@ graph TB
         CLOCK["clock-arch.c<br/>clock_time()<br/>SysTick ISR"]
     end
 
-    subgraph "Adapter Layer"
-        ADAPTER_H["dm9051_uip_adapter.h<br/>(prod)"]
-        ADAPTER_C["dm9051_uip_adapter.c<br/>dm9051_uip_adapter_init()<br/>dm9051_uip_adapter_poll()"]
-        STAGING_H["dm9051_uip.h<br/>dm9051_uip_stack.h<br/>(staging)"]
-        STAGING_C["dm9051_uip.c<br/>dm9051_uip_stack.c<br/>(staging)"]
+    subgraph "Adapter Layer (adapters/uip/)"
+        AH["dm9051_uip.h<br/>dm9051_uip_stack.h"]
+        AC["dm9051_uip.c<br/>dm9051_uip_stack.c<br/>dm9051_uip_stack_init()<br/>dm9051_uip_stack_poll()"]
     end
 
     subgraph "DM9051 Core Driver"
         CORE_H["dm9051_core.h"]
-        CORE_C["dm9051_core.c<br/>dm9051_core_open()<br/>dm9051_core_receive_ex()<br/>dm9051_core_send()<br/>dm9051_core_interrupt_take()"]
+        CORE_C["dm9051_core.c<br/>dm9051_core_open()<br/>dm9051_core_receive_ex()<br/>dm9051_core_send()"]
         REGS["dm9051_regs.h<br/>Register definitions"]
         TYPES["dm9051_types.h<br/>Device structs"]
     end
@@ -1025,20 +1004,14 @@ graph TB
         AT32["AT32F415 HAL/LL Library<br/>SPI, GPIO, EXTI, SysTick"]
     end
 
-    APP --> NETCONF
-    NETCONF --> ADAPTER_C
-    NETCONF --> UIP
-    ADAPTER_C --> UIP
-    ADAPTER_C --> ARP
-    ADAPTER_C --> TIMER
-    ADAPTER_C --> CORE_H
+    APP --> AC
+    APP --> UIP
+    AC --> UIP
+    AC --> ARP
+    AC --> TIMER
+    AC --> CORE_H
     TIMER --> CLOCK
     UIP --> ARP
-
-    STAGING_C --> UIP
-    STAGING_C --> ARP
-    STAGING_C --> TIMER
-    STAGING_C --> CORE_H
 
     CORE_C --> HAL_H
     CORE_C --> REGS
@@ -1070,8 +1043,8 @@ graph TB
 
 ```mermaid
 sequenceDiagram
-    participant APP as Application<br/>main loop
-    participant ADPT as Adapter<br/>dm9051_uip_adapter_poll()
+    participant APP as main()<br/>main loop
+    participant ADPT as Adapter<br/>dm9051_uip_stack_poll()
     participant UIP as uIP Stack
     participant CORE as Core Driver
     participant DM as DM9051 HW
@@ -1082,7 +1055,8 @@ sequenceDiagram
     DM->>APP: Assert INT pin (EXTI)
     APP->>APP: ISR: set interrupt_event=1, disable EXTI
 
-    APP->>ADPT: dm9051_uip_adapter_poll()
+    APP->>APP: dm9051_demo_handle_link_detection()
+    APP->>ADPT: dm9051_uip_stack_poll()
     ADPT->>ADPT: dm9051_uip_interrupt_take() → 1
     ADPT->>ADPT: burst=0
 
@@ -1129,14 +1103,16 @@ sequenceDiagram
     ADPT->>APP: irq_enable() (re-enable EXTI)
 ```
 
-### 15.2 Periodic Sequence (uIP Timer)
+### 15.2 Main Loop + Periodic Sequence
 
 ```mermaid
 sequenceDiagram
-    participant APP as Application<br/>Main Loop
+    participant APP as main()<br/>while(1)
     participant ADPT as Adapter
     participant UIP as uIP Stack
     participant CORE as Core Driver
+
+    Note over APP: dm9051_demo_handle_link_detection() ← link status check (500ms)
 
     Note over APP: timer_expired(periodic_timer) → 1
     ADPT->>ADPT: timer_reset(periodic_timer)
@@ -1167,54 +1143,53 @@ sequenceDiagram
 
     Note over ADPT: timer_expired(arp_timer) → ARP refresh
     ADPT->>UIP: uip_arp_timer()
-    ADPT->>UIP: uip_arp_init() (or cleanup)
 ```
 
 ### 15.3 Init Sequence
 
 ```mermaid
 sequenceDiagram
-    participant APP as mh2030a_uip_net_init()
-    participant ADPT as Adapter
-    participant UIP as uIP Stack
+    participant APP as main()
+    participant SMOKE as smoke_open()
     participant CORE as Core Driver
-    participant SPI as SPI Bus
     participant DM as DM9051
+    participant ADPT as uip_stack_init()
+    participant UIP as uIP Stack
 
-    APP->>ADPT: dm9051_uip_adapter_init(dev)
-    ADPT->>ADPT: dm9051_conf() — SPI/GPIO/EXTI init
+    APP->>APP: mh2030a_uip_board_init(115200)
+    APP->>APP: mh2030a_uip_tick_init()
 
+    APP->>SMOKE: dm9051_uip_mh2030a_smoke_open(mac)
+    SMOKE->>CORE: dm9051_core_open(dev, &config, &hal)
+    CORE->>DM: hal->ops->reset()
+    CORE->>DM: read VID/PID/CHIPR
+    DM-->>CORE: 0x0A46 / 0x9051 / 0x19
+    Note over CORE: Device found!
+    CORE->>DM: GPR=0 (WAKEUP) + 25ms
+    CORE->>DM: NCR=RESET + 5ms
+    CORE->>DM: MBNDRY, PPCR, LMCR, INTR, CSCR
+    CORE->>DM: Set PAR (MAC addr)
+    CORE->>DM: MAR, FCR, IMR, RCR (RXEN)
+    CORE-->>SMOKE: return DM9051_OK
+    SMOKE-->>APP: return dev
+
+    APP->>APP: dm9051_uip_attach(dev)
+    APP->>APP: dm9051_demo_netif_config(&netif)
+    APP->>ADPT: dm9051_uip_stack_init(&netif)
+    ADPT->>ADPT: dm9051_uip_init(dev)
     ADPT->>UIP: uip_init()
     ADPT->>UIP: uip_arp_init()
-
-    ADPT->>CORE: dm9051_init(mac_addr)
-    CORE->>DM: GPIO Reset (hardware reset)
-    CORE->>SPI: read_reg(VIDL/H) → 0x0A46
-    CORE->>SPI: read_reg(PIDL/H) → 0x9051
-    CORE->>SPI: read_reg(CHIPR) → 0x19
-    Note over CORE: Device found!
-
-    CORE->>SPI: write_reg(GPR, 0x00) — WAKEUP
-    CORE->>SPI: write_reg(NCR, RESET)
-    CORE->>SPI: write_reg(MBNDRY, 0x80)
-    CORE->>SPI: write_reg(PPCR, 0x0F)
-    CORE->>SPI: write_reg(LMCR, 0x81)
-    CORE->>SPI: write_reg(INTR, 0x01)
-    CORE->>SPI: write_reg(CSCR, 0x07)
-    CORE->>SPI: write_reg(PAR+0..5, MAC)
-    CORE->>SPI: write_reg(MAR+0..7)
-    CORE->>SPI: write_reg(FCR, 0x39)
-    CORE->>SPI: write_reg(IMR, mask)
-    CORE->>SPI: write_reg(RCR, 0x31) — RX enable
-    CORE-->>ADPT: return MAC pointer
-
     ADPT->>UIP: uip_setethaddr(mac)
     ADPT->>UIP: uip_sethostaddr(192.168.249.37)
     ADPT->>UIP: uip_setdraddr(192.168.249.1)
     ADPT->>UIP: uip_setnetmask(255.255.255.0)
     ADPT->>ADPT: timer_set(periodic, 500ms)
     ADPT->>ADPT: timer_set(arp, 10s)
-    ADPT-->>APP: return 0 (OK)
+    ADPT-->>APP: return DM9051_OK
+
+    alt WEB_EN
+        APP->>APP: httpd_init()
+    end
 ```
 
 ---
@@ -1226,8 +1201,8 @@ sequenceDiagram
 | # | 問題 | 位置 | 說明 | 建議 |
 |---|------|------|------|------|
 | **R1** | **TX busy-wait 佔用 CPU** | `dm9051_core_tx_wait_done()` | 當 `TX_WAIT_TIMEOUT_US = 100000` 且 `TX_WAIT_POLL_DELAY_US = 0`，tight loop 佔用 ~5ms (200MHz) | 1. 設 `DM9051_TX_WAIT_DONE = 0` 啟用非同步 TX (但需確保 main loop 呼叫 `dm9051_uip_poll()`) 2. 設定 `TX_WAIT_POLL_DELAY_US ≥ 1` |
-| **R2** | **無 Link Status 監測** | Adapter layer | Production adapter 不檢查 `dm9051_core_link_is_up()`。Staging 也不檢查。斷線時 TX 會 timeout 浪費 CPU | 在 `dm9051_uip_adapter_poll()` 中加入週期性 link check |
-| **R3** | **Staging 未完整實作** | `adapters/uip/` | `dm9051_uip_init()` 只驗證參數，不初始化硬體。`dm9051_uip_stack_init()` 需要先 call `dm9051_core_open()` + `dm9051_uip_attach()` | 完成 staging 實作或更新註解說明前置條件 |
+| **R2** | **Link 監測在 main 層** | `main_uip_mh2030a_demo.c` | Link detection 實作在 main loop，adapter layer 不知 link 狀態。斷線時 `dm9051_uip_stack_poll()` 仍會嘗試 RX/TX | 考量將 link check 納入 adapter layer，或提供 callback 讓 adapter 在 link down 時跳過 RX 操作 |
+| **R3** | **Staging 前置條件不明確** | `dm9051_uip_stack_init()` | 需要外部先 call `dm9051_core_open()` + `dm9051_uip_attach()`，但無明確檢查 | 在 init 中加入完整狀態驗證，或整合硬體 init |
 
 ### 16.2 中優先級
 
@@ -1236,7 +1211,7 @@ sequenceDiagram
 | R4 | **RX Burst 硬限制 8** | `DM9051_UIP_RX_BURST_MAX = 8` | 高流量時會有明顯 latency (須等下次 poll) | 可從 8 提高到 16~32，或改為時間-based burst limit |
 | R5 | **uIP buffer size 限制** | `UIP_CONF_BUFFER_SIZE = 1200` | 小於標準 MTU 1514，無法接收大型 jumbo frame | 加大至 1518 以支援完整 MTU |
 | R6 | **無統計資訊** | 無 | 無 packet count, error count, drop count | 在 adapter 中加入輕量統計 (`dm9051_uip_stats_t`) |
-| R7 | **`last_error_status` static 變數** | `dm9051_uip_stack.c` | `dm9051_uip_stack_print_rx_burst()` 使用 static 變數作去抖 | 可以改用 device context |
+| R7 | **`last_error_status` static 變數** | `dm9051_uip_stack_print_rx_burst()` | static 變數作去抖 | 可以改用 device context |
 
 ### 16.3 低優先級
 
@@ -1255,23 +1230,12 @@ sequenceDiagram
 | **ISR 設 `interrupt_event` + main loop 同時讀** | Main loop 用 `enter_critical()` 保護 | Low |
 | **Main loop RX 中再來 IRQ** | ISR 僅設 flag，不碰 SPI，不會干擾進行中的 SPI transaction | Low |
 | **`bus_busy` 競爭** | `bus_acquire()`/`bus_release()` 用 critical section 保護 | Low |
-| **RX 讀了一半被 TX 中斷** | 在同一個 `dm9051_uip_adapter_poll()` 中，RX/TX 是序列化的，不會並發 | None |
+| **RX 讀了一半被 TX 中斷** | 在同一個 `dm9051_uip_stack_poll()` 中，RX/TX 是序列化的，不會並發 | None |
 | **SPI 共用 (main loop + ISR)** | ISR 不碰 SPI，main loop 獨佔 | None |
 
 ---
 
-## Appendix A: 檔案對照表
-
-| Original (port/uip/) | Staging (adapters/uip/) | 狀態 |
-|---------------------|------------------------|------|
-| `dm9051_uip_adapter.h` | `dm9051_uip.h` | 功能對應，API 不同 |
-| `dm9051_uip_adapter.c` | `dm9051_uip.c` | 重新設計的 context-based API |
-| — | `dm9051_uip_stack.h` | 新增的 stack loop header |
-| — | `dm9051_uip_stack.c` | 新增的 stack loop 實作 |
-| `netconf_mh2030a.h` | — | 仍在 production 中使用 |
-| `netconf_mh2030a.c` | — | 仍在 production 中使用 |
-
-## Appendix B: 常數定義總表
+## Appendix A: 常數定義總表
 
 | 常數 | 值 | 說明 |
 |------|-----|------|
@@ -1287,15 +1251,34 @@ sequenceDiagram
 | `UIP_CONF_BUFFER_SIZE` | 1200 | uIP buffer 大小 |
 | `CLOCK_CONF_SECOND` | 1000 | uIP 時脈 tick 率 (1000 ticks/sec) |
 | `MH2030A_UIP_TICK_MS` | 10 | 系統 tick 間隔 |
+| `DM9051_LINK_DETECTION_INTERVAL` | 500 | link 監測間隔 (ms) |
+| `DM9051_LINK_POLL_LOOP_FALLBACK` | 20000 | link poll fallback 計數 |
+| `DM9051_LINKUP_STATUS_PRINT_COUNT` | 5 | link up 時列印次數 |
+| `DM9051_STATUS_PRINT_LIMIT` | 50 | 狀態列印限制 |
+| `DM9051_STATUS_PRINT_STEP` | 10 | 狀態列印步進 |
 
-## Appendix C: 建構差異
+## Appendix B: Public API 索引
 
-| 面向 | Production (`port/uip/`) | Staging (`adapters/uip/`) |
-|------|------------------------|--------------------------|
-| **Core API** | Legacy `dm9051_init()`, `dm9051_rx()`, `dm9051_tx()` | New context-based `dm9051_core_open()`, `dm9051_core_receive_ex()`, `dm9051_core_send()` |
-| **Device model** | Stateless global | Instance-based `dm9051_device_t` |
-| **初始化** | `dm9051_conf()` + `dm9051_init()` | `dm9051_core_open()` + `dm9051_uip_attach()` |
-| **IRQ Mode** | Implicit (compilation flag) | Explicit `interrupt_mode` in config |
-| **TX 同步** | 同步 (`dm9051_tx()` 內部包含 TX wait done) | 可配置 (`DM9051_TX_WAIT_DONE`) |
-| **診斷** | `printf` | `DM9051_UIP_DIAG_PRINTF` 可關閉 |
-| **程式碼狀態** | ✅ Production ready | 🚧 Staging (target_mode="staging") |
+| API | 檔案 | 行 | 說明 |
+|-----|------|---|------|
+| `dm9051_uip_init()` | `dm9051_uip.c` | 18 | 驗證 netif device 參數 |
+| `dm9051_uip_attach()` | `dm9051_uip.c` | 31 | 綁定 DM9051 device instance |
+| `dm9051_uip_input()` | `dm9051_uip.c` | 41 | 從 DM9051 讀取 RX frame |
+| `dm9051_uip_last_rx_status()` | `dm9051_uip.c` | 64 | 查詢最後 RX 狀態 |
+| `dm9051_uip_output()` | `dm9051_uip.c` | 69 | 寫入 TX frame 到 DM9051 |
+| `dm9051_uip_interrupt_mode()` | `dm9051_uip.c` | 78 | 查詢 interrupt/poll mode |
+| `dm9051_uip_interrupt_take()` | `dm9051_uip.c` | 87 | 檢查 + 清除 interrupt event |
+| `dm9051_uip_interrupt_reset()` | `dm9051_uip.c` | 100 | 完整 IRQ 重設 |
+| `dm9051_uip_poll()` | `dm9051_uip.c` | 109 | 非同步 TX 完成輪詢 |
+| `dm9051_uip_target_mode()` | `dm9051_uip.c` | 118 | 回傳目前模式字串 |
+| `dm9051_uip_stack_init()` | `dm9051_uip_stack.c` | 125 | uIP stack + adapter 初始化 |
+| `dm9051_uip_stack_poll()` | `dm9051_uip_stack.c` | 180 | uIP main loop 單次迭代 |
+
+## Appendix C: 內部 static 函式索引
+
+| 函式 | 檔案 | 行 | 說明 |
+|------|------|---|------|
+| `dm9051_uip_stack_send_if_needed()` | `dm9051_uip_stack.c` | 55 | 條件式 TX (uip_len > 0) |
+| `dm9051_uip_stack_drain_rx()` | `dm9051_uip_stack.c` | 63 | RX burst drain loop |
+| `dm9051_uip_stack_rx_pending_from_burst()` | `dm9051_uip_stack.c` | 92 | 判斷 burst 是否還有剩餘 frame |
+| `dm9051_uip_stack_print_rx_burst()` | `dm9051_uip_stack.c` | 97 | RX burst 診斷輸出 |
