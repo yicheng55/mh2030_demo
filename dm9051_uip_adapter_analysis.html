@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-bs-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DM9051 uIP Adapter Layer 深度分析</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" rel="stylesheet">
+<style>
+:root{--sidebar-width:270px;--accent:#2563eb;--accent-light:#dbeafe;--sidebar-bg:#0f172a;--sidebar-text:#94a3b8;--code-bg:#1e1e1e;--border-color:#e2e8f0}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f8fafc;overflow-x:hidden}
+pre,code,.code-font{font-family:'Cascadia Code','JetBrains Mono','Fira Code','Consolas',monospace}
+.sidebar{position:fixed;top:0;left:0;width:var(--sidebar-width);height:100vh;background:var(--sidebar-bg);overflow-y:auto;z-index:1000;transition:transform .3s}
+.sidebar::-webkit-scrollbar{width:4px}
+.sidebar::-webkit-scrollbar-thumb{background:#334155;border-radius:2px}
+.sidebar-brand{padding:1.1rem 1rem;border-bottom:1px solid #1e293b}
+.sidebar-brand h5{color:#fff;margin:0;font-weight:600}
+.sidebar-brand small{color:var(--sidebar-text)}
+.sidebar .nav{padding:.3rem 0}
+.sidebar .nav-link{color:var(--sidebar-text);padding:.35rem 1rem .35rem 1.15rem;font-size:.82rem;border-left:3px solid transparent;transition:all .15s}
+.sidebar .nav-link:hover{color:#e2e8f0;background:rgba(255,255,255,.04)}
+.sidebar .nav-link.active{color:#fff;background:rgba(37,99,235,.15);border-left-color:var(--accent)}
+.sidebar .nav-link.l2{padding-left:1.85rem;font-size:.78rem}
+.sidebar .nav-link.l3{padding-left:2.5rem;font-size:.76rem}
+.main-content{margin-left:var(--sidebar-width);min-height:100vh}
+.page-header{background:linear-gradient(135deg,#1e293b,#0f172a);padding:2rem 1.5rem;color:#fff}
+.page-header h1{font-weight:700;margin-bottom:.35rem;font-size:1.6rem}
+.page-header p{color:#94a3b8;max-width:800px;font-size:.9rem}
+.content-body{padding:1.5rem;max-width:1100px}
+.section{margin-bottom:2.5rem}
+.section h2{font-weight:700;color:#0f172a;padding-bottom:.4rem;border-bottom:2px solid var(--accent);margin-bottom:1.2rem;font-size:1.35rem}
+.section h3{font-weight:600;color:#1e293b;margin-top:1.3rem;margin-bottom:.8rem;font-size:1.1rem}
+.section h4{font-weight:600;color:#334155;margin-top:1.1rem;margin-bottom:.6rem;font-size:1rem}
+.hljs-wrapper{position:relative;margin:.8rem 0;border-radius:.5rem;overflow:hidden}
+.hljs-wrapper pre{margin:0;padding:.85rem;background:var(--code-bg);overflow-x:auto;font-size:.8rem;line-height:1.45;tab-size:4}
+code:not(.hljs){background:#f1f5f9;color:#dc2626;padding:.15em .35em;border-radius:.25rem;font-size:.85em}
+.table-wrap{overflow-x:auto;margin:.8rem 0}
+.table-wrap table{width:100%;border-collapse:collapse;font-size:.84rem}
+.table-wrap th,.table-wrap td{padding:.45rem .6rem;border:1px solid var(--border-color);text-align:left;vertical-align:top}
+.table-wrap th{background:#f1f5f9;font-weight:600;color:#0f172a}
+.table-wrap tbody tr:nth-child(even){background:#f8fafc}
+.table-wrap tbody tr:hover{background:var(--accent-light)}
+blockquote{border-left:4px solid var(--accent);background:#f1f5f9;padding:.6rem .9rem;margin:.8rem 0;border-radius:0 .5rem .5rem 0}
+blockquote p{margin-bottom:.2rem}
+blockquote p:last-child{margin-bottom:0}
+.alert-custom{border-left:4px solid;border-radius:.5rem;margin:.8rem 0}
+.alert-risk-high{border-left-color:#dc2626;background:#fef2f2}
+.alert-risk-medium{border-left-color:#f59e0b;background:#fffbeb}
+.alert-risk-low{border-left-color:#10b981;background:#ecfdf5}
+.info-box{background:var(--accent-light);border-radius:.5rem;padding:.8rem;margin:.8rem 0;border:1px solid #bfdbfe;font-size:.9rem}
+.svg-container{background:#fff;border-radius:.75rem;border:1px solid var(--border-color);padding:1rem;margin:1.2rem 0;overflow-x:auto;text-align:center}
+.svg-container svg{max-width:100%;height:auto}
+.tree{font-family:'Cascadia Code','JetBrains Mono','Consolas',monospace;font-size:.8rem;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:.85rem;border-radius:.5rem;overflow-x:auto;white-space:pre;margin:.8rem 0}
+.tag{display:inline-block;padding:.12em .45em;border-radius:.2rem;font-size:.72rem;font-weight:600}
+.tag-mcu{background:#dbeafe;color:#1d4ed8}
+.tag-net{background:#f3e8ff;color:#7e22ce}
+.tag-stack{background:#dcfce7;color:#15803d}
+.tag-os{background:#fef3c7;color:#92400e}
+.sidebar-toggle{display:none;position:fixed;top:.6rem;left:.6rem;z-index:1100;background:var(--sidebar-bg);color:#fff;border:none;border-radius:.4rem;padding:.4rem .65rem;cursor:pointer}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:999}
+@media(max-width:991.98px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay.open{display:block}
+  .main-content{margin-left:0}
+  .sidebar-toggle{display:block}
+  .content-body{padding:1.2rem .8rem}
+  .page-header{padding:1.2rem .8rem}
+}
+@media(max-width:575.98px){
+  .content-body{padding:.8rem .6rem}
+  .section h2{font-size:1.15rem}
+}
+@media print{
+  .sidebar,.sidebar-toggle,.sidebar-overlay{display:none!important}
+  .main-content{margin-left:0!important}
+  .page-header{background:#1e293b!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .hljs-wrapper pre{background:#1e1e1e!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+.svg-text-title{font-size:13px;font-weight:700}
+.svg-text-label{font-size:11px}
+.svg-text-small{font-size:9px}
+.layer-rect{rx:6;ry:6;stroke-width:1.5}
+.arrow-line{stroke:#64748b;stroke-width:1.5;fill:none}
+.arrow-head{fill:#64748b}
+.flow-rect{rx:4;ry:4;stroke-width:1.5}
+.flow-diamond{stroke-width:1.5}
+.flow-start{rx:20;ry:20}
+</style>
+</head>
+<body>
+
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+</button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- Sidebar -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <h5>DM9051 uIP Adapter</h5>
+    <small>MH2030_Demo · 深度分析</small>
+  </div>
+  <ul class="nav flex-column">
+    <li><a class="nav-link active" href="#sec1">1. 架構總覽</a></li>
+    <li><a class="nav-link l2" href="#sec1-1">分層職責</a></li>
+    <li><a class="nav-link" href="#sec2">2. 實體目錄與檔案階層</a></li>
+    <li><a class="nav-link l2" href="#sec2-1">dm9051_driver/ 目錄樹</a></li>
+    <li><a class="nav-link l2" href="#sec2-2">目錄與分層對應</a></li>
+    <li><a class="nav-link l2" href="#sec2-3">adapters/uip/ 檔案</a></li>
+    <li><a class="nav-link" href="#sec3">3. 檔案用途分析</a></li>
+    <li><a class="nav-link" href="#sec4">4. uIP API 對應</a></li>
+    <li><a class="nav-link" href="#sec5">5. DM9051 Driver API 對應</a></li>
+    <li><a class="nav-link" href="#sec6">6. RX/TX 資料流</a></li>
+    <li><a class="nav-link" href="#sec7">7. 初始化流程</a></li>
+    <li><a class="nav-link" href="#sec8">8. ISR 與 Main Loop</a></li>
+    <li><a class="nav-link" href="#sec9">9. Buffer 管理機制</a></li>
+    <li><a class="nav-link" href="#sec10">10. SPI 存取流程</a></li>
+    <li><a class="nav-link" href="#sec11">11. State Machine 分析</a></li>
+    <li><a class="nav-link" href="#sec12">12. Timeout 機制</a></li>
+    <li><a class="nav-link" href="#sec13">13. 函式呼叫圖</a></li>
+    <li><a class="nav-link" href="#sec14">14. Layer 關係圖</a></li>
+    <li><a class="nav-link" href="#sec15">15. Sequence Diagram</a></li>
+    <li><a class="nav-link" href="#sec16">16. 潛在風險與改善建議</a></li>
+    <li><a class="nav-link l3" href="#appendix-a">Appendix A: 常數定義總表</a></li>
+    <li><a class="nav-link l3" href="#appendix-b">Appendix B: Public API 索引</a></li>
+    <li><a class="nav-link l3" href="#appendix-c">Appendix C: 內部 static 函式索引</a></li>
+  </ul>
+</nav>
+
+<!-- Main Content -->
+<div class="main-content">
+
+<header class="page-header">
+  <h1>DM9051 uIP Adapter Layer 深度分析</h1>
+  <p class="mb-1">專案: MH2030_Demo · 目錄: <code style="color:#e2e8f0">ModuleDemo/DM9051A/dm9051_driver/adapters/uip/</code></p>
+  <div class="d-flex flex-wrap gap-2 mt-2">
+    <span class="tag tag-mcu">MCU: AT32F403A/AT32F407</span>
+    <span class="tag tag-net">Ethernet: DM9051 (SPI)</span>
+    <span class="tag tag-stack">TCP/IP: uIP 1.0</span>
+    <span class="tag tag-os">RTOS: Bare-metal</span>
+  </div>
+</header>
+
+<div class="content-body">
+
+<!-- ===== SECTION 1: ARCHITECTURE ===== -->
+<section class="section" id="sec1">
+<h2>1. 架構總覽</h2>
+
+<div class="svg-container" style="max-width:650px">
+<svg viewBox="0 0 600 480" style="width:100%">
+<defs>
+<marker id="a1" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5Z" fill="#64748b"/></marker>
+<linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#2563eb"/></linearGradient>
+<linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient>
+<linearGradient id="g3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#d97706"/></linearGradient>
+<linearGradient id="g4" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#059669"/></linearGradient>
+<linearGradient id="g5" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#06b6d4"/><stop offset="100%" stop-color="#0891b2"/></linearGradient>
+<linearGradient id="g6" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f43f5e"/><stop offset="100%" stop-color="#e11d48"/></linearGradient>
+<linearGradient id="g7" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#475569"/><stop offset="100%" stop-color="#334155"/></linearGradient>
+</defs>
+<rect x="130" y="8" width="340" height="48" class="layer-rect" fill="url(#g1)" stroke="#1d4ed8"/>
+<text x="300" y="29" text-anchor="middle" fill="#fff" class="svg-text-title">Application Layer</text>
+<text x="300" y="44" text-anchor="middle" fill="#bfdbfe" class="svg-text-small">main_uip_mh2030a_demo.c / HTTP server callbacks</text>
+<line x1="300" y1="56" x2="300" y2="74" class="arrow-line" marker-end="url(#a1)"/>
+
+<rect x="110" y="76" width="380" height="48" class="layer-rect" fill="url(#g2)" stroke="#6d28d9"/>
+<text x="300" y="97" text-anchor="middle" fill="#fff" class="svg-text-title">uIP TCP/IP Stack</text>
+<text x="300" y="112" text-anchor="middle" fill="#ddd6fe" class="svg-text-small">uip_init / uip_input / uip_periodic / uip_arp_*</text>
+<line x1="300" y1="124" x2="300" y2="142" class="arrow-line" marker-end="url(#a1)"/>
+
+<rect x="130" y="144" width="340" height="48" class="layer-rect" fill="url(#g3)" stroke="#b45309"/>
+<text x="300" y="165" text-anchor="middle" fill="#fff" class="svg-text-title">Adapter Layer (Glue Code)</text>
+<text x="300" y="180" text-anchor="middle" fill="#fef3c7" class="svg-text-small">dm9051_uip.c / dm9051_uip_stack.c</text>
+<line x1="300" y1="192" x2="300" y2="210" class="arrow-line" marker-end="url(#a1)"/>
+
+<rect x="120" y="212" width="360" height="48" class="layer-rect" fill="url(#g4)" stroke="#047857"/>
+<text x="300" y="233" text-anchor="middle" fill="#fff" class="svg-text-title">DM9051 Core Driver</text>
+<text x="300" y="248" text-anchor="middle" fill="#d1fae5" class="svg-text-small">dm9051_core_open / receive_ex / send / interrupt_*</text>
+<line x1="300" y1="260" x2="300" y2="278" class="arrow-line" marker-end="url(#a1)"/>
+
+<rect x="140" y="280" width="320" height="42" class="layer-rect" fill="url(#g5)" stroke="#0e7490"/>
+<text x="300" y="299" text-anchor="middle" fill="#fff" class="svg-text-title">HAL Abstraction Layer</text>
+<text x="300" y="313" text-anchor="middle" fill="#cffafe" class="svg-text-small">struct dm9051_hal_ops</text>
+<line x1="300" y1="322" x2="300" y2="340" class="arrow-line" marker-end="url(#a1)"/>
+
+<rect x="120" y="342" width="360" height="48" class="layer-rect" fill="url(#g6)" stroke="#be123c"/>
+<text x="300" y="363" text-anchor="middle" fill="#fff" class="svg-text-title">MH2030A Platform Port</text>
+<text x="300" y="378" text-anchor="middle" fill="#fecdd3" class="svg-text-small">SPI Polling / SPI DMA / EXTI-IRQ / HAL binding</text>
+<line x1="300" y1="390" x2="300" y2="408" class="arrow-line" marker-end="url(#a1)"/>
+
+<rect x="100" y="410" width="400" height="42" class="layer-rect" fill="url(#g7)" stroke="#1e293b"/>
+<text x="300" y="429" text-anchor="middle" fill="#fff" class="svg-text-title">MCU HAL / Peripheral Layer</text>
+<text x="300" y="443" text-anchor="middle" fill="#cbd5e1" class="svg-text-small">MH20xxLib / AT32F403A_407 StdPeriph / CMSIS Cortex-M0</text>
+</svg>
+</div>
+
+<h3 id="sec1-1">分層職責</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Layer</th><th>職責</th><th>檔案位置</th></tr></thead>
+<tbody>
+<tr><td><strong>Application</strong></td><td>網路應用邏輯, main loop, link detection</td><td><code>examples/uip_mh2030a_demo/main_uip_mh2030a_demo.c</code></td></tr>
+<tr><td><strong>uIP Stack</strong></td><td>TCP/IP 協定處理, ARP, 重組</td><td><code>middlewares/3rd_party/uip/</code></td></tr>
+<tr><td><strong>Adapter</strong></td><td>串接 uIP 與 DM9051 driver, RX/TX 排程</td><td><code>adapters/uip/</code></td></tr>
+<tr><td><strong>Core Driver</strong></td><td>DM9051 初始化, PHY 存取, RX/TX 流程</td><td><code>core/src/dm9051_core.c</code></td></tr>
+<tr><td><strong>HAL</strong></td><td>SPI register/memory 讀寫抽象介面</td><td><code>hal/inc/dm9051_hal.h</code></td></tr>
+<tr><td><strong>Platform Port</strong></td><td>MCU 專屬 SPI 實作, GPIO, EXTI</td><td><code>port/mh2030a/</code></td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ===== SECTION 2: DIRECTORY STRUCTURE ===== -->
+<section class="section" id="sec2">
+<h2>2. 實體目錄與檔案階層</h2>
+
+<h3 id="sec2-1">2.1 <code>dm9051_driver/</code> 完整目錄樹</h3>
+<div class="hljs-wrapper">
+<pre><code class="language-plaintext">dm9051_driver/
+├── CMakeLists.txt / Makefile / README.md
+├── adapters/
+│   ├── lwip/   (dm9051_lwip.c/.h, lwipopts.h)
+│   └── uip/    (dm9051_uip_stack.c/.h, dm9051_uip.c/.h)  ← 本文件主體
+├── core/
+│   ├── inc/    (dm9051_core.h, dm9051_regs.h, dm9051_types.h)
+│   └── src/    (dm9051_core.c, dm9051_debug.c)
+├── docs/       (PORTING_GUIDE.md, plan/*.md)
+├── examples/
+│   ├── lwip_mh2030a_demo/
+│   └── uip_mh2030a_demo/  (main_uip_mh2030a_demo.c, smoke files)
+├── hal/inc/    (dm9051_hal.h)
+└── ports/mh2030a/  (SPI poll/DMA, EXTI, board init, clock)</code></pre>
+</div>
+
+<h3 id="sec2-2">2.2 目錄與分層對應</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>目錄</th><th>對應架構層</th><th>角色</th></tr></thead>
+<tbody>
+<tr><td><code>adapters/uip/</code></td><td><strong>本文件分析主體</strong></td><td>uIP ↔ DM9051 adapter glue</td></tr>
+<tr><td><code>adapters/lwip/</code></td><td>Adapter 層 (lwIP)</td><td>lwIP ↔ DM9051 adapter glue</td></tr>
+<tr><td><code>core/</code></td><td>DM9051 Core Driver</td><td>裝置初始化、RX/TX、PHY、IRQ</td></tr>
+<tr><td><code>hal/</code></td><td>HAL Abstraction</td><td>SPI register/mem 操作抽象介面</td></tr>
+<tr><td><code>ports/mh2030a/</code></td><td>Platform Port</td><td>MH2030A (AT32F403A) SPI/GPIO/IRQ 實作</td></tr>
+<tr><td><code>examples/</code></td><td>Application 範例</td><td>main() + demo 流程</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="sec2-3">2.3 <code>adapters/uip/</code> 檔案列表</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>檔案</th><th>功能</th></tr></thead>
+<tbody>
+<tr><td><code>dm9051_uip.h</code></td><td>Adapter public API header（不依賴平台標頭）</td></tr>
+<tr><td><code>dm9051_uip.c</code></td><td>Adapter 實作（包裝 <code>dm9051_core_*()</code> API）</td></tr>
+<tr><td><code>dm9051_uip_stack.h</code></td><td>Stack loop header（init + poll）</td></tr>
+<tr><td><code>dm9051_uip_stack.c</code></td><td>uIP stack 整合 loop（RX drain, periodic, ARP）</td></tr>
+</tbody>
+</table>
+</div>
+<div class="info-box"><strong>當前狀態:</strong> <code>staging</code>（<code>dm9051_uip_target_mode()</code> 回傳 <code>"staging"</code>）。</div>
+</section>
+
+<!-- ===== SECTION 3: FILE USAGE ===== -->
+<section class="section" id="sec3">
+<h2>3. 檔案用途分析</h2>
+
+<h3>3.1 <code>dm9051_uip.h</code> — Adapter Public API</h3>
+<div class="hljs-wrapper">
+<pre><code class="language-c">// Init
+int dm9051_uip_init(const dm9051_netif_device_t *dev);
+int dm9051_uip_attach(dm9051_device_t *dev);
+// RX
+uint16_t dm9051_uip_input(uint8_t *buf, uint16_t buf_len);
+int dm9051_uip_last_rx_status(void);
+// TX
+int dm9051_uip_output(const uint8_t *buf, uint16_t len);
+// Interrupt / Polling
+int dm9051_uip_interrupt_mode(void);
+int dm9051_uip_interrupt_take(void);
+void dm9051_uip_interrupt_reset(void);
+void dm9051_uip_poll(void);
+// Diagnostic
+const char *dm9051_uip_target_mode(void);</code></pre>
+</div>
+
+<h3>3.2 <code>dm9051_uip.c</code> — Internal State</h3>
+<div class="hljs-wrapper">
+<pre><code class="language-c">static dm9051_device_t *dm9051_uip_attached_dev;       // 綁定的 DM9051 device
+static int dm9051_uip_last_rx_status_value;              // 最後一次 RX 狀態</code></pre>
+</div>
+
+<h3>3.3 <code>dm9051_uip_stack.c</code> — uIP Stack Integration</h3>
+<div class="hljs-wrapper">
+<pre><code class="language-c">// Internal state (conditional on DM9051_UIP_ENABLE_PERIODIC)
+static struct timer dm9051_uip_periodic_timer;           // 500ms TCP/UDP 計時器
+static struct timer dm9051_uip_arp_timer;                 // 10s ARP 計時器
+static uint8_t dm9051_uip_tcp_periodic_index;
+static uint8_t dm9051_uip_udp_periodic_index;
+static uint8_t dm9051_uip_tcp_periodic_pending;
+static uint8_t dm9051_uip_udp_periodic_pending;
+
+// Internal (static) functions
+static void dm9051_uip_stack_send_if_needed(void);
+static int  dm9051_uip_stack_drain_rx(void);
+static uint8_t dm9051_uip_stack_rx_pending_from_burst(int);
+static void dm9051_uip_stack_print_rx_burst(...);</code></pre>
+</div>
+</section>
+
+<!-- ===== SECTION 4: uIP API ===== -->
+<section class="section" id="sec4">
+<h2>4. uIP API 對應</h2>
+
+<h3>Init 呼叫鏈 (<code>dm9051_uip_stack_init()</code>)</h3>
+<div class="hljs-wrapper">
+<pre><code class="language-c">dm9051_uip_stack_init(&dev)
+  ├── dm9051_uip_init(dev)         // 驗證 netif_device
+  ├── uip_init()                    // uIP stack init
+  ├── uip_arp_init()                // ARP table init
+  ├── uip_setethaddr(mac)
+  ├── uip_sethostaddr(ip)
+  ├── uip_setdraddr(gw)
+  ├── uip_setnetmask(mask)
+  └── timer_set() x2                // periodic (500ms) + ARP (10s)</code></pre>
+</div>
+
+<h3>RX / TX / Periodic 呼叫鏈</h3>
+
+<h4>RX 路徑</h4>
+<div class="hljs-wrapper">
+<pre><code class="language-c">uip_len = dm9051_uip_input(uip_buf, UIP_BUFSIZE)
+  if ethertype == IP:
+    uip_arp_ipin() → uip_input() → send_if_needed()
+  if ethertype == ARP:
+    uip_arp_arpin() → dm9051_uip_output(uip_buf, uip_len)</code></pre>
+</div>
+
+<h4>TX 路徑</h4>
+<div class="hljs-wrapper">
+<pre><code class="language-c">dm9051_uip_stack_send_if_needed()
+  ├── uip_arp_out()               // ARP resolution + Ethernet header
+  └── dm9051_uip_output(uip_buf, uip_len)</code></pre>
+</div>
+
+<h4>Periodic</h4>
+<div class="hljs-wrapper">
+<pre><code class="language-c">dm9051_uip_stack_poll()
+  ├── dm9051_uip_stack_drain_rx()  // up to 8 frames
+  ├── uip_periodic(i)              // TCP (per connection)
+  ├── uip_udp_periodic(i)          // UDP (per connection)
+  └── uip_arp_timer()              // every 10s</code></pre>
+</div>
+
+<h3>API Mapping Table</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>uIP 角色</th><th>Adapter API</th><th>Core Driver API</th></tr></thead>
+<tbody>
+<tr><td>Init</td><td><code>dm9051_uip_stack_init()</code></td><td><code>dm9051_core_open()</code></td></tr>
+<tr><td>RX frame</td><td><code>dm9051_uip_input()</code></td><td><code>dm9051_core_receive_ex()</code></td></tr>
+<tr><td>TX frame</td><td><code>dm9051_uip_output()</code></td><td><code>dm9051_core_send()</code></td></tr>
+<tr><td>IRQ check</td><td><code>dm9051_uip_interrupt_take()</code></td><td><code>dm9051_core_interrupt_take()</code></td></tr>
+<tr><td>IRQ reset</td><td><code>dm9051_uip_interrupt_reset()</code></td><td><code>dm9051_core_interrupt_reset()</code></td></tr>
+<tr><td>Poll</td><td><code>dm9051_uip_stack_poll()</code></td><td>—</td></tr>
+<tr><td>Poll TX done</td><td><code>dm9051_uip_poll()</code></td><td><code>dm9051_core_tx_poll_done()</code></td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ===== SECTION 5: DM9051 DRIVER API ===== -->
+<section class="section" id="sec5">
+<h2>5. DM9051 Driver API 對應</h2>
+
+<div class="hljs-wrapper">
+<pre><code class="language-c">// Lifecycle
+dm9051_core_default_config(config) / config_is_valid(config)
+dm9051_netif_device_is_valid(dev)
+dm9051_core_open(dev, config, hal) / dm9051_core_close(dev)
+// RX
+dm9051_core_receive(dev, buf, buf_len)
+dm9051_core_receive_ex(dev, buf, buf_len, len)
+// TX
+dm9051_core_send(dev, buf, len) / dm9051_core_tx_poll_done(dev)
+// PHY
+dm9051_core_phy_read(dev, reg) / phy_write(dev, reg, val)
+dm9051_core_link_is_up(dev)
+// Interrupt
+dm9051_core_interrupt_set(dev, irq_line) / take(dev) / reset(dev)
+// Info
+dm9051_core_mac(dev) / device_found(dev) / vendor_id(dev)
+dm9051_core_product_id(dev) / chip_revision(dev)</code></pre>
+</div>
+
+<h3>Adapter 對應關係</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Adapter API</th><th>Core Driver API</th><th>備註</th></tr></thead>
+<tbody>
+<tr><td><code>dm9051_uip_init(dev)</code></td><td><code>dm9051_netif_device_is_valid()</code></td><td>只驗證參數</td></tr>
+<tr><td><code>dm9051_uip_attach(dev)</code></td><td>直接存 <code>attached_dev</code></td><td>保存 device pointer</td></tr>
+<tr><td><code>dm9051_uip_input(buf,len)</code></td><td><code>dm9051_core_receive_ex()</code></td><td>讀取 RX frame</td></tr>
+<tr><td><code>dm9051_uip_output(buf,len)</code></td><td><code>dm9051_core_send()</code></td><td>寫入 TX FIFO</td></tr>
+<tr><td><code>dm9051_uip_interrupt_take()</code></td><td><code>dm9051_core_interrupt_take()</code></td><td>取得 event flag</td></tr>
+<tr><td><code>dm9051_uip_interrupt_reset()</code></td><td><code>dm9051_core_interrupt_reset()</code></td><td>清除 ISR + re-enable</td></tr>
+<tr><td><code>dm9051_uip_poll()</code></td><td><code>dm9051_core_tx_poll_done()</code></td><td>非同步 TX 輪詢</td></tr>
+<tr><td><code>dm9051_uip_interrupt_mode()</code></td><td>讀 <code>dev->runtime.config.interrupt_mode</code></td><td>poll/interrupt mode</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ===== SECTION 6: RX/TX DATA FLOW ===== -->
+<section class="section" id="sec6">
+<h2>6. RX/TX 資料流</h2>
+
+<h3 id="sec6-1">6.1 RX 完整路徑</h3>
+
+<div class="svg-container" style="max-width:700px">
+<svg viewBox="0 0 700 840" style="width:100%">
+<defs>
+<marker id="ab" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5Z" fill="#475569"/></marker>
+<marker id="abl" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5Z" fill="#2563eb"/></marker>
+<marker id="ag" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5Z" fill="#059669"/></marker>
+</defs>
+<rect x="240" y="4" width="160" height="28" class="flow-start" fill="#059669" stroke="#047857"/>
+<text x="320" y="22" text-anchor="middle" fill="#fff" class="svg-text-label" font-weight="600">stack_poll()</text>
+<line x1="320" y1="32" x2="320" y2="46" class="arrow-line" marker-end="url(#ab)"/>
+
+<polygon points="320,50 420,82 320,114 220,82" class="flow-diamond" fill="#f59e0b" stroke="#d97706"/>
+<text x="320" y="79" text-anchor="middle" fill="#fff" class="svg-text-small" font-weight="600">IRQ Mode?</text>
+<line x1="320" y1="114" x2="320" y2="128" class="arrow-line" marker-end="url(#ab)"/>
+
+<rect x="230" y="132" width="180" height="28" class="flow-rect" fill="#3b82f6" stroke="#2563eb"/>
+<text x="320" y="150" text-anchor="middle" fill="#fff" class="svg-text-small" font-weight="600">interrupt_take()</text>
+<line x1="320" y1="160" x2="320" y2="174" class="arrow-line" marker-end="url(#ab)"/>
+
+<rect x="210" y="178" width="220" height="28" class="flow-rect" fill="#8b5cf6" stroke="#7c3aed"/>
+<text x="320" y="196" text-anchor="middle" fill="#fff" class="svg-text-small" font-weight="600">RX Drain (max 8 frames)</text>
+<line x1="320" y1="206" x2="320" y2="220" class="arrow-line" marker-end="url(#abl)"/>
+
+<rect x="220" y="224" width="200" height="28" class="flow-rect" fill="#3b82f6" stroke="#2563eb"/>
+<text x="320" y="242" text-anchor="middle" fill="#fff" class="svg-text-small" font-weight="600">dm9051_uip_input()</text>
+<line x1="320" y1="252" x2="320" y2="266" class="arrow-line" marker-end="url(#abl)"/>
+
+<rect x="210" y="270" width="220" height="44" class="flow-rect" fill="#10b981" stroke="#059669"/>
+<text x="320" y="289" text-anchor="middle" fill="#fff" class="svg-text-small" font-weight="600">dm9051_core_receive_ex()</text>
+<text x="320" y="304" text-anchor="middle" fill="#d1fae5" class="svg-text-small">SPI: MRCMDX → header → read_mem → ISR clear</text>
+<line x1="320" y1="314" x2="320" y2="330" class="arrow-line" marker-end="url(#ab)"/>
+
+<polygon points="320,334 420,366 320,398 220,366" class="flow-diamond" fill="#f59e0b" stroke="#d97706"/>
+<text x="320" y="363" text-anchor="middle" fill="#fff" class="svg-text-small" font-weight="600">Ethertype?</text>
+
+<text x="370" y="350" fill="#2563eb" class="svg-text-small" font-weight="600">IP</text>
+<line x1="420" y1="366" x2="500" y2="366" class="arrow-line" marker-end="url(#abl)"/>
+<rect x="504" y="350" width="160" height="32" class="flow-rect" fill="#3b82f6" stroke="#2563eb"/>
+<text x="584" y="369" text-anchor="middle" fill="#fff" class="svg-text-small" font-weight="600">uip_arp_ipin() → uip_input()</text>
+<line x1="584" y1="382" x2="584" y2="416" class="arrow-line"/>
+<rect x="504" y="420" width="160" height="32" class="flow-rect" fill="#059669" stroke="#047857"/>
+<text x="584" y="439" text-anchor="middle" fill="#fff" class="svg-text-small" font-weight="600">send_if_needed() → TX</text>
+
+<text x="270" y="350" fill="#d97706" class="svg-text-small" font-weight="600">ARP</text>
+<line x1="220" y1="366" x2="140" y2="366" class="arrow-line" marker-end="url(#ab)"/>
+<rect x="10" y="350" width="126" height="32" class="flow-rect" fill="#f59e0b" stroke="#d97706"/>
+<text x="73" y="369" text-anchor="middle" fill="#fff" class="svg-text-small" font-weight="600">uip_arp_arpin()</text>
+<line x1="73" y1="382" x2="73" y2="416" class="arrow-line"/>
+<rect x="10" y="420" width="126" height="32" class="flow-rect" fill="#059669" stroke="#047857"/>
+<text x="73" y="439" text-anchor="middle" fill="#fff" class="svg-text-small" font-weight="600">ARP reply TX</text>
+
+<line x1="73" y1="452" x2="73" y2="476" class="arrow-line"/>
+<line x1="584" y1="452" x2="584" y2="476" class="arrow-line"/>
+<line x1="73" y1="476" x2="584" y2="476" class="arrow-line"/>
+<line x1="320" y1="476" x2="320" y2="492" class="arrow-line" marker-end="url(#ab)"/>
+
+<rect x="220" y="496" width="200" height="28" class="flow-rect" fill="#8b5cf6" stroke="#7c3aed"/>
+<text x="320" y="514" text-anchor="middle" fill="#fff" class="svg-text-small" font-weight="600">Burst &lt; 8?</text>
+<line x1="320" y1="524" x2="320" y2="538" class="arrow-line" marker-end="url(#ab)"/>
+
+<polygon points="320,542 420,574 320,606 220,574" class="flow-diamond" fill="#f59e0b" stroke="#d97706"/>
+<text x="320" y="571" text-anchor="middle" fill="#fff" class="svg-text-small" font-weight="600">More frames?</text>
+
+<line x1="420" y1="574" x2="480" y2="574" class="arrow-line"/>
+<text x="460" y="564" fill="#059669" class="svg-text-small" font-weight="600">Yes</text>
+<line x1="484" y1="574" x2="484" y2="232" class="arrow-line" stroke-dasharray="4,3"/>
+<polygon points="480,228 488,228 484,220" fill="#475569"/>
+
+<line x1="220" y1="574" x2="160" y2="574" class="arrow-line"/>
+<text x="150" y="564" fill="#dc2626" class="svg-text-small" font-weight="600">No</text>
+<line x1="160" y1="574" x2="160" y2="638" class="arrow-line"/>
+<polygon points="156,634 164,634 160,642" fill="#475569"/>
+
+<rect x="100" y="642" width="180" height="28" class="flow-rect" fill="#8b5cf6" stroke="#7c3aed"/>
+<text x="190" y="660" text-anchor="middle" fill="#fff" class="svg-text-small" font-weight="600">interrupt_reset()</text>
+<line x1="190" y1="670" x2="190" y2="686" class="arrow-line"/>
+
+<rect x="240" y="680" width="200" height="28" class="flow-rect" fill="#8b5cf6" stroke="#7c3aed"/>
+<text x="340" y="698" text-anchor="middle" fill="#fff" class="svg-text-small" font-weight="600">Periodic + ARP timers</text>
+<line x1="340" y1="708" x2="340" y2="722" class="arrow-line" marker-end="url(#ab)"/>
+
+<rect x="280" y="726" width="120" height="26" class="flow-start" fill="#059669" stroke="#047857"/>
+<text x="340" y="743" text-anchor="middle" fill="#fff" class="svg-text-small" font-weight="600">Done</text>
+</svg>
+</div>
+
+<h3 id="sec6-2">6.2 TX 完整路徑</h3>
+<div class="hljs-wrapper">
+<pre><code class="language-c">uIP 應用層呼叫 → uip_send(data, len) → dm9051_uip_stack_send_if_needed()
+  ├── uip_arp_out()        // ARP cache resolve + Ethernet header prepend
+  └── dm9051_uip_output(uip_buf, uip_len)
+      └── dm9051_core_send(dev, uip_buf, uip_len)
+          ├── bus_acquire() → enter_critical(); check bus_busy
+          ├── tx_set_len(): write_reg(TXPLL/L)
+          ├── write_mem(): SPI write N bytes via MWCMD (0x78)
+          ├── write_reg(TCR, TXREQ)  → 觸發 DM9051 TX DMA
+          ├── [TX_WAIT_DONE] tx_wait_done(): busy-poll TCR bit 0 (100ms timeout)
+          └── bus_release()</code></pre>
+</div>
+
+<h3 id="sec6-3">6.3 封包複製分析</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>步驟</th><th>方向</th><th>複製</th><th>緩衝區</th></tr></thead>
+<tbody>
+<tr><td>DM9051 RX FIFO → uip_buf</td><td>RX</td><td>1</td><td><code>uip_buf[]</code> (uIP global)</td></tr>
+<tr><td>uip_buf → uIP stack 處理</td><td>RX</td><td>0</td><td>在原 buffer 操作</td></tr>
+<tr><td>uIP stack → uip_buf (TX response)</td><td>TX</td><td>0</td><td>原地組裝</td></tr>
+<tr><td>uip_buf → DM9051 TX FIFO</td><td>TX</td><td>1</td><td>SPI write_mem()</td></tr>
+</tbody>
+</table>
+</div>
+<div class="info-box"><strong>總計:</strong> RX 1 次 + TX 1 次 SPI DMA copy。<strong>Zero-copy</strong> 不可行（uIP 用 global buffer，SPI 需透過 HAL transaction），但已是最小複製次數。</div>
+</section>
+<!-- ===== SECTION 7: INIT FLOW ===== -->
+<section class="section" id="sec7">
+<h2>7. 初始化流程</h2>
+
+<h3>7.1 完整初始化 Sequence</h3>
+<div class="hljs-wrapper">
+<pre><code class="language-c">main()                                          [main_uip_mh2030a_demo.c:141]
+  │
+  ├── mh2030a_uip_board_init(115200)            ← GPIO, SPI, UART
+  ├── mh2030a_uip_tick_init()                   ← SysTick (10ms tick)
+  │
+  ├── dm9051_uip_mh2030a_smoke_open(mac)        ← 包裝 dm9051_core_open()
+  │   └── dm9051_core_open(dev, &config, &hal)
+  │         ├── hal->ops->reset()               ← HW reset (GPIO)
+  │         ├── dm9051_core_probe()             ← VID=0x0A46, PID=0x9051, CHIPR=0x19
+  │         ├── dm9051_core_init_device()       ← GPR wakeup + NCR reset + soft defaults
+  │         ├── dm9051_core_set_par()           ← 寫入 MAC addr
+  │         └── dm9051_core_start_receive()     ← MAR, FCR, IMR, RCR (RXEN)
+  │
+  ├── dm9051_uip_attach(mutable_dev)            ← 綁定 device
+  ├── dm9051_demo_netif_config(&netif)          ← MAC/IP/GW/Netmask 設定
+  │     mac=00:60:6E:90:51:01  ip=192.168.249.37  gw=192.168.249.1  mask=255.255.255.0
+  │
+  ├── dm9051_uip_stack_init(&netif)             ← uIP init + ARP + IP config
+  │     ├── uip_init() / uip_arp_init()
+  │     ├── uip_setethaddr / uip_sethostaddr / uip_setdraddr / uip_setnetmask
+  │     └── timer_set(periodic, 500ms) + timer_set(arp, 10s)
+  │
+  ├── [if WEB_EN] httpd_init()                  ← HTTP 伺服器
+  │
+  └── while(1)
+        ├── dm9051_demo_handle_link_detection() ← 500ms link 監測
+        └── dm9051_uip_stack_poll()             ← uIP stack 處理</code></pre>
+</div>
+</section>
+
+<!-- ===== SECTION 8: ISR & MAIN LOOP ===== -->
+<section class="section" id="sec8">
+<h2>8. ISR 與 Main Loop</h2>
+
+<h3>8.1 Interrupt 模式</h3>
+<div class="hljs-wrapper">
+<pre><code class="language-c">[DM9051 INT Pin] → [EXTI ISR]
+  ├── 清除 EXTI pending bit
+  ├── hal->ops->irq_disable()                ← 關閉 EXTI
+  └── dm9051_core_interrupt_set(dev, irq_line) → interrupt_event = 1
+
+[Super Loop] → dm9051_uip_stack_poll()
+  ├── dm9051_uip_interrupt_take() → check interrupt_event flag
+  ├── [take==1] dm9051_uip_stack_drain_rx()  ← RX burst × N
+  └── [drain done] dm9051_uip_interrupt_reset()
+        ├── read ISR → writeback → write IMR
+        └── hal->ops->irq_enable()</code></pre>
+</div>
+
+<h3>8.2 Polling 模式</h3>
+<div class="hljs-wrapper">
+<pre><code class="language-c">dm9051_uip_stack_poll()
+  ├── dm9051_uip_interrupt_mode() → POLL
+  ├── [always] dm9051_uip_stack_drain_rx()
+  ├── [periodic timers...]
+  └── [no IRQ operations]</code></pre>
+</div>
+
+<h3>8.3 Main Loop 結構</h3>
+<div class="hljs-wrapper">
+<pre><code class="language-c">int main(void)
+{
+    // Phase 1: Platform Init
+    mh2030a_uip_board_init(115200);
+    mh2030a_uip_tick_init();
+    // Phase 2: DM9051 HW Init
+    dm9051_uip_mh2030a_smoke_open(mac);
+    // Phase 3: Adapter Binding
+    dm9051_uip_attach(dev);
+    // Phase 4: uIP Stack Init
+    dm9051_uip_stack_init(&netif);
+    // Phase 5: App Services
+    httpd_init();
+    // Phase 6: Main Loop
+    while (1) {
+        dm9051_demo_handle_link_detection();
+        dm9051_uip_stack_poll();
+    }
+}</code></pre>
+</div>
+
+<h3>8.4 Link Detection 機制</h3>
+<div class="hljs-wrapper">
+<pre><code class="language-c">// main_uip_mh2030a_demo.c:71
+static int dm9051_demo_handle_link_detection(dev, netif, localtime)
+{
+    poll_due = (localtime - link_timer) >= DM9051_LINK_DETECTION_INTERVAL
+            || localtime overflow || fallback_poll_count >= DM9051_LINK_POLL_LOOP_FALLBACK;
+    if (poll_due) {
+        on_linkup = dm9051_core_link_is_up(dev);   // read NSR bit 6
+        if (on_linkup != last_link_state)
+            printf("Link state changed: %s → %s\r\n", ...);
+        last_link_state = on_linkup;
+    }
+    return (last_link_state == 1);
+}</code></pre>
+</div>
+<div class="info-box"><strong>關鍵:</strong> Link detection 發生在 <code>dm9051_uip_stack_poll()</code> 之前，確保 poll 時 link 是 up 的。</div>
+<p>調用鏈:</p>
+<div class="tree">dm9051_demo_handle_link_detection()
+  └── dm9051_demo_read_link_up()
+        └── dm9051_core_link_is_up(dev)
+              └── read_reg(NSR) & NSR_LINKST (bit 6)</div>
+
+<h3>8.5 ISR 同步分析</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>風險</th><th>現狀</th><th>評估</th></tr></thead>
+<tbody>
+<tr><td>ISR 修改 interrupt_event</td><td>需 volatile，Cortex-M0 8-bit write 通常 atomic</td><td><span style="color:#059669">低風險</span> (critical section)</td></tr>
+<tr><td>Main loop 讀 interrupt_event</td><td>enter_critical() 保護</td><td><span style="color:#059669">安全</span></td></tr>
+<tr><td>bus_busy flag</td><td>enter/exit_critical 保護</td><td><span style="color:#059669">安全</span></td></tr>
+<tr><td>SPI 非同步中斷</td><td>DM9051 不產生 SPI IRQ</td><td><span style="color:#059669">安全</span></td></tr>
+<tr><td>ISR 內 SPI 操作</td><td>無 — ISR 只設 flag</td><td><span style="color:#059669">安全</span></td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ===== SECTION 9: BUFFER MANAGEMENT ===== -->
+<section class="section" id="sec9">
+<h2>9. Buffer 管理機制</h2>
+
+<h3>9.1 uIP Buffer Model</h3>
+<div class="hljs-wrapper">
+<pre><code class="language-c">// uIP 使用 global buffer
+uint8_t uip_buf[UIP_BUFSIZE];     // UIP_BUFSIZE = 1200
+uint16_t uip_len;                  // 當前 packet 長度
+uint8_t *uip_appdata;              // 指向 payload (L4+)
+
+// uip_buf layout:
+// [0..13]  Ethernet header (14 bytes)
+// [14..33] IP + TCP/UDP/ICMP header (20 bytes)
+// [34..]   Payload</code></pre>
+</div>
+
+<h3>9.2 DM9051 RX Buffer</h3>
+<div class="hljs-wrapper">
+<pre><code class="language-c">// RX header format (4 bytes): [reserved, RSR, LEN_L, LEN_H]
+// RSR bits: RF(7), LCS(5), RWTO(4), AE(2), CE(1), FOE(0)
+// Total RX buffer = 4-byte header + 1~1514 bytes payload</code></pre>
+</div>
+
+<h3>9.3 Buffer Ownership</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Buffer</th><th>Owner</th><th>生命週期</th></tr></thead>
+<tbody>
+<tr><td><code>uip_buf[]</code></td><td>uIP stack</td><td>Per main loop iteration</td></tr>
+<tr><td>uIP connection data</td><td>uIP stack</td><td>Connection lifetime</td></tr>
+<tr><td>RX header [4]</td><td>Core driver</td><td>Per RX call</td></tr>
+<tr><td>DM9051 RX FIFO</td><td>HW</td><td>直到 ISR clear</td></tr>
+<tr><td>DM9051 TX FIFO</td><td>HW</td><td>直到 TX done</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ===== SECTION 10: SPI ACCESS ===== -->
+<section class="section" id="sec10">
+<h2>10. SPI 存取流程</h2>
+
+<h3>10.1 HAL Ops Vtable</h3>
+<div class="hljs-wrapper">
+<pre><code class="language-c">typedef struct dm9051_hal_ops {
+    int (*read_reg)(void *ctx, uint8_t reg, uint8_t *val);
+    int (*write_reg)(void *ctx, uint8_t reg, uint8_t val);
+    int (*read_mem)(void *ctx, uint8_t *buf, uint16_t len);
+    int (*write_mem)(void *ctx, const uint8_t *buf, uint16_t len);
+    void (*reset)(void *ctx);
+    void (*delay_ms)(uint32_t ms);
+    void (*delay_us)(uint32_t us);
+    void (*irq_enable)(void *ctx);
+    void (*irq_disable)(void *ctx);
+    uint32_t (*enter_critical)(void *ctx);
+    void (*exit_critical)(void *ctx, uint32_t state);
+} dm9051_hal_ops_t;</code></pre>
+</div>
+
+<h3>10.2 SPI Transaction 類型</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Operation</th><th>SPI Opcode</th><th>時序</th></tr></thead>
+<tbody>
+<tr><td><strong>Read Reg</strong></td><td><code>reg_addr</code> (0x00–0x7F)</td><td>2 bytes</td></tr>
+<tr><td><strong>Write Reg</strong></td><td><code>0x80 | reg_addr</code></td><td>2 bytes</td></tr>
+<tr><td><strong>Read Mem</strong></td><td><code>0x72 | 0x00</code> (MRCMD)</td><td>N+1 bytes</td></tr>
+<tr><td><strong>Write Mem</strong></td><td><code>0x78 | 0x00</code> (MWCMD)</td><td>N+1 bytes</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>10.3 SPI 效能分析</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>操作</th><th>SPI clocks</th><th>@18MHz</th><th>@36MHz</th></tr></thead>
+<tbody>
+<tr><td>Read Reg (2B)</td><td>16</td><td>~0.89μs</td><td>~0.44μs</td></tr>
+<tr><td>Write Reg (2B)</td><td>16</td><td>~0.89μs</td><td>~0.44μs</td></tr>
+<tr><td>Read Mem header (4+1B)</td><td>40</td><td>~2.22μs</td><td>~1.11μs</td></tr>
+<tr><td>Read Mem frame (1518B)</td><td>12144</td><td>~675μs</td><td>~337μs</td></tr>
+<tr><td>Write Mem frame (1518B)</td><td>12144</td><td>~675μs</td><td>~337μs</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ===== SECTION 11: STATE MACHINE ===== -->
+<section class="section" id="sec11">
+<h2>11. State Machine 分析</h2>
+
+<h3>11.1 RX State Machine (<code>dm9051_core_receive_ex</code>)</h3>
+<div class="tree">            [Entry]
+               │
+               ▼
+       ┌───────────────┐    ERR_BUSY
+       │ bus_acquire() │───────────────> return ERR_NOT_READY
+       └───────┬───────┘
+               │ OK
+               ▼
+       ┌───────────────┐    ERR / timeout
+       │  rx_ready()   │───────────────> bus_release() → return
+       │ (read MRCMDX) │
+       └───────┬───────┘
+               │ OK (pkt ready)
+               ▼
+       ┌───────────────┐    ERR (header error)
+       │  rx_header()  │───────────────> discard / reset_after_error
+       │ (read MRCMD)  │                bus_release() → return
+       └───────┬───────┘
+               │ OK
+               ▼
+       ┌───────────────┐    ERR_PARAM
+       │  read_mem()   │───────────────> discard(rx_len) → return
+       │ (read MRCMD)  │
+       └───────┬───────┘
+               │ OK
+               ▼
+       ┌───────────────────┐
+       │ write_reg(ISR,    │
+       │   ISR_CLEAR_RX)   │
+       └───────┬───────────┘
+               │
+               ▼
+       ┌───────────────┐
+       │ bus_release() │
+       └───────┬───────┘
+               ▼
+           return OK</div>
+
+<h3>11.2 TX State Machine (<code>dm9051_core_send</code>)</h3>
+<div class="tree">            [Entry]
+               │
+               ▼
+       ┌───────────────┐    ERR_BUSY
+       │ bus_acquire() │───────────────> return ERR_NOT_READY
+       └───────┬───────┘
+               │ OK
+               ▼
+       ┌──────────────────┐    ERR
+       │ tx_set_len()     │───────────────> bus_release() → return
+       │ (TXPLL, TXPLH)   │
+       └───────┬──────────┘
+               │ OK
+               ▼
+       ┌──────────────────┐    ERR
+       │ write_mem(buf)   │───────────────> bus_release() → return
+       │ (MWCMD)          │
+       └───────┬──────────┘
+               │ OK
+               ▼
+       ┌──────────────────┐    ERR
+       │ write_reg(TCR,   │───────────────> bus_release() → return
+       │   TCR_TXREQ)     │
+       └───────┬──────────┘
+               │ OK
+               ▼
+       ┌──────────────────┐
+       │ [TX_WAIT_DONE]   │
+       │ tx_wait_done()   │── timeout → ERR_TIMEOUT
+       │ (poll TCR bit 0) │
+       └───────┬──────────┘
+               │ OK
+               ▼
+       ┌───────────────┐
+       │ bus_release() │
+       └───────┬───────┘
+               ▼
+           return OK</div>
+</section>
+
+<!-- ===== SECTION 12: TIMEOUT ===== -->
+<section class="section" id="sec12">
+<h2>12. Timeout 機制</h2>
+
+<div class="table-wrap">
+<table>
+<thead><tr><th>位置</th><th>機制</th><th>Timeout</th><th>行為</th></tr></thead>
+<tbody>
+<tr><td><code>dm9051_core_tx_wait_done()</code></td><td>Busy-poll TCR bit 0</td><td>100ms</td><td><code>DM9051_ERR_TIMEOUT</code></td></tr>
+<tr><td><code>dm9051_core_phy_write_raw()</code></td><td>Busy-poll EPCR bit 0</td><td>~500μs</td><td><code>DM9051_ERR_TIMEOUT</code></td></tr>
+<tr><td><code>dm9051_core_phy_read_raw()</code></td><td>Busy-poll EPCR bit 0</td><td>~500μs</td><td><code>DM9051_ERR_TIMEOUT</code></td></tr>
+<tr><td><code>DM9051_UIP_RX_BURST_MAX</code></td><td>Burst limit</td><td>8 frames</td><td><code>rx_drain_pending</code></td></tr>
+<tr><td><code>DM9051_RXB_RESET_THRESHOLD</code></td><td>Error accumulation</td><td>10 errors</td><td>HW reset</td></tr>
+<tr><td>uIP ARP timer</td><td>Timer-based</td><td>10s</td><td><code>uip_arp_timer()</code></td></tr>
+<tr><td>uIP periodic timer</td><td>Timer-based</td><td>500ms</td><td><code>uip_periodic()</code></td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>12.1 TX Wait 詳細分析</h3>
+<div class="hljs-wrapper">
+<pre><code class="language-c">// dm9051_core.c:930-956
+static int dm9051_core_tx_wait_done(const dm9051_hal_t *hal)
+{
+    uint32_t timeout = DM9051_TX_WAIT_TIMEOUT_US;  // 100000
+    uint8_t tcr;
+    int status;
+    do {
+        status = read_reg(hal, DM9051_TCR, &tcr);
+        if (status != DM9051_OK) return status;
+        if ((tcr & DM9051_TCR_TXREQ) == 0) return DM9051_OK;
+        --timeout;
+    } while (timeout != 0);
+    return DM9051_ERR_TIMEOUT;
+}</code></pre>
+</div>
+<div class="alert-custom alert-risk-high p-3">
+<strong>⚠ 風險:</strong> 當 <code>TX_WAIT_POLL_DELAY_US = 0</code> 時為 tight busy-wait loop (100k iterations)，完全佔用 CPU。在 120MHz Cortex-M0 上約 <strong>12.5ms</strong> 完全佔用。
+</div>
+</section>
+
+
+<!-- ===== SECTION 13: CALL GRAPH ===== -->
+<section class="section" id="sec13">
+<h2>13. 函式呼叫圖</h2>
+
+<h3>13.1 Init Call Graph</h3>
+<div class="tree">main()
+  ├── mh2030a_uip_board_init() / mh2030a_uip_tick_init()
+  ├── dm9051_uip_mh2030a_smoke_open(mac)
+  │   └── dm9051_core_open(dev, &config, &hal)
+  │         ├── hal->ops->reset()
+  │         ├── dm9051_core_probe()           ← VID/PID/CHIPR
+  │         ├── dm9051_core_init_device()     ← Reset + register init
+  │         ├── dm9051_core_set_par()         ← MAC
+  │         └── dm9051_core_start_receive()   ← RX enable
+  ├── dm9051_uip_attach(dev)
+  └── dm9051_uip_stack_init(&netif)
+        ├── dm9051_uip_init(dev)
+        ├── uip_init() / uip_arp_init()
+        ├── uip_setethaddr / sethostaddr / setdraddr / setnetmask
+        └── timer_set(periodic, 500ms) + timer_set(arp, 10s)</div>
+
+<h3>13.2 Main Loop Call Graph</h3>
+<div class="tree">main() while(1)
+  ├── dm9051_demo_handle_link_detection()
+  │     └── dm9051_core_link_is_up(dev)
+  │           └── read_reg(NSR) & NSR_LINKST
+  └── dm9051_uip_stack_poll()
+        ├── dm9051_uip_interrupt_take()
+        │   └── dm9051_core_interrupt_take()
+        ├── [RX DRAIN] while (burst &lt; 8)
+        │     ├── dm9051_uip_input() → dm9051_core_receive_ex()
+        │     │     ├── bus_acquire / rx_ready / rx_header / read_mem
+        │     │     └── write_reg(ISR, 0x80) / bus_release
+        │     ├── [IP] uip_arp_ipin() → uip_input()
+        │     │       └── send_if_needed() → uip_arp_out() → dm9051_uip_output()
+        │     └── [ARP] uip_arp_arpin() → dm9051_uip_output()
+        ├── [IRQ RESET] dm9051_uip_interrupt_reset()
+        ├── [TCP PERIODIC] for i: uip_periodic(i) → send_if_needed()
+        ├── [UDP PERIODIC] for i: uip_udp_periodic(i) → send_if_needed()
+        └── [ARP TIMER] uip_arp_timer()</div>
+</section>
+
+<!-- ===== SECTION 14: LAYER DIAGRAM ===== -->
+<section class="section" id="sec14">
+<h2>14. Layer 關係圖</h2>
+
+<div class="svg-container" style="max-width:750px">
+<svg viewBox="0 0 750 520" style="width:100%">
+<defs>
+<marker id="arrL" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5Z" fill="#64748b"/></marker>
+</defs>
+
+<rect x="30" y="4" width="180" height="40" class="layer-rect" fill="#3b82f6" stroke="#2563eb"/>
+<text x="120" y="21" text-anchor="middle" fill="#fff" class="svg-text-label" font-weight="600">Application</text>
+<text x="120" y="35" text-anchor="middle" fill="#bfdbfe" class="svg-text-small">main_uip_mh2030a_demo.c</text>
+<rect x="300" y="4" width="420" height="40" class="layer-rect" fill="#e0f2fe" stroke="#7dd3fc"/>
+<text x="510" y="21" text-anchor="middle" fill="#0c4a6e" class="svg-text-small">HTTP server callbacks / Link detection / main loop</text>
+<text x="510" y="35" text-anchor="middle" fill="#0369a1" class="svg-text-small">dm9051_demo_handle_link_detection() / httpd_init()</text>
+<line x1="210" y1="24" x2="296" y2="24" class="arrow-line" marker-end="url(#arrL)"/>
+<line x1="120" y1="44" x2="120" y2="64" class="arrow-line" marker-end="url(#arrL)"/>
+
+<rect x="30" y="66" width="180" height="40" class="layer-rect" fill="#8b5cf6" stroke="#7c3aed"/>
+<text x="120" y="83" text-anchor="middle" fill="#fff" class="svg-text-label" font-weight="600">uIP TCP/IP Stack</text>
+<text x="120" y="97" text-anchor="middle" fill="#ddd6fe" class="svg-text-small">uip.c / uip_arp.c</text>
+<rect x="300" y="66" width="420" height="40" class="layer-rect" fill="#f3e8ff" stroke="#d8b4fe"/>
+<text x="510" y="83" text-anchor="middle" fill="#4c1d95" class="svg-text-small">uip_init() / uip_input() / uip_periodic() / uip_arp_*()</text>
+<text x="510" y="97" text-anchor="middle" fill="#6d28d9" class="svg-text-small">timer.c: timer_set() / timer_expired()</text>
+<line x1="210" y1="86" x2="296" y2="86" class="arrow-line" marker-end="url(#arrL)"/>
+<line x1="120" y1="106" x2="120" y2="126" class="arrow-line" marker-end="url(#arrL)"/>
+
+<rect x="30" y="128" width="180" height="40" class="layer-rect" fill="#f59e0b" stroke="#d97706"/>
+<text x="120" y="145" text-anchor="middle" fill="#fff" class="svg-text-label" font-weight="600">Adapter Layer</text>
+<text x="120" y="159" text-anchor="middle" fill="#fef3c7" class="svg-text-small">adapters/uip/</text>
+<rect x="300" y="128" width="420" height="40" class="layer-rect" fill="#fef3c7" stroke="#fcd34d"/>
+<text x="510" y="145" text-anchor="middle" fill="#78350f" class="svg-text-small">dm9051_uip.c: init() / input() / output() / poll()</text>
+<text x="510" y="159" text-anchor="middle" fill="#92400e" class="svg-text-small">dm9051_uip_stack.c: stack_init() / stack_poll() / drain_rx()</text>
+<line x1="210" y1="148" x2="296" y2="148" class="arrow-line" marker-end="url(#arrL)"/>
+<line x1="120" y1="168" x2="120" y2="188" class="arrow-line" marker-end="url(#arrL)"/>
+
+<rect x="30" y="190" width="180" height="40" class="layer-rect" fill="#10b981" stroke="#059669"/>
+<text x="120" y="207" text-anchor="middle" fill="#fff" class="svg-text-label" font-weight="600">DM9051 Core Driver</text>
+<text x="120" y="221" text-anchor="middle" fill="#d1fae5" class="svg-text-small">core/src/</text>
+<rect x="300" y="190" width="420" height="40" class="layer-rect" fill="#d1fae5" stroke="#6ee7b7"/>
+<text x="510" y="207" text-anchor="middle" fill="#065f46" class="svg-text-small">dm9051_core.c: open() / receive_ex() / send() / interrupt_*()</text>
+<text x="510" y="221" text-anchor="middle" fill="#065f46" class="svg-text-small">dm9051_regs.h / dm9051_types.h</text>
+<line x1="210" y1="210" x2="296" y2="210" class="arrow-line" marker-end="url(#arrL)"/>
+<line x1="120" y1="230" x2="120" y2="250" class="arrow-line" marker-end="url(#arrL)"/>
+
+<rect x="30" y="252" width="180" height="40" class="layer-rect" fill="#06b6d4" stroke="#0891b2"/>
+<text x="120" y="269" text-anchor="middle" fill="#fff" class="svg-text-label" font-weight="600">HAL Abstraction</text>
+<text x="120" y="283" text-anchor="middle" fill="#cffafe" class="svg-text-small">hal/inc/</text>
+<rect x="300" y="252" width="420" height="40" class="layer-rect" fill="#cffafe" stroke="#67e8f9"/>
+<text x="510" y="269" text-anchor="middle" fill="#155e75" class="svg-text-small">dm9051_hal.h: struct dm9051_hal_ops</text>
+<text x="510" y="283" text-anchor="middle" fill="#155e75" class="svg-text-small">read_reg / write_reg / read_mem / write_mem / irq / critical</text>
+<line x1="210" y1="272" x2="296" y2="272" class="arrow-line" marker-end="url(#arrL)"/>
+<line x1="120" y1="292" x2="120" y2="312" class="arrow-line" marker-end="url(#arrL)"/>
+
+<rect x="30" y="314" width="180" height="40" class="layer-rect" fill="#f43f5e" stroke="#e11d48"/>
+<text x="120" y="331" text-anchor="middle" fill="#fff" class="svg-text-label" font-weight="600">Platform Port</text>
+<text x="120" y="345" text-anchor="middle" fill="#fecdd3" class="svg-text-small">ports/mh2030a/</text>
+<rect x="300" y="314" width="420" height="40" class="layer-rect" fill="#fecdd3" stroke="#fca5a5"/>
+<text x="510" y="331" text-anchor="middle" fill="#9f1239" class="svg-text-small">dm9051_hal_mh2030a.h: HAL ops vtable binding</text>
+<text x="510" y="345" text-anchor="middle" fill="#9f1239" class="svg-text-small">mh2030a_dm9051_spi.c / spi_dma.c / int.c / board.c</text>
+<line x1="210" y1="334" x2="296" y2="334" class="arrow-line" marker-end="url(#arrL)"/>
+<line x1="120" y1="354" x2="120" y2="374" class="arrow-line" marker-end="url(#arrL)"/>
+
+<rect x="30" y="376" width="180" height="48" class="layer-rect" fill="#475569" stroke="#334155"/>
+<text x="120" y="396" text-anchor="middle" fill="#fff" class="svg-text-label" font-weight="600">MCU Peripheral</text>
+<text x="120" y="414" text-anchor="middle" fill="#cbd5e1" class="svg-text-small">MH20xxLib / CMSIS</text>
+<rect x="300" y="376" width="420" height="48" class="layer-rect" fill="#f1f5f9" stroke="#cbd5e1"/>
+<text x="510" y="393" text-anchor="middle" fill="#334155" class="svg-text-small">MH20xxLib / AT32F403A_407 Standard Peripheral Library</text>
+<text x="510" y="414" text-anchor="middle" fill="#475569" class="svg-text-small">SPI, GPIO, EXTI, DMA, SysTick / CMSIS: core_cm0.h (Cortex-M0)</text>
+<line x1="210" y1="400" x2="296" y2="400" class="arrow-line" marker-end="url(#arrL)"/>
+
+<rect x="30" y="442" width="690" height="22" class="layer-rect" fill="#dbeafe" stroke="#93c5fd"/>
+<text x="375" y="456" text-anchor="middle" fill="#1e40af" class="svg-text-small" font-weight="600">Adapter layer 是唯一同時知道 uIP 和 DM9051 的層級。Core driver 完全不認識 uIP。uIP 完全不認識 DM9051。</text>
+
+<text x="375" y="492" text-anchor="middle" fill="#64748b" class="svg-text-small" font-style="italic">依賴方向: [Application] → [Adapter] → [uIP Stack] + [Core Driver] → [HAL Ops] → [Platform Port] → [MCU Peripheral]</text>
+</svg>
+</div>
+
+<h3>14.2 依賴方向</h3>
+<div class="tree">[Application] ──> [Adapter] ──> [uIP Stack]
+                       │
+                       └──> [Core Driver] ──> [HAL Ops] ──> [Platform Port] ──> [MCU Peripheral]</div>
+<div class="info-box"><strong>關鍵設計:</strong> Adapter layer 是唯一同時知道 uIP 和 DM9051 的層級。Core driver 完全不認識 uIP。uIP 完全不認識 DM9051。</div>
+</section>
+
+<!-- ===== SECTION 15: SEQUENCE DIAGRAM ===== -->
+<section class="section" id="sec15">
+<h2>15. Sequence Diagram</h2>
+
+<h3>15.1 RX Sequence (Interrupt Mode)</h3>
+<div class="svg-container" style="max-width:760px">
+<img src="diagrams/seq_rx.svg" alt="RX Sequence Diagram (Interrupt Mode)" style="width:100%;height:auto">
+</div>
+
+<h3>15.2 Init Sequence</h3>
+<div class="svg-container" style="max-width:720px">
+<img src="diagrams/seq_init.svg" alt="Init Sequence Diagram" style="width:100%;height:auto">
+</div>
+
+<h3>15.3 Main Loop + Periodic Sequence</h3>
+<div class="svg-container" style="max-width:720px">
+<img src="diagrams/seq_periodic.svg" alt="Main Loop + Periodic Sequence Diagram" style="width:100%;height:auto">
+</div>
+</section>
+
+<!-- ===== SECTION 16: RISKS ===== -->
+<section class="section" id="sec16">
+<h2>16. 潛在風險與改善建議</h2>
+
+<h3>16.1 高優先級</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>#</th><th>問題</th><th>位置</th><th>建議</th></tr></thead>
+<tbody>
+<tr><td>R1</td><td><strong>TX busy-wait 佔用 CPU</strong></td><td><code>dm9051_core_tx_wait_done()</code></td><td>設 <code>DM9051_TX_WAIT_DONE=0</code> 啟用非同步 TX，或設 <code>TX_WAIT_POLL_DELAY_US ≥ 1</code></td></tr>
+<tr><td>R2</td><td><strong>Link 監測在 main 層</strong></td><td><code>main_uip_mh2030a_demo.c</code></td><td>將 link check 納入 adapter layer 或提供 callback</td></tr>
+<tr><td>R3</td><td><strong>Staging 前置條件不明確</strong></td><td><code>dm9051_uip_stack_init()</code></td><td>需外部先 call <code>core_open()</code> + <code>uip_attach()</code>，但無明確檢查</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>16.2 中優先級</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>#</th><th>問題</th><th>說明</th></tr></thead>
+<tbody>
+<tr><td>R4</td><td>RX Burst 硬限制 8</td><td>高流量時 latency 較大，可提高至 16~32 或改為時間-based</td></tr>
+<tr><td>R5</td><td>uIP buffer size 限制 1200</td><td>小於標準 MTU 1514，建議加大至 1518</td></tr>
+<tr><td>R6</td><td>無統計資訊</td><td>無 packet/error/drop count，建議加入輕量統計</td></tr>
+<tr><td>R7</td><td><code>last_error_status</code> static</td><td>static 變數作去抖，可改用 device context</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>16.3 低優先級</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>#</th><th>問題</th><th>說明</th></tr></thead>
+<tbody>
+<tr><td>R8</td><td>PHY read/write timeout 500μs</td><td>若 SPI 延遲高可能不足，建議放寬至 5000μs</td></tr>
+<tr><td>R9</td><td>RX discard 用 32-byte chunk</td><td>浪費 SPI 頻寬，可改用 DMA discard</td></tr>
+<tr><td>R10</td><td><code>clock_time_t</code> 是 signed int</td><td>最大 24.8 天後 overflow，建議用 <code>uint32_t</code></td></tr>
+<tr><td>R11</td><td>RXB error history size 254</td><td>佔 254 bytes RAM，可縮小至 64</td></tr>
+<tr><td>R12</td><td>SPI memory read 無 DMA fallback</td><td>Polling 讀 1518 bytes 佔 CPU，建議預設啟用 DMA mode</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>16.4 Race Condition 分析</h3>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Scenario</th><th>Analysis</th><th>Risk</th></tr></thead>
+<tbody>
+<tr><td>ISR 設 interrupt_event + main loop 同時讀</td><td>enter_critical() 保護</td><td><span style="color:#059669">Low</span></td></tr>
+<tr><td>Main loop RX 中再來 IRQ</td><td>ISR 僅設 flag，不碰 SPI</td><td><span style="color:#059669">Low</span></td></tr>
+<tr><td>bus_busy 競爭</td><td>Critical section 保護</td><td><span style="color:#059669">Low</span></td></tr>
+<tr><td>RX/TX 併發</td><td>序列化在 single poll() 中</td><td><span style="color:#059669">None</span></td></tr>
+<tr><td>SPI 共用 (main + ISR)</td><td>ISR 不碰 SPI</td><td><span style="color:#059669">None</span></td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ===== APPENDIX A ===== -->
+<section class="section" id="appendix-a">
+<h2>Appendix A: 常數定義總表</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th>常數</th><th>值</th><th>說明</th></tr></thead>
+<tbody>
+<tr><td><code>DM9051_MAC_ADDR_LENGTH</code></td><td>6</td><td>MAC 位址長度</td></tr>
+<tr><td><code>DM9051_ETH_FRAME_MAX</code></td><td>1514</td><td>Ethernet frame 最大長度</td></tr>
+<tr><td><code>DM9051_RX_HEAD_SIZE</code></td><td>4</td><td>RX header 長度</td></tr>
+<tr><td><code>DM9051_RX_BUFFER_SIZE</code></td><td>1518</td><td>RX buffer 總大小</td></tr>
+<tr><td><code>DM9051_RXB_HIST_SIZE</code></td><td>254</td><td>RXB 錯誤歷史記錄大小</td></tr>
+<tr><td><code>DM9051_UIP_RX_BURST_MAX</code></td><td>8</td><td>每次 poll 最大 RX frame 數量</td></tr>
+<tr><td><code>DM9051_TX_WAIT_TIMEOUT_US</code></td><td>100000</td><td>TX 等待 timeout (100ms)</td></tr>
+<tr><td><code>DM9051_TX_WAIT_POLL_DELAY_US</code></td><td>0</td><td>TX polling 延遲</td></tr>
+<tr><td><code>DM9051_RXB_RESET_THRESHOLD</code></td><td>10</td><td>RXB 錯誤觸發 HW reset 閾值</td></tr>
+<tr><td><code>UIP_CONF_BUFFER_SIZE</code></td><td>1200</td><td>uIP buffer 大小</td></tr>
+<tr><td><code>CLOCK_CONF_SECOND</code></td><td>1000</td><td>uIP 時脈 tick 率</td></tr>
+<tr><td><code>MH2030A_UIP_TICK_MS</code></td><td>10</td><td>系統 tick 間隔</td></tr>
+<tr><td><code>DM9051_LINK_DETECTION_INTERVAL</code></td><td>500</td><td>link 監測間隔 (ms)</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ===== APPENDIX B ===== -->
+<section class="section" id="appendix-b">
+<h2>Appendix B: Public API 索引</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th>API</th><th>檔案</th><th>說明</th></tr></thead>
+<tbody>
+<tr><td><code>dm9051_uip_init()</code></td><td><code>dm9051_uip.c</code></td><td>驗證 netif device 參數</td></tr>
+<tr><td><code>dm9051_uip_attach()</code></td><td><code>dm9051_uip.c</code></td><td>綁定 DM9051 device instance</td></tr>
+<tr><td><code>dm9051_uip_input()</code></td><td><code>dm9051_uip.c</code></td><td>從 DM9051 讀取 RX frame</td></tr>
+<tr><td><code>dm9051_uip_last_rx_status()</code></td><td><code>dm9051_uip.c</code></td><td>查詢最後 RX 狀態</td></tr>
+<tr><td><code>dm9051_uip_output()</code></td><td><code>dm9051_uip.c</code></td><td>寫入 TX frame 到 DM9051</td></tr>
+<tr><td><code>dm9051_uip_interrupt_mode()</code></td><td><code>dm9051_uip.c</code></td><td>查詢 interrupt/poll mode</td></tr>
+<tr><td><code>dm9051_uip_interrupt_take()</code></td><td><code>dm9051_uip.c</code></td><td>檢查 + 清除 interrupt event</td></tr>
+<tr><td><code>dm9051_uip_interrupt_reset()</code></td><td><code>dm9051_uip.c</code></td><td>完整 IRQ 重設</td></tr>
+<tr><td><code>dm9051_uip_poll()</code></td><td><code>dm9051_uip.c</code></td><td>非同步 TX 完成輪詢</td></tr>
+<tr><td><code>dm9051_uip_target_mode()</code></td><td><code>dm9051_uip.c</code></td><td>回傳目前模式字串</td></tr>
+<tr><td><code>dm9051_uip_stack_init()</code></td><td><code>dm9051_uip_stack.c</code></td><td>uIP stack + adapter 初始化</td></tr>
+<tr><td><code>dm9051_uip_stack_poll()</code></td><td><code>dm9051_uip_stack.c</code></td><td>uIP main loop 單次迭代</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- ===== APPENDIX C ===== -->
+<section class="section" id="appendix-c">
+<h2>Appendix C: 內部 static 函式索引</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th>函式</th><th>檔案</th><th>說明</th></tr></thead>
+<tbody>
+<tr><td><code>dm9051_uip_stack_send_if_needed()</code></td><td><code>dm9051_uip_stack.c</code></td><td>條件式 TX (uip_len &gt; 0)</td></tr>
+<tr><td><code>dm9051_uip_stack_drain_rx()</code></td><td><code>dm9051_uip_stack.c</code></td><td>RX burst drain loop</td></tr>
+<tr><td><code>dm9051_uip_stack_rx_pending_from_burst()</code></td><td><code>dm9051_uip_stack.c</code></td><td>判斷 burst 是否還有剩餘 frame</td></tr>
+<tr><td><code>dm9051_uip_stack_print_rx_burst()</code></td><td><code>dm9051_uip_stack.c</code></td><td>RX burst 診斷輸出</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+</div><!-- /content-body -->
+</div><!-- /main-content -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>hljs.highlightAll();
+
+// Sidebar toggle
+const toggle = document.getElementById('sidebarToggle');
+const overlay = document.getElementById('sidebarOverlay');
+const sidebar = document.getElementById('sidebar');
+if (toggle && overlay && sidebar) {
+  toggle.addEventListener('click', function(e){ e.stopPropagation(); sidebar.classList.toggle('open'); overlay.classList.toggle('open'); });
+  overlay.addEventListener('click', function(){ sidebar.classList.remove('open'); overlay.classList.remove('open'); });
+  document.addEventListener('click', function(e){ if(window.innerWidth<=991&&!sidebar.contains(e.target)&&!toggle.contains(e.target)){ sidebar.classList.remove('open'); overlay.classList.remove('open'); } });
+}
+
+// Active nav link on scroll
+(function(){
+  const links = document.querySelectorAll('.sidebar .nav-link');
+  const sections = [];
+  links.forEach(function(a){
+    const id = a.getAttribute('href');
+    if(id && id.startsWith('#')){
+      const el = document.getElementById(id.substring(1));
+      if(el) sections.push({el:el, link:a});
+    }
+  });
+  function updateActive(){
+    let current = '';
+    sections.forEach(function(s){
+      const rect = s.el.getBoundingClientRect();
+      if(rect.top <= 120) current = s.link.getAttribute('href');
+    });
+    links.forEach(function(a){ a.classList.remove('active'); });
+    if(current) document.querySelector('.sidebar .nav-link[href="'+current+'"]')?.classList.add('active');
+  }
+  window.addEventListener('scroll', updateActive);
+  updateActive();
+})();
+</script>
+</body>
+</html>
+
