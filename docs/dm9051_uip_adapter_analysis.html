@@ -46,10 +46,19 @@ blockquote p:last-child{margin-bottom:0}
 .alert-custom{border-left:4px solid;border-radius:.5rem;margin:.8rem 0}
 .alert-risk-high{border-left-color:#dc2626;background:#fef2f2}
 .alert-risk-medium{border-left-color:#f59e0b;background:#fffbeb}
-.alert-risk-low{border-left-color:#10b981;background:#ecfdf5}
 .info-box{background:var(--accent-light);border-radius:.5rem;padding:.8rem;margin:.8rem 0;border:1px solid #bfdbfe;font-size:.9rem}
-.svg-container{background:#fff;border-radius:.75rem;border:1px solid var(--border-color);padding:1rem;margin:1.2rem 0;overflow-x:auto;text-align:center}
-.svg-container svg{max-width:100%;height:auto}
+.svg-container{background:#fff;border-radius:.75rem;border:1px solid var(--border-color);padding:1rem;margin:1.2rem 0;overflow:hidden;text-align:center;position:relative}
+.svg-container img{max-width:100%;height:auto;display:block;margin:0 auto;transition:transform .15s ease-out,box-shadow .15s;transform-origin:0 0;cursor:zoom-in;touch-action:none;z-index:1}
+.svg-container img:hover{box-shadow:0 0 0 2px var(--accent)}
+.svg-container img:active{cursor:grabbing}
+.svg-container .pan-zoom-controls{position:absolute;top:.5rem;right:.5rem;display:flex;gap:.3rem;opacity:0;transition:opacity .2s;z-index:20;pointer-events:none;background:rgba(255,255,255,.9);padding:.3rem .4rem;border-radius:.4rem;box-shadow:0 2px 8px rgba(0,0,0,.15);backdrop-filter:blur(4px)}
+.svg-container img:hover + .pan-zoom-controls,
+.svg-container .pan-zoom-controls:hover{opacity:1;pointer-events:auto}
+.svg-container .pan-zoom-controls button{width:28px;height:28px;border:none;border-radius:.3rem;background:#fff;color:#334155;box-shadow:0 1px 3px rgba(0,0,0,.1);font-size:16px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s,transform .1s;pointer-events:auto}
+.svg-container .pan-zoom-controls button:hover{background:var(--accent);color:#fff;transform:scale(1.1)}
+.svg-container .pan-zoom-controls button:active{transform:scale(.95)}
+.svg-container .pan-zoom-controls .zoom-level{padding:0 .5rem;display:flex;align-items:center;font-size:.75rem;color:#64748b;background:#fff;border-radius:.3rem;box-shadow:0 1px 3px rgba(0,0,0,.1);pointer-events:auto}
+
 .tree{font-family:'Cascadia Code','JetBrains Mono','Consolas',monospace;font-size:.8rem;line-height:1.5;background:#0f172a;color:#e2e8f0;padding:.85rem;border-radius:.5rem;overflow-x:auto;white-space:pre;margin:.8rem 0}
 .tag{display:inline-block;padding:.12em .45em;border-radius:.2rem;font-size:.72rem;font-weight:600}
 .tag-mcu{background:#dbeafe;color:#1d4ed8}
@@ -1027,7 +1036,7 @@ if (toggle && overlay && sidebar) {
   toggle.addEventListener('click', function(e){ e.stopPropagation(); sidebar.classList.toggle('open'); overlay.classList.toggle('open'); });
   overlay.addEventListener('click', function(){ sidebar.classList.remove('open'); overlay.classList.remove('open'); });
   document.addEventListener('click', function(e){ if(window.innerWidth<=991&&!sidebar.contains(e.target)&&!toggle.contains(e.target)){ sidebar.classList.remove('open'); overlay.classList.remove('open'); } });
-});
+};
 
 // Active nav link on scroll
 (function(){
@@ -1052,6 +1061,391 @@ if (toggle && overlay && sidebar) {
   window.addEventListener('scroll', updateActive);
   updateActive();
 })();
-</script>
-</body>
-</html>
+
+// ===== Pan-Zoom for inline SVG images =====
+(function(){
+  const ZOOM_STEP = 0.2;
+  const MIN_ZOOM = 0.3;
+  const MAX_ZOOM = 5;
+
+  document.querySelectorAll('.svg-container img').forEach(function(img){
+    const container = img.closest('.svg-container');
+    if(!container) return;
+
+    // State
+    let scale = 1;
+    let tx = 0, ty = 0;
+    let isPanning = false;
+    let startX = 0, startY = 0;
+    let startTx = 0, startTy = 0;
+
+    // Create inline controls
+    const controls = document.createElement('div');
+    controls.className = 'pan-zoom-controls';
+    controls.innerHTML = `
+      <button type="button" data-action="zoom-in" title="放大">+</button>
+      <button type="button" data-action="zoom-out" title="縮小">−</button>
+      <button type="button" data-action="reset" title="重置">⌂</button>
+      <span class="zoom-level">100%</span>
+    `;
+    container.appendChild(controls);
+
+    const zoomLevelEl = controls.querySelector('.zoom-level');
+
+    function applyTransform(){
+      img.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+      zoomLevelEl.textContent = Math.round(scale * 100) + '%';
+    }
+
+    function zoom(delta, clientX, clientY){
+      const newScale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, scale + delta));
+      if(newScale === scale) return;
+
+      const rect = container.getBoundingClientRect();
+      const cx = clientX - rect.left - tx;
+      const cy = clientY - rect.top - ty;
+
+      tx = tx * (newScale / scale) + cx * (1 - newScale / scale);
+      ty = ty * (newScale / scale) + cy * (1 - newScale / scale);
+      scale = newScale;
+      applyTransform();
+    }
+
+    // Button controls
+    controls.querySelector('[data-action="zoom-in"]').addEventListener('click', function(e){
+      e.stopPropagation();
+      const rect = container.getBoundingClientRect();
+      zoom(ZOOM_STEP, rect.left + rect.width/2, rect.top + rect.height/2);
+    });
+    controls.querySelector('[data-action="zoom-out"]').addEventListener('click', function(e){
+      e.stopPropagation();
+      const rect = container.getBoundingClientRect();
+      zoom(-ZOOM_STEP, rect.left + rect.width/2, rect.top + rect.height/2);
+    });
+    controls.querySelector('[data-action="reset"]').addEventListener('click', function(e){
+      e.stopPropagation();
+      scale = 1; tx = 0; ty = 0;
+      applyTransform();
+    });
+
+    // Wheel zoom — attach to IMG in CAPTURE phase to intercept before browser page zoom
+    img.addEventListener('wheel', function(e){
+      if(!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+      zoom(delta, e.clientX, e.clientY);
+    }, {passive: false, capture: true});
+
+    // Pan - mouse
+    img.addEventListener('mousedown', function(e){
+      if(e.button !== 0) return;
+      if(scale === 1) return;
+      isPanning = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      startTx = tx;
+      startTy = ty;
+      img.style.cursor = 'grabbing';
+      e.preventDefault();
+    });
+
+    window.addEventListener('mousemove', function(e){
+      if(!isPanning) return;
+      tx = startTx + (e.clientX - startX);
+      ty = startTy + (e.clientY - startY);
+      applyTransform();
+    });
+
+    window.addEventListener('mouseup', function(){
+      if(isPanning){
+        isPanning = false;
+        img.style.cursor = 'zoom-in';
+      }
+    });
+
+    // Touch support (pinch zoom + pan)
+    let touchStartDist = 0;
+    let touchStartScale = 1;
+
+    container.addEventListener('touchstart', function(e){
+      if(e.touches.length === 2){
+        const t1 = e.touches[0], t2 = e.touches[1];
+        touchStartDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        touchStartScale = scale;
+      } else if(e.touches.length === 1 && scale > 1){
+        isPanning = true;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        startTx = tx;
+        startTy = ty;
+      }
+    }, {passive: true});
+
+    container.addEventListener('touchmove', function(e){
+      if(e.touches.length === 2 && touchStartDist > 0){
+        e.preventDefault();
+        const t1 = e.touches[0], t2 = e.touches[1];
+        const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        const newScale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, touchStartScale * (dist / touchStartDist)));
+        if(newScale !== scale){
+          const rect = container.getBoundingClientRect();
+          const cx = (t1.clientX + t2.clientX)/2 - rect.left - tx;
+          const cy = (t1.clientY + t2.clientY)/2 - rect.top - ty;
+          tx = tx * (newScale / scale) + cx * (1 - newScale / scale);
+          ty = ty * (newScale / scale) + cy * (1 - newScale / scale);
+          scale = newScale;
+          applyTransform();
+        }
+      } else if(e.touches.length === 1 && isPanning){
+        e.preventDefault();
+        tx = startTx + (e.touches[0].clientX - startX);
+        ty = startTy + (e.touches[0].clientY - startY);
+        applyTransform();
+      }
+    }, {passive: false});
+
+    container.addEventListener('touchend', function(e){
+      if(e.touches.length < 2) touchStartDist = 0;
+      if(e.touches.length === 0) isPanning = false;
+    }, {passive: true});
+
+    // Double-click to reset
+    img.addEventListener('dblclick', function(){
+      scale = 1; tx = 0; ty = 0;
+      applyTransform();
+    });
+
+    // Click to open Bootstrap Modal
+    img.addEventListener('click', function(e){
+      if(scale !== 1) return;
+      setTimeout(function(){
+        if(scale === 1) openImageModal(img);
+      }, 150);
+    });
+  });
+})();
+
+// ===== Bootstrap Modal Image Zoom =====
+(function(){
+  const ZOOM_STEP = 0.2;
+  const MIN_ZOOM = 0.2;
+  const MAX_ZOOM = 6;
+
+  // Collect all zoomable images in order
+  const allImages = Array.from(document.querySelectorAll('.svg-container img'));
+  let currentIndex = -1;
+
+  // Modal elements
+  const modalEl = document.getElementById('imgZoomModal');
+  const modal = modalEl ? bootstrap.Modal.getOrCreateInstance(modalEl) : null;
+  const modalImg = document.getElementById('imgZoomTarget');
+  const modalCaption = document.getElementById('imgZoomCaption');
+  const zoomScaleLabel = document.getElementById('zoomScaleLabel');
+  const zoomInBtn = document.getElementById('zoomIn');
+  const zoomOutBtn = document.getElementById('zoomOut');
+  const zoomResetBtn = document.getElementById('zoomReset');
+  const modalBody = document.getElementById('imgZoomBody');
+
+  // Modal state
+  let scale = 1;
+  let tx = 0, ty = 0;
+  let isPanning = false;
+  let startX = 0, startY = 0;
+  let startTx = 0, startTy = 0;
+
+  function applyTransform(){
+    if(modalImg) modalImg.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+    if(zoomScaleLabel) zoomScaleLabel.textContent = Math.round(scale * 100) + '%';
+  }
+
+  function resetTransform(){
+    scale = 1; tx = 0; ty = 0;
+    applyTransform();
+  }
+
+  function zoom(delta, clientX, clientY){
+    const newScale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, scale + delta));
+    if(newScale === scale) return;
+
+    const rect = modalBody.getBoundingClientRect();
+    const cx = clientX - rect.left - tx;
+    const cy = clientY - rect.top - ty;
+
+    tx = tx * (newScale / scale) + cx * (1 - newScale / scale);
+    ty = ty * (newScale / scale) + cy * (1 - newScale / scale);
+    scale = newScale;
+    applyTransform();
+  }
+
+  function openImageModal(img, index){
+    if(index === undefined) index = allImages.indexOf(img);
+    if(index < 0) return;
+
+    currentIndex = index;
+    resetTransform();
+    modalImg.src = img.src;
+    modalImg.alt = img.alt || '';
+    modalCaption.textContent = img.alt || '圖片放大檢視';
+    modal?.show();
+  }
+
+  function navigate(dir){
+    const newIndex = currentIndex + dir;
+    if(newIndex < 0 || newIndex >= allImages.length) return;
+    resetTransform();
+    currentIndex = newIndex;
+    const img = allImages[currentIndex];
+    modalImg.src = img.src;
+    modalImg.alt = img.alt || '';
+    modalCaption.textContent = img.alt || '圖片放大檢視';
+  }
+
+  // Toolbar buttons
+  zoomInBtn?.addEventListener('click', function(e){
+    e.stopPropagation();
+    zoom(ZOOM_STEP, window.innerWidth/2, window.innerHeight/2);
+  });
+  zoomOutBtn?.addEventListener('click', function(e){
+    e.stopPropagation();
+    zoom(-ZOOM_STEP, window.innerWidth/2, window.innerHeight/2);
+  });
+  zoomResetBtn?.addEventListener('click', function(e){
+    e.stopPropagation();
+    resetTransform();
+  });
+
+  // Wheel zoom on modal body
+  modalBody?.addEventListener('wheel', function(e){
+    if(!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+    zoom(delta, e.clientX, e.clientY);
+  }, {passive: false});
+
+  // Pan on modal image
+  modalImg?.addEventListener('mousedown', function(e){
+    if(e.button !== 0) return;
+    if(scale === 1) return;
+    isPanning = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    startTx = tx;
+    startTy = ty;
+    modalImg.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove', function(e){
+    if(!isPanning) return;
+    tx = startTx + (e.clientX - startX);
+    ty = startTy + (e.clientY - startY);
+    applyTransform();
+  });
+
+  window.addEventListener('mouseup', function(){
+    if(isPanning){
+      isPanning = false;
+      if(modalImg) modalImg.style.cursor = 'grab';
+    }
+  });
+
+  // Touch support
+  let touchStartDist = 0;
+  let touchStartScale = 1;
+
+  modalEl?.addEventListener('touchstart', function(e){
+    if(!modalImg.src) return;
+    if(e.touches.length === 2){
+      const t1 = e.touches[0], t2 = e.touches[1];
+      touchStartDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+      touchStartScale = scale;
+    } else if(e.touches.length === 1 && scale > 1){
+      isPanning = true;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      startTx = tx;
+      startTy = ty;
+    }
+  }, {passive: true});
+
+  modalEl?.addEventListener('touchmove', function(e){
+    if(!modalImg.src) return;
+    if(e.touches.length === 2 && touchStartDist > 0){
+      e.preventDefault();
+      const t1 = e.touches[0], t2 = e.touches[1];
+      const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+      const newScale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, touchStartScale * (dist / touchStartDist)));
+      if(newScale !== scale){
+        const rect = modalBody.getBoundingClientRect();
+        const cx = (t1.clientX + t2.clientX)/2 - rect.left - tx;
+        const cy = (t1.clientY + t2.clientY)/2 - rect.top - ty;
+        tx = tx * (newScale / scale) + cx * (1 - newScale / scale);
+        ty = ty * (newScale / scale) + cy * (1 - newScale / scale);
+        scale = newScale;
+        applyTransform();
+      }
+    } else if(e.touches.length === 1 && isPanning){
+      e.preventDefault();
+      tx = startTx + (e.touches[0].clientX - startX);
+      ty = startTy + (e.touches[0].clientY - startY);
+      applyTransform();
+    }
+  }, {passive: false});
+
+  modalEl?.addEventListener('touchend', function(e){
+    if(e.touches.length < 2) touchStartDist = 0;
+    if(e.touches.length === 0) isPanning = false;
+  }, {passive: true});
+
+  // Double-click reset
+  modalImg?.addEventListener('dblclick', function(){
+    resetTransform();
+  });
+
+  // Keyboard navigation
+  document.addEventListener('keydown', function(e){
+    if(!modalEl?.classList.contains('show')) return;
+    if(e.key === 'Escape') { modal?.hide(); return; }
+    if(e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    else if(e.key === 'ArrowRight') { e.preventDefault(); navigate(1); }
+    else if(e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); }
+  });
+
+  // Reset on modal hidden
+  modalEl?.addEventListener('hidden.bs.modal', function(){
+    resetTransform();
+    modalImg.src = '';
+  });
+
+  // Expose for inline click handler
+    window.openImageModal = openImageModal;
+  })();
+  </script>
+
+  <!-- Image Zoom Modal (Bootstrap 5) -->
+  <div class="modal fade" id="imgZoomModal" tabindex="-1" aria-label="圖片放大檢視" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content" style="background:#111;border:0;">
+        <div class="modal-header" style="border:0;padding:0.5rem 0.75rem;">
+          <span class="text-white-50 small" id="imgZoomCaption" style="flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;"></span>
+          <div class="d-flex gap-2 align-items-center">
+            <button type="button" class="btn btn-sm btn-outline-light" id="zoomOut"  title="縮小 (−)">−</button>
+            <span id="zoomScaleLabel" style="color:#ddd;font-size:0.82rem;min-width:3.5em;text-align:center;">100%</span>
+            <button type="button" class="btn btn-sm btn-outline-light" id="zoomReset" title="重設 (0)">&#8635;</button>
+            <button type="button" class="btn btn-sm btn-outline-light" id="zoomIn"   title="放大 (+)">+</button>
+            <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="modal" aria-label="關閉"></button>
+          </div>
+        </div>
+        <div class="modal-body d-flex justify-content-center align-items-center"
+             style="overflow:hidden;min-height:60vh;cursor:grab;user-select:none;" id="imgZoomBody">
+          <img id="imgZoomTarget" src="" alt=""
+               style="transform-origin:center;max-width:none;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </body>
+  </html>
