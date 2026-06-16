@@ -157,11 +157,53 @@ blockquote p:last-child{margin-bottom:0}
 <section class="section" id="sec1">
 <h2>1. 架構總覽</h2>
 
-<div class="svg-container" style="max-width:100%;overflow:auto">
-<img src="mermaid_00_graph.svg" alt="Layer Diagram" style="width:100%;height:auto">
-</div>
+<div class="svg-container" style="max-width:650px">
+<svg viewBox="0 0 600 480" style="width:100%">
+<defs>
+<marker id="a1" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5Z" fill="#64748b"/></marker>
+<linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#2563eb"/></linearGradient>
+<linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient>
+<linearGradient id="g3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#d97706"/></linearGradient>
+<linearGradient id="g4" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#059669"/></linearGradient>
+<linearGradient id="g5" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#06b6d4"/><stop offset="100%" stop-color="#0891b2"/></linearGradient>
+<linearGradient id="g6" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f43f5e"/><stop offset="100%" stop-color="#e11d48"/></linearGradient>
+<linearGradient id="g7" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#475569"/><stop offset="100%" stop-color="#334155"/></linearGradient>
+</defs>
+<rect x="130" y="8" width="340" height="48" class="layer-rect" fill="url(#g1)" stroke="#1d4ed8"/>
+<text x="300" y="29" text-anchor="middle" fill="#fff" class="svg-text-title">Application Layer</text>
+<text x="300" y="44" text-anchor="middle" fill="#bfdbfe" class="svg-text-small">main_uip_mh2030a_demo.c / HTTP server callbacks</text>
+<line x1="300" y1="56" x2="300" y2="74" class="arrow-line" marker-end="url(#a1)"/>
 
-<div class="info-box"><strong>說明:</strong> 上圖為 Mermaid 自動生成的架構總覽圖 (Layer Diagram)，對應文件 Section 14.1 的 graph TB 定義。</div>
+<rect x="110" y="76" width="380" height="48" class="layer-rect" fill="url(#g2)" stroke="#6d28d9"/>
+<text x="300" y="97" text-anchor="middle" fill="#fff" class="svg-text-title">uIP TCP/IP Stack</text>
+<text x="300" y="112" text-anchor="middle" fill="#ddd6fe" class="svg-text-small">uip_init / uip_input / uip_periodic / uip_arp_*</text>
+<line x1="300" y1="124" x2="300" y2="142" class="arrow-line" marker-end="url(#a1)"/>
+
+<rect x="130" y="144" width="340" height="48" class="layer-rect" fill="url(#g3)" stroke="#b45309"/>
+<text x="300" y="165" text-anchor="middle" fill="#fff" class="svg-text-title">Adapter Layer (Glue Code)</text>
+<text x="300" y="180" text-anchor="middle" fill="#fef3c7" class="svg-text-small">dm9051_uip.c / dm9051_uip_stack.c</text>
+<line x1="300" y1="192" x2="300" y2="210" class="arrow-line" marker-end="url(#a1)"/>
+
+<rect x="120" y="212" width="360" height="48" class="layer-rect" fill="url(#g4)" stroke="#047857"/>
+<text x="300" y="233" text-anchor="middle" fill="#fff" class="svg-text-title">DM9051 Core Driver</text>
+<text x="300" y="248" text-anchor="middle" fill="#d1fae5" class="svg-text-small">dm9051_core_open / receive_ex / send / interrupt_*</text>
+<line x1="300" y1="260" x2="300" y2="278" class="arrow-line" marker-end="url(#a1)"/>
+
+<rect x="140" y="280" width="320" height="42" class="layer-rect" fill="url(#g5)" stroke="#0e7490"/>
+<text x="300" y="299" text-anchor="middle" fill="#fff" class="svg-text-title">HAL Abstraction Layer</text>
+<text x="300" y="313" text-anchor="middle" fill="#cffafe" class="svg-text-small">struct dm9051_hal_ops</text>
+<line x1="300" y1="322" x2="300" y2="340" class="arrow-line" marker-end="url(#a1)"/>
+
+<rect x="120" y="342" width="360" height="48" class="layer-rect" fill="url(#g6)" stroke="#be123c"/>
+<text x="300" y="363" text-anchor="middle" fill="#fff" class="svg-text-title">MH2030A Platform Port</text>
+<text x="300" y="378" text-anchor="middle" fill="#fecdd3" class="svg-text-small">SPI Polling / SPI DMA / EXTI-IRQ / HAL binding</text>
+<line x1="300" y1="390" x2="300" y2="408" class="arrow-line" marker-end="url(#a1)"/>
+
+<rect x="100" y="410" width="400" height="42" class="layer-rect" fill="url(#g7)" stroke="#1e293b"/>
+<text x="300" y="429" text-anchor="middle" fill="#fff" class="svg-text-title">MCU HAL / Peripheral Layer</text>
+<text x="300" y="443" text-anchor="middle" fill="#cbd5e1" class="svg-text-small">MH20xxLib / AT32F403A_407 StdPeriph / CMSIS Cortex-M0</text>
+</svg>
+</div>
 
 <h3 id="sec1-1">分層職責</h3>
 <div class="table-wrap">
