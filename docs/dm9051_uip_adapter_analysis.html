@@ -148,53 +148,11 @@ blockquote p:last-child{margin-bottom:0}
 <section class="section" id="sec1">
 <h2>1. 架構總覽</h2>
 
-<div class="svg-container" style="max-width:650px">
-<svg viewBox="0 0 600 480" style="width:100%">
-<defs>
-<marker id="a1" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5Z" fill="#64748b"/></marker>
-<linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#2563eb"/></linearGradient>
-<linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient>
-<linearGradient id="g3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#d97706"/></linearGradient>
-<linearGradient id="g4" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#059669"/></linearGradient>
-<linearGradient id="g5" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#06b6d4"/><stop offset="100%" stop-color="#0891b2"/></linearGradient>
-<linearGradient id="g6" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f43f5e"/><stop offset="100%" stop-color="#e11d48"/></linearGradient>
-<linearGradient id="g7" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#475569"/><stop offset="100%" stop-color="#334155"/></linearGradient>
-</defs>
-<rect x="130" y="8" width="340" height="48" class="layer-rect" fill="url(#g1)" stroke="#1d4ed8"/>
-<text x="300" y="29" text-anchor="middle" fill="#fff" class="svg-text-title">Application Layer</text>
-<text x="300" y="44" text-anchor="middle" fill="#bfdbfe" class="svg-text-small">main_uip_mh2030a_demo.c / HTTP server callbacks</text>
-<line x1="300" y1="56" x2="300" y2="74" class="arrow-line" marker-end="url(#a1)"/>
-
-<rect x="110" y="76" width="380" height="48" class="layer-rect" fill="url(#g2)" stroke="#6d28d9"/>
-<text x="300" y="97" text-anchor="middle" fill="#fff" class="svg-text-title">uIP TCP/IP Stack</text>
-<text x="300" y="112" text-anchor="middle" fill="#ddd6fe" class="svg-text-small">uip_init / uip_input / uip_periodic / uip_arp_*</text>
-<line x1="300" y1="124" x2="300" y2="142" class="arrow-line" marker-end="url(#a1)"/>
-
-<rect x="130" y="144" width="340" height="48" class="layer-rect" fill="url(#g3)" stroke="#b45309"/>
-<text x="300" y="165" text-anchor="middle" fill="#fff" class="svg-text-title">Adapter Layer (Glue Code)</text>
-<text x="300" y="180" text-anchor="middle" fill="#fef3c7" class="svg-text-small">dm9051_uip.c / dm9051_uip_stack.c</text>
-<line x1="300" y1="192" x2="300" y2="210" class="arrow-line" marker-end="url(#a1)"/>
-
-<rect x="120" y="212" width="360" height="48" class="layer-rect" fill="url(#g4)" stroke="#047857"/>
-<text x="300" y="233" text-anchor="middle" fill="#fff" class="svg-text-title">DM9051 Core Driver</text>
-<text x="300" y="248" text-anchor="middle" fill="#d1fae5" class="svg-text-small">dm9051_core_open / receive_ex / send / interrupt_*</text>
-<line x1="300" y1="260" x2="300" y2="278" class="arrow-line" marker-end="url(#a1)"/>
-
-<rect x="140" y="280" width="320" height="42" class="layer-rect" fill="url(#g5)" stroke="#0e7490"/>
-<text x="300" y="299" text-anchor="middle" fill="#fff" class="svg-text-title">HAL Abstraction Layer</text>
-<text x="300" y="313" text-anchor="middle" fill="#cffafe" class="svg-text-small">struct dm9051_hal_ops</text>
-<line x1="300" y1="322" x2="300" y2="340" class="arrow-line" marker-end="url(#a1)"/>
-
-<rect x="120" y="342" width="360" height="48" class="layer-rect" fill="url(#g6)" stroke="#be123c"/>
-<text x="300" y="363" text-anchor="middle" fill="#fff" class="svg-text-title">MH2030A Platform Port</text>
-<text x="300" y="378" text-anchor="middle" fill="#fecdd3" class="svg-text-small">SPI Polling / SPI DMA / EXTI-IRQ / HAL binding</text>
-<line x1="300" y1="390" x2="300" y2="408" class="arrow-line" marker-end="url(#a1)"/>
-
-<rect x="100" y="410" width="400" height="42" class="layer-rect" fill="url(#g7)" stroke="#1e293b"/>
-<text x="300" y="429" text-anchor="middle" fill="#fff" class="svg-text-title">MCU HAL / Peripheral Layer</text>
-<text x="300" y="443" text-anchor="middle" fill="#cbd5e1" class="svg-text-small">MH20xxLib / AT32F403A_407 StdPeriph / CMSIS Cortex-M0</text>
-</svg>
+<div class="svg-container" style="max-width:100%;overflow:auto">
+<img src="mermaid_00_graph.svg" alt="Layer Diagram" style="width:100%;height:auto">
 </div>
+
+<div class="info-box"><strong>說明:</strong> 上圖為 Mermaid 自動生成的架構總覽圖 (Layer Diagram)，對應文件 Section 14.1 的 graph TB 定義。</div>
 
 <h3 id="sec1-1">分層職責</h3>
 <div class="table-wrap">
@@ -231,7 +189,7 @@ blockquote p:last-child{margin-bottom:0}
 │   ├── lwip_mh2030a_demo/
 │   └── uip_mh2030a_demo/  (main_uip_mh2030a_demo.c, smoke files)
 ├── hal/inc/    (dm9051_hal.h)
-└── ports/mh2030a/  (SPI poll/DMA, EXTI, board init, clock)</code></pre>
+└── ports/mh2030a/  (SPI Polling / DMA, EXTI, board init, clock)</code></pre>
 </div>
 
 <h3 id="sec2-2">2.2 目錄與分層對應</h3>
@@ -919,79 +877,8 @@ static int dm9051_core_tx_wait_done(const dm9051_hal_t *hal)
 <section class="section" id="sec14">
 <h2>14. Layer 關係圖</h2>
 
-<div class="svg-container" style="max-width:750px">
-<svg viewBox="0 0 750 520" style="width:100%">
-<defs>
-<marker id="arrL" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5Z" fill="#64748b"/></marker>
-</defs>
-
-<rect x="30" y="4" width="180" height="40" class="layer-rect" fill="#3b82f6" stroke="#2563eb"/>
-<text x="120" y="21" text-anchor="middle" fill="#fff" class="svg-text-label" font-weight="600">Application</text>
-<text x="120" y="35" text-anchor="middle" fill="#bfdbfe" class="svg-text-small">main_uip_mh2030a_demo.c</text>
-<rect x="300" y="4" width="420" height="40" class="layer-rect" fill="#e0f2fe" stroke="#7dd3fc"/>
-<text x="510" y="21" text-anchor="middle" fill="#0c4a6e" class="svg-text-small">HTTP server callbacks / Link detection / main loop</text>
-<text x="510" y="35" text-anchor="middle" fill="#0369a1" class="svg-text-small">dm9051_demo_handle_link_detection() / httpd_init()</text>
-<line x1="210" y1="24" x2="296" y2="24" class="arrow-line" marker-end="url(#arrL)"/>
-<line x1="120" y1="44" x2="120" y2="64" class="arrow-line" marker-end="url(#arrL)"/>
-
-<rect x="30" y="66" width="180" height="40" class="layer-rect" fill="#8b5cf6" stroke="#7c3aed"/>
-<text x="120" y="83" text-anchor="middle" fill="#fff" class="svg-text-label" font-weight="600">uIP TCP/IP Stack</text>
-<text x="120" y="97" text-anchor="middle" fill="#ddd6fe" class="svg-text-small">uip.c / uip_arp.c</text>
-<rect x="300" y="66" width="420" height="40" class="layer-rect" fill="#f3e8ff" stroke="#d8b4fe"/>
-<text x="510" y="83" text-anchor="middle" fill="#4c1d95" class="svg-text-small">uip_init() / uip_input() / uip_periodic() / uip_arp_*()</text>
-<text x="510" y="97" text-anchor="middle" fill="#6d28d9" class="svg-text-small">timer.c: timer_set() / timer_expired()</text>
-<line x1="210" y1="86" x2="296" y2="86" class="arrow-line" marker-end="url(#arrL)"/>
-<line x1="120" y1="106" x2="120" y2="126" class="arrow-line" marker-end="url(#arrL)"/>
-
-<rect x="30" y="128" width="180" height="40" class="layer-rect" fill="#f59e0b" stroke="#d97706"/>
-<text x="120" y="145" text-anchor="middle" fill="#fff" class="svg-text-label" font-weight="600">Adapter Layer</text>
-<text x="120" y="159" text-anchor="middle" fill="#fef3c7" class="svg-text-small">adapters/uip/</text>
-<rect x="300" y="128" width="420" height="40" class="layer-rect" fill="#fef3c7" stroke="#fcd34d"/>
-<text x="510" y="145" text-anchor="middle" fill="#78350f" class="svg-text-small">dm9051_uip.c: init() / input() / output() / poll()</text>
-<text x="510" y="159" text-anchor="middle" fill="#92400e" class="svg-text-small">dm9051_uip_stack.c: stack_init() / stack_poll() / drain_rx()</text>
-<line x1="210" y1="148" x2="296" y2="148" class="arrow-line" marker-end="url(#arrL)"/>
-<line x1="120" y1="168" x2="120" y2="188" class="arrow-line" marker-end="url(#arrL)"/>
-
-<rect x="30" y="190" width="180" height="40" class="layer-rect" fill="#10b981" stroke="#059669"/>
-<text x="120" y="207" text-anchor="middle" fill="#fff" class="svg-text-label" font-weight="600">DM9051 Core Driver</text>
-<text x="120" y="221" text-anchor="middle" fill="#d1fae5" class="svg-text-small">core/src/</text>
-<rect x="300" y="190" width="420" height="40" class="layer-rect" fill="#d1fae5" stroke="#6ee7b7"/>
-<text x="510" y="207" text-anchor="middle" fill="#065f46" class="svg-text-small">dm9051_core.c: open() / receive_ex() / send() / interrupt_*()</text>
-<text x="510" y="221" text-anchor="middle" fill="#065f46" class="svg-text-small">dm9051_regs.h / dm9051_types.h</text>
-<line x1="210" y1="210" x2="296" y2="210" class="arrow-line" marker-end="url(#arrL)"/>
-<line x1="120" y1="230" x2="120" y2="250" class="arrow-line" marker-end="url(#arrL)"/>
-
-<rect x="30" y="252" width="180" height="40" class="layer-rect" fill="#06b6d4" stroke="#0891b2"/>
-<text x="120" y="269" text-anchor="middle" fill="#fff" class="svg-text-label" font-weight="600">HAL Abstraction</text>
-<text x="120" y="283" text-anchor="middle" fill="#cffafe" class="svg-text-small">hal/inc/</text>
-<rect x="300" y="252" width="420" height="40" class="layer-rect" fill="#cffafe" stroke="#67e8f9"/>
-<text x="510" y="269" text-anchor="middle" fill="#155e75" class="svg-text-small">dm9051_hal.h: struct dm9051_hal_ops</text>
-<text x="510" y="283" text-anchor="middle" fill="#155e75" class="svg-text-small">read_reg / write_reg / read_mem / write_mem / irq / critical</text>
-<line x1="210" y1="272" x2="296" y2="272" class="arrow-line" marker-end="url(#arrL)"/>
-<line x1="120" y1="292" x2="120" y2="312" class="arrow-line" marker-end="url(#arrL)"/>
-
-<rect x="30" y="314" width="180" height="40" class="layer-rect" fill="#f43f5e" stroke="#e11d48"/>
-<text x="120" y="331" text-anchor="middle" fill="#fff" class="svg-text-label" font-weight="600">Platform Port</text>
-<text x="120" y="345" text-anchor="middle" fill="#fecdd3" class="svg-text-small">ports/mh2030a/</text>
-<rect x="300" y="314" width="420" height="40" class="layer-rect" fill="#fecdd3" stroke="#fca5a5"/>
-<text x="510" y="331" text-anchor="middle" fill="#9f1239" class="svg-text-small">dm9051_hal_mh2030a.h: HAL ops vtable binding</text>
-<text x="510" y="345" text-anchor="middle" fill="#9f1239" class="svg-text-small">mh2030a_dm9051_spi.c / spi_dma.c / int.c / board.c</text>
-<line x1="210" y1="334" x2="296" y2="334" class="arrow-line" marker-end="url(#arrL)"/>
-<line x1="120" y1="354" x2="120" y2="374" class="arrow-line" marker-end="url(#arrL)"/>
-
-<rect x="30" y="376" width="180" height="48" class="layer-rect" fill="#475569" stroke="#334155"/>
-<text x="120" y="396" text-anchor="middle" fill="#fff" class="svg-text-label" font-weight="600">MCU Peripheral</text>
-<text x="120" y="414" text-anchor="middle" fill="#cbd5e1" class="svg-text-small">MH20xxLib / CMSIS</text>
-<rect x="300" y="376" width="420" height="48" class="layer-rect" fill="#f1f5f9" stroke="#cbd5e1"/>
-<text x="510" y="393" text-anchor="middle" fill="#334155" class="svg-text-small">MH20xxLib / AT32F403A_407 Standard Peripheral Library</text>
-<text x="510" y="414" text-anchor="middle" fill="#475569" class="svg-text-small">SPI, GPIO, EXTI, DMA, SysTick / CMSIS: core_cm0.h (Cortex-M0)</text>
-<line x1="210" y1="400" x2="296" y2="400" class="arrow-line" marker-end="url(#arrL)"/>
-
-<rect x="30" y="442" width="690" height="22" class="layer-rect" fill="#dbeafe" stroke="#93c5fd"/>
-<text x="375" y="456" text-anchor="middle" fill="#1e40af" class="svg-text-small" font-weight="600">Adapter layer 是唯一同時知道 uIP 和 DM9051 的層級。Core driver 完全不認識 uIP。uIP 完全不認識 DM9051。</text>
-
-<text x="375" y="492" text-anchor="middle" fill="#64748b" class="svg-text-small" font-style="italic">依賴方向: [Application] → [Adapter] → [uIP Stack] + [Core Driver] → [HAL Ops] → [Platform Port] → [MCU Peripheral]</text>
-</svg>
+<div class="svg-container" style="max-width:100%;overflow:auto">
+<img src="mermaid_00_graph.svg" alt="Layer Diagram" style="width:100%;height:auto">
 </div>
 
 <h3>14.2 依賴方向</h3>
@@ -1006,18 +893,18 @@ static int dm9051_core_tx_wait_done(const dm9051_hal_t *hal)
 <h2>15. Sequence Diagram</h2>
 
 <h3>15.1 RX Sequence (Interrupt Mode)</h3>
-<div class="svg-container" style="max-width:760px">
-<img src="diagrams/seq_rx.svg" alt="RX Sequence Diagram (Interrupt Mode)" style="width:100%;height:auto">
+<div class="svg-container" style="max-width:100%;overflow:auto">
+<img src="mermaid_01_sequenceDiagram.svg" alt="RX Sequence Diagram (Interrupt Mode)" style="width:100%;height:auto">
 </div>
 
 <h3>15.2 Init Sequence</h3>
-<div class="svg-container" style="max-width:720px">
-<img src="diagrams/seq_init.svg" alt="Init Sequence Diagram" style="width:100%;height:auto">
+<div class="svg-container" style="max-width:100%;overflow:auto">
+<img src="mermaid_03_sequenceDiagram.svg" alt="Init Sequence Diagram" style="width:100%;height:auto">
 </div>
 
 <h3>15.3 Main Loop + Periodic Sequence</h3>
-<div class="svg-container" style="max-width:720px">
-<img src="diagrams/seq_periodic.svg" alt="Main Loop + Periodic Sequence Diagram" style="width:100%;height:auto">
+<div class="svg-container" style="max-width:100%;overflow:auto">
+<img src="mermaid_02_sequenceDiagram.svg" alt="Main Loop + Periodic Sequence Diagram" style="width:100%;height:auto">
 </div>
 </section>
 
@@ -1159,7 +1046,7 @@ if (toggle && overlay && sidebar) {
   toggle.addEventListener('click', function(e){ e.stopPropagation(); sidebar.classList.toggle('open'); overlay.classList.toggle('open'); });
   overlay.addEventListener('click', function(){ sidebar.classList.remove('open'); overlay.classList.remove('open'); });
   document.addEventListener('click', function(e){ if(window.innerWidth<=991&&!sidebar.contains(e.target)&&!toggle.contains(e.target)){ sidebar.classList.remove('open'); overlay.classList.remove('open'); } });
-}
+});
 
 // Active nav link on scroll
 (function(){
@@ -1187,4 +1074,3 @@ if (toggle && overlay && sidebar) {
 </script>
 </body>
 </html>
-
