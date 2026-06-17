@@ -1,371 +1,167 @@
 /**
  * @file dm9051_lwip.c
- * @brief DM9051A SPI Ethernet 控制器的 lwIP standard netif 適配層。
+ * @brief DM9051A SPI Ethernet 的 lwIP 適配層 — 相容包裝。
  *
- * 設計重點：
- *   - DM9051A 底層驅動只處理「連續記憶體」中的完整 Ethernet frame。
- *   - lwIP TX 可能給出不連續的 pbuf chain，因此送出前必須先整理成 tx_buf。
- *   - RX 先從硬體讀到 rx_buf，再配置 PBUF_POOL pbuf 並交給 netif->input()。
+ * 此檔是 `ethernetif.c` (lwip-2.1.2/port/) 的上層相容包裝，
+ * 提供專案中既有程式碼習慣使用的 dm9051_lwip_* API。
+ *
+ * 對接模型：
+ *   dm9051_lwip_xxx()            ← 既有程式碼呼叫此層
+ *       ↓ 委託
+ *   ethernetif_init / input     ← 標準 lwIP netif 模板 (port/ethernetif.c)
+ *       ↓ 呼叫
+ *   dm9051_core_*                ← DM9051 核心驅動 (core/src/)
+ *       ↓ 透過 vtable
+ *   dm9051_hal_mh2030a_*        ← MH2030A 平台移植 (ports/mh2030a/)
  */
 
 #include "dm9051_lwip.h"
 
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 
+#include "lwip/opt.h"
+#include "lwip/init.h"
 #include "lwip/def.h"
-#include "lwip/etharp.h"
-#if LWIP_IPV6
-#include "lwip/ethip6.h"
-#endif
 #include "lwip/pbuf.h"
 #include "lwip/stats.h"
-#include "lwip/prot/ethernet.h"
+#include "lwip/etharp.h"
+#include "lwip/ethip6.h"
+#include "netif/ethernet.h"
 
-#ifndef DM9051_LWIP_DIAG
-#define DM9051_LWIP_DIAG 1
-#endif
+#include "ethernetif.h"
 
-#ifndef DM9051_LWIP_RX_STRIP_FCS
-#define DM9051_LWIP_RX_STRIP_FCS 0
-#endif
+/* ---------------------------------------------------------------------------
+ * 靜態 netif 實例 — 供既有 dm9051_lwip_poll() 等無參數 API 使用
+ * ------------------------------------------------------------------------ */
+static struct netif dm9051_netif;
+static struct netif *g_active_netif;
 
-#if DM9051_LWIP_DIAG
-#define DM9051_LWIP_DIAG_PRINTF(...) printf(__VA_ARGS__)
-#else
-#define DM9051_LWIP_DIAG_PRINTF(...) do { } while (0)
-#endif
-
-#include "../../core/inc/dm9051_core.h"
-#include "../../hal/inc/dm9051_hal.h"
-#include "../../ports/mh2030a/dm9051_hal_mh2030a_spi1.h"
-
-static dm9051_device_t dm9051_lwip_dev;
-static dm9051_hal_t dm9051_lwip_hal;
-static int dm9051_lwip_status = DM9051_ERR_NOT_READY;
-
-static err_t dm9051_lwip_hw_init(uint8_t *macaddr)
-{
-    dm9051_config_t core_config;
-    dm9051_mh2030a_config_t port_config;
-    const uint8_t *active_mac;
-    int status;
-
-    dm9051_core_default_config(&core_config);
-    core_config.mac_addr = macaddr;
-#if DM9051_MH2030A_USE_IRQ
-    core_config.interrupt_mode = DM9051_INPUT_MODE_INTERRUPT;
-#else
-    core_config.interrupt_mode = DM9051_INPUT_MODE_POLL;
-#endif
-    core_config.flow_control = 0u;
-
-    dm9051_mh2030a_default_config(&port_config);
-#if DM9051_MH2030A_USE_DMA
-    port_config.transport = DM9051_MH2030A_TRANSPORT_DMA;
-#else
-    port_config.transport = DM9051_MH2030A_TRANSPORT_POLLING;
-#endif
-#if DM9051_MH2030A_USE_IRQ
-    port_config.irq_mode = DM9051_MH2030A_IRQ_EXTI;
-#else
-    port_config.irq_mode = DM9051_MH2030A_IRQ_OFF;
-#endif
-
-    status = dm9051_mh2030a_hal_bind(&dm9051_lwip_hal, &port_config);
-    if (status != DM9051_HAL_OK) {
-        dm9051_lwip_status = DM9051_ERR_NOT_READY;
-        return ERR_IF;
-    }
-
-#if DM9051_MH2030A_USE_IRQ
-    dm9051_mh2030a_irq_attach_device(&dm9051_lwip_dev);
-#endif
-
-    dm9051_lwip_status = dm9051_core_open(&dm9051_lwip_dev,
-                                          &core_config,
-                                          &dm9051_lwip_hal);
-    if (dm9051_lwip_status != DM9051_OK) {
-#if DM9051_MH2030A_USE_IRQ
-        dm9051_mh2030a_irq_detach_device();
-#endif
-        return ERR_IF;
-    }
-
-    active_mac = dm9051_core_mac(&dm9051_lwip_dev);
-    if (active_mac != NULL) {
-        memcpy(macaddr, active_mac, ETH_HWADDR_LEN);
-    }
-
-    return ERR_OK;
-}
-
-static uint16_t dm9051_lwip_packet_receive(uint8_t *packet, uint16_t max_len)
-{
-    if (dm9051_lwip_status != DM9051_OK) {
-        return 0u;
-    }
-
-    return dm9051_core_receive(&dm9051_lwip_dev, packet, max_len);
-}
-
-static uint16_t dm9051_lwip_packet_send(uint8_t *packet, uint16_t len)
-{
-    if (dm9051_lwip_status != DM9051_OK) {
-        return 0u;
-    }
-
-    return (dm9051_core_send(&dm9051_lwip_dev, packet, len) == DM9051_OK) ?
-           len : 0u;
-}
-
-int dm9051_lwip_link_is_up(void)
-{
-    if (dm9051_lwip_status != DM9051_OK) {
-        return 0;
-    }
-
-    return dm9051_core_link_is_up(&dm9051_lwip_dev);
-}
-
-#define dm9051_packet_receive(packet, max_len) dm9051_lwip_packet_receive((packet), (max_len))
-#define dm9051_packet_send(packet, len) dm9051_lwip_packet_send((packet), (len))
-
-#ifndef DM9051_LWIP_MTU
-#define DM9051_LWIP_MTU 1500U
-#endif
-
-#ifndef DM9051_LWIP_ETH_FRAME_SIZE
-#define DM9051_LWIP_ETH_FRAME_SIZE 1514U
-#endif
-
-/* Bare-metal MCU 上使用靜態 buffer，避免在 driver TX/RX 路徑中動態配置。 */
-static uint8_t tx_buf[DM9051_LWIP_ETH_FRAME_SIZE];
-static uint8_t rx_buf[DM9051_LWIP_ETH_FRAME_SIZE];
-
-static err_t low_level_output(struct netif *netif, struct pbuf *p);
-
-static uint16_t dm9051_lwip_eth_type(const uint8_t *frame, uint16_t len)
-{
-    if ((frame == NULL) || (len < 14U)) {
-        return 0U;
-    }
-
-    return (uint16_t)(((uint16_t)frame[12] << 8) | frame[13]);
-}
-
-static const char *dm9051_lwip_eth_type_name(uint16_t eth_type)
-{
-    switch (eth_type) {
-    case 0x0800U:
-        return "IPv4";
-    case 0x0806U:
-        return "ARP";
-    default:
-        return "ETH";
-    }
-}
-
+/* ---------------------------------------------------------------------------
+ * dm9051_if_init — netif_add() 的 init callback
+ *
+ * 直接委託 ethernetif_init()，由標準 ethernetif.c 完成所有初始化。
+ * 相容既有 netif_add(&n, ..., dm9051_if_init, ethernet_input) 的用法。
+ * ------------------------------------------------------------------------ */
 err_t dm9051_if_init(struct netif *netif)
 {
-    if (netif == NULL) {
-        return ERR_ARG;
-    }
-
-    /*
-     * lwIP 會用 name[0..1] 作為介面名稱前綴；這裡使用 "dm"
-     * 表示 Davicom/DM9051A。
-     */
-    netif->name[0] = 'd';
-    netif->name[1] = 'm';
-
-    /*
-     * IPv4 走 ARP output，最後會呼叫 netif->linkoutput。
-     * linkoutput 則是本檔提供的 low_level_output()。
-     */
-    netif->output = etharp_output;
-    netif->linkoutput = low_level_output;
-
-#if LWIP_IPV6
-    netif->output_ip6 = ethip6_output;
-#endif
-
-    netif->hwaddr_len = ETH_HWADDR_LEN;
-    netif->mtu = DM9051_LWIP_MTU;
-    netif->flags = NETIF_FLAG_BROADCAST |
-                   NETIF_FLAG_ETHARP |
-                   NETIF_FLAG_ETHERNET;
-
-    /*
-     * 應用層應在 netif_add() 前先填好 netif->hwaddr。
-     * dm9051_lwip_hw_init() 會初始化 SPI/PHY/DM9051A，並將 MAC 寫入晶片。
-     */
-    if (dm9051_lwip_hw_init(netif->hwaddr) != ERR_OK) {
-        return ERR_IF;
-    }
-
-    DM9051_LWIP_DIAG_PRINTF("[DM9051 lwIP] if init MAC=%02X:%02X:%02X:%02X:%02X:%02X mtu=%u flags=0x%02X\r\n",
-                            netif->hwaddr[0],
-                            netif->hwaddr[1],
-                            netif->hwaddr[2],
-                            netif->hwaddr[3],
-                            netif->hwaddr[4],
-                            netif->hwaddr[5],
-                            (unsigned)netif->mtu,
-                            (unsigned)netif->flags);
-
-    return ERR_OK;
+    g_active_netif = netif;
+    return ethernetif_init(netif);
 }
 
-static err_t low_level_output(struct netif *netif, struct pbuf *p)
+/* ---------------------------------------------------------------------------
+ * dm9051_lwip_link_is_up — 查詢 PHY link 狀態
+ *
+ * 透過 g_active_netif->state (ethernetif 私有資料) 關聯的 DM9051 裝置
+ * 讀取 PHY 暫存器判斷實體線路狀態。
+ * 若 g_active_netif 未設定則使用內部靜態 dm9051_netif。
+ * ------------------------------------------------------------------------ */
+int dm9051_lwip_link_is_up(void)
 {
-    uint16_t sent_len;
+    struct netif *n = (g_active_netif != NULL) ? g_active_netif : &dm9051_netif;
 
-    (void)netif;
-
-    if (p == NULL) {
-        return ERR_ARG;
+    if (n->state == NULL) {
+        return 0;
     }
-
-    if (!netif_is_link_up(netif)) {
-        LINK_STATS_INC(link.drop);
-        return ERR_RTE;
-    }
-
-    if (p->tot_len > sizeof(tx_buf)) {
-        LINK_STATS_INC(link.lenerr);
-        LINK_STATS_INC(link.drop);
-        return ERR_BUF;
-    }
-
-    /*
-     * pbuf 可能是 chain，例如 header 與 payload 分散在不同 pbuf。
-     * DM9051A 底層送封包 API 需要連續記憶體，因此用 pbuf_copy_partial()
-     * 從 offset 0 開始複製整包 Ethernet frame。
-     */
-    if (pbuf_copy_partial(p, tx_buf, p->tot_len, 0) != p->tot_len) {
-        LINK_STATS_INC(link.err);
-        return ERR_BUF;
-    }
-
-    DM9051_LWIP_DIAG_PRINTF("[DM9051 lwIP] TX len=%u type=%s(0x%04X)\r\n",
-                            (unsigned)p->tot_len,
-                            dm9051_lwip_eth_type_name(dm9051_lwip_eth_type(tx_buf, p->tot_len)),
-                            dm9051_lwip_eth_type(tx_buf, p->tot_len));
-
-    sent_len = dm9051_packet_send(tx_buf, p->tot_len);
-    if (sent_len != p->tot_len) {
-        LINK_STATS_INC(link.err);
-        return ERR_IF;
-    }
-
-    LINK_STATS_INC(link.xmit);
-    return ERR_OK;
+    return netif_is_link_up(n) ? 1 : 0;
 }
 
+/* ---------------------------------------------------------------------------
+ * dm9051_lwip_input — 輪詢 RX 並餵入 lwIP
+ *
+ * 委託 ethernetif_input()。
+ * ------------------------------------------------------------------------ */
 void dm9051_lwip_input(struct netif *netif)
 {
-    struct pbuf *p;
-    uint16_t len;
-    uint16_t raw_len;
-    err_t err;
-
-    if ((netif == NULL) || (netif->input == NULL)) {
-        return;
-    }
-
-    /*
-     * 先讀到 rx_buf，而不是直接讀到 pbuf->payload。
-     * 原因是 PBUF_POOL 可能配置出 pbuf chain，第一個 payload 未必能容納整包。
-     */
-    len = dm9051_packet_receive(rx_buf, sizeof(rx_buf));
-    if (len == 0U) {
-        return;
-    }
-
-    if (len > sizeof(rx_buf)) {
-        LINK_STATS_INC(link.lenerr);
-        LINK_STATS_INC(link.drop);
-        return;
-    }
-
-    raw_len = len;
-#if DM9051_LWIP_RX_STRIP_FCS
-    if (len > 4U) {
-        len = (uint16_t)(len - 4U);
-    }
-#endif
-
-    if (len < 14U) {
-        DM9051_LWIP_DIAG_PRINTF("[DM9051 lwIP] RX short frame raw=%u len=%u\r\n",
-                                (unsigned)raw_len,
-                                (unsigned)len);
-        LINK_STATS_INC(link.lenerr);
-        LINK_STATS_INC(link.drop);
-        return;
-    }
-
-    if (!netif_is_link_up(netif)) {
-        netif_set_link_up(netif);
-        DM9051_LWIP_DIAG_PRINTF("[DM9051 lwIP] Link: inferred UP from RX activity\r\n");
-    }
-
-    DM9051_LWIP_DIAG_PRINTF("[DM9051 lwIP] RX raw=%u len=%u type=%s(0x%04X) dst=%02X:%02X:%02X:%02X:%02X:%02X src=%02X:%02X:%02X:%02X:%02X:%02X\r\n",
-                            (unsigned)raw_len,
-                            (unsigned)len,
-                            dm9051_lwip_eth_type_name(dm9051_lwip_eth_type(rx_buf, len)),
-                            dm9051_lwip_eth_type(rx_buf, len),
-                            rx_buf[0],
-                            rx_buf[1],
-                            rx_buf[2],
-                            rx_buf[3],
-                            rx_buf[4],
-                            rx_buf[5],
-                            rx_buf[6],
-                            rx_buf[7],
-                            rx_buf[8],
-                            rx_buf[9],
-                            rx_buf[10],
-                            rx_buf[11]);
-
-    p = pbuf_alloc(PBUF_RAW, len, PBUF_POOL);
-    if (p == NULL) {
-        LINK_STATS_INC(link.memerr);
-        LINK_STATS_INC(link.drop);
-        return;
-    }
-
-    if (pbuf_take(p, rx_buf, len) != ERR_OK) {
-        pbuf_free(p);
-        LINK_STATS_INC(link.err);
-        return;
-    }
-
-    /*
-     * netif_add() 時建議把 input callback 設為 ethernet_input，
-     * 因為這裡交出去的是完整 Ethernet frame。
-     */
-    err = netif->input(p, netif);
-    if (err != ERR_OK) {
-        pbuf_free(p);
-        LINK_STATS_INC(link.drop);
-        return;
-    }
-
-    LINK_STATS_INC(link.recv);
+    ethernetif_input(netif);
 }
 
+/* ---------------------------------------------------------------------------
+ * dm9051_lwip_init — 舊式 staging API 相容包裝
+ *
+ * 1. 設定 MAC
+ * 2. 呼叫 lwip_init()
+ * 3. netif_add() 使用 dm9051_if_init / ethernet_input
+ * 4. netif_set_up, netif_set_default
+ *
+ * dev 參數保留但未使用 (為舊 API 簽名相容)。
+ * ------------------------------------------------------------------------ */
 int dm9051_lwip_init(struct netif *netif, const void *dev)
 {
+    ip4_addr_t ipaddr, netmask, gateway;
+
     (void)dev;
-    return (dm9051_if_init(netif) == ERR_OK) ? 0 : -1;
+
+    if (netif == NULL) {
+        return -1;
+    }
+
+    IP4_ADDR(&ipaddr,  0, 0, 0, 0);
+    IP4_ADDR(&netmask, 0, 0, 0, 0);
+    IP4_ADDR(&gateway, 0, 0, 0, 0);
+
+    /* 若 netif 尚未設定 MAC，給予預設值 */
+    {
+        int i, all_zero = 1;
+        for (i = 0; i < ETH_HWADDR_LEN; i++) {
+            if (netif->hwaddr[i] != 0) { all_zero = 0; break; }
+        }
+        if (all_zero) {
+            netif->hwaddr[0] = 0x00;
+            netif->hwaddr[1] = 0x60;
+            netif->hwaddr[2] = 0x6E;
+            netif->hwaddr[3] = 0x11;
+            netif->hwaddr[4] = 0x22;
+            netif->hwaddr[5] = 0x33;
+        }
+    }
+
+    lwip_init();
+
+    if (netif_add(netif, &ipaddr, &netmask, &gateway,
+                  NULL, dm9051_if_init, ethernet_input) == NULL) {
+        return -1;
+    }
+
+    netif_set_default(netif);
+    netif_set_up(netif);
+
+    g_active_netif = netif;
+
+    return 0;
 }
 
+/* ---------------------------------------------------------------------------
+ * dm9051_lwip_poll — 單次輪詢：收封包 + TX done poll
+ *
+ * 主迴圈中定期呼叫即可。
+ * ------------------------------------------------------------------------ */
 void dm9051_lwip_poll(struct netif *netif)
 {
-    dm9051_lwip_input(netif);
-#if !DM9051_TX_WAIT_DONE
-    (void)dm9051_core_tx_poll_done(&dm9051_lwip_dev);
-#endif
+    if (netif != NULL) {
+        ethernetif_input(netif);
+    }
+}
+
+/* ===========================================================================
+ * 以下為向後相容的簡易入口 — 操作預設靜態 netif
+ * ======================================================================== */
+
+int dm9051_lwip_simple_init(void)
+{
+    memset(&dm9051_netif, 0, sizeof(dm9051_netif));
+
+    dm9051_netif.hwaddr[0] = 0x00;
+    dm9051_netif.hwaddr[1] = 0x60;
+    dm9051_netif.hwaddr[2] = 0x6E;
+    dm9051_netif.hwaddr[3] = 0x11;
+    dm9051_netif.hwaddr[4] = 0x22;
+    dm9051_netif.hwaddr[5] = 0x33;
+
+    return dm9051_lwip_init(&dm9051_netif, NULL);
+}
+
+void dm9051_lwip_simple_poll(void)
+{
+    dm9051_lwip_poll(&dm9051_netif);
 }

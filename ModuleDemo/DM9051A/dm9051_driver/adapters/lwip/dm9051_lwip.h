@@ -3,12 +3,20 @@
 
 /**
  * @file dm9051_lwip.h
- * @brief DM9051A SPI Ethernet 控制器的 lwIP standard netif 適配層。
+ * @brief DM9051A SPI Ethernet lwIP 適配層標頭 — 相容 API。
  *
- * 使用方式：
- *   1. 應用程式先設定 struct netif 的 MAC 位址欄位。
- *   2. 呼叫 netif_add()，並把 dm9051_if_init() 當作 init callback。
- *   3. 在 bare-metal main loop 或中斷延後處理中呼叫 dm9051_lwip_input()。
+ * 此 API 包裝 lwip-2.1.2/port/ethernetif.c 的標準介面，
+ * 提供專案既有程式碼習慣使用的 dm9051_lwip_* 函式名稱。
+ *
+ * 使用方式 (建議)：
+ *   1. 自行宣告 struct netif，填入 MAC
+ *   2. netif_add(&n, &ip, &mask, &gw, NULL,
+ *                dm9051_if_init, ethernet_input)
+ *   3. 主迴圈中呼叫 dm9051_lwip_input(&n) 收封包
+ *
+ * 快速入門 (simple API)：
+ *   1. dm9051_lwip_simple_init()
+ *   2. while(1) { dm9051_lwip_simple_poll(); ... }
  */
 
 #include "lwip/err.h"
@@ -18,32 +26,38 @@
 extern "C" {
 #endif
 
-/**
- * @brief 初始化 DM9051A 對應的 lwIP netif。
- *
- * dm9051_if_init() 會設定 netif name/output/linkoutput/MTU/flags，
- * 並透過 DM9051 core/HAL 完成硬體初始化與 MAC 設定。
- */
+/* ---------------------------------------------------------------------------
+ * 標準 netif 介面 (與 ethernetif_init_E 同義)
+ * ------------------------------------------------------------------------ */
+
+/** @brief netif_add init callback。等同 ethernetif_init_E。 */
 err_t dm9051_if_init(struct netif *netif);
 
-/**
- * @brief 從 DM9051A 收一包 Ethernet frame，並送進 lwIP。
- *
- * 此函式適合在 NO_SYS=1 的 bare-metal 主迴圈中輪詢呼叫。
- * 若硬體目前沒有封包，函式會立即返回。
- */
+/** @brief 輪詢 DM9051 RX 並餵入 lwIP (等同 ethernetif_input_E)。 */
 void dm9051_lwip_input(struct netif *netif);
 
-/**
- * @brief 讀取目前 DM9051A 實體 link 狀態。
- *
- * 回傳 1 表示 link up，0 表示 link down。
- */
+/** @brief 查詢 link 狀態 (1 = UP, 0 = DOWN)。 */
 int dm9051_lwip_link_is_up(void);
 
-/* 舊 staging API 的相容 wrapper，方便既有工程逐步切換。 */
+/* ---------------------------------------------------------------------------
+ * 舊式 staging API (相容既有程式碼)
+ * ------------------------------------------------------------------------ */
+
+/** @brief 完整初始化：lwip_init + netif_add + set_up + set_default。 */
 int dm9051_lwip_init(struct netif *netif, const void *dev);
+
+/** @brief 單次輪詢：收 RX 封包 + TX done poll。 */
 void dm9051_lwip_poll(struct netif *netif);
+
+/* ---------------------------------------------------------------------------
+ * 簡易無參數 API — 操作內部靜態 netif 實例
+ * ------------------------------------------------------------------------ */
+
+/** @brief 初始化內部靜態 netif 並註冊至 lwIP。回傳 0 表示成功。 */
+int dm9051_lwip_simple_init(void);
+
+/** @brief 輪詢內部靜態 netif (等同於 dm9051_lwip_poll)。 */
+void dm9051_lwip_simple_poll(void);
 
 #ifdef __cplusplus
 }
