@@ -77,17 +77,6 @@
 #define ETHERNETIF_ETH_FRAME_SIZE   1514U   /* 14 header + 1500 payload */
 
 /* ---------------------------------------------------------------------------
- * 每個 netif 的私有資料
- * 以 netif->state 指向此結構。
- * ------------------------------------------------------------------------ */
-struct ethernetif {
-    dm9051_device_t dev;            /* DM9051 裝置實例 */
-    dm9051_hal_t    hal;            /* HAL vtable + context */
-    uint8_t         rx_buf[ETHERNETIF_ETH_FRAME_SIZE]; /* RX 連續暫存區 */
-    uint8_t         tx_buf[ETHERNETIF_ETH_FRAME_SIZE]; /* TX 連續暫存區 */
-};
-
-/* ---------------------------------------------------------------------------
  * Ethernet frame type 偵測 (僅供 diag)
  * ------------------------------------------------------------------------ */
 static uint16_t eth_type(const uint8_t *frame, uint16_t len)
@@ -367,15 +356,29 @@ err_t ethernetif_input(struct netif *netif)
 /* ---------------------------------------------------------------------------
  * ethernetif_update_config — link 狀態變更回呼
  *
- * 可在此處理 IP 重新獲取或路由更新。
+ * 實際輪詢 PHY 硬體 (DM9051 NSR 暫存器 bit 6 LINKST) 並同步 lwIP 旗標。
  * 透過 netif_set_link_callback(netif, ethernetif_update_config) 註冊。
  * ------------------------------------------------------------------------ */
 void ethernetif_update_config(struct netif *netif)
 {
-    if (netif_is_link_up(netif)) {
-        ETHERNETIF_PRINTF("[etherif] Link UP\r\n");
+    struct ethernetif *eth = (struct ethernetif *)netif->state;
+    int link_up = 0;
+
+    if (eth != NULL) {
+        /* 真正讀取 DM9051 PHY 狀態 (NSR bit 6) */
+        link_up = dm9051_core_link_is_up(&eth->dev);
+    }
+
+    if (link_up) {
+        if (!netif_is_link_up(netif)) {
+            netif_set_link_up(netif);
+            ETHERNETIF_PRINTF("[etherif] Link UP (PHY polled)\r\n");
+        }
     } else {
-        ETHERNETIF_PRINTF("[etherif] Link DOWN\r\n");
+        if (netif_is_link_up(netif)) {
+            netif_set_link_down(netif);
+            ETHERNETIF_PRINTF("[etherif] Link DOWN (PHY polled)\r\n");
+        }
     }
 }
 

@@ -29,47 +29,25 @@
 
 static struct netif g_dm9051_netif;
 
-#define DM9051_LINK_DETECTION_INTERVAL_MS 500U
+#define DM9051_LINK_POLL_INTERVAL_MS 500U
 
-static void dm9051_lwip_link_update(struct netif *netif)
+static void dm9051_lwip_link_poll_wrapper(struct netif *netif)
 {
-    static int last_link_state = -1;
-    static u32_t last_link_check_ms;
-    static int first_link_check = 1;
+    static u32_t last_link_poll_ms;
     u32_t now_ms;
-    int link_up;
 
     if (netif == NULL) {
         return;
     }
 
     now_ms = sys_now();
-    if ((first_link_check == 0) &&
-        ((u32_t)(now_ms - last_link_check_ms) < DM9051_LINK_DETECTION_INTERVAL_MS) &&
-        (now_ms >= last_link_check_ms)) {
+    if ((u32_t)(now_ms - last_link_poll_ms) < DM9051_LINK_POLL_INTERVAL_MS) {
         return;
     }
+    last_link_poll_ms = now_ms;
 
-    first_link_check = 0;
-    last_link_check_ms = now_ms;
-
-    link_up = dm9051_lwip_link_is_up();
-    if (link_up == last_link_state) {
-        return;
-    }
-
-    if (link_up != 0) {
-        netif_set_link_up(netif);
-    } else {
-        netif_set_link_down(netif);
-    }
-
-    printf("[DM9051 lwIP] Link: State changed from %s to %s\r\n",
-           (last_link_state == 1) ? "UP" :
-           (last_link_state == 0) ? "DOWN" : "UNKNOWN",
-           link_up ? "UP" : "DOWN");
-
-    last_link_state = link_up ? 1 : 0;
+    /* 使用新的適配層 link poll 函式，會自動觸發 link callback */
+    dm9051_lwip_link_poll(netif);
 }
 
 static void platform_init(void)
@@ -143,7 +121,7 @@ static void network_init(void)
     }
 
     netif_set_default(&g_dm9051_netif);
-    dm9051_lwip_link_update(&g_dm9051_netif);
+    dm9051_lwip_link_poll_wrapper(&g_dm9051_netif);
     netif_set_up(&g_dm9051_netif);
 
     printf("[DM9051 lwIP] netif up IP=%u.%u.%u.%u mask=%u.%u.%u.%u gw=%u.%u.%u.%u\r\n",
@@ -178,7 +156,7 @@ int main(void)
     network_init();
 
     while (1) {
-        dm9051_lwip_link_update(&g_dm9051_netif);
+        dm9051_lwip_link_poll_wrapper(&g_dm9051_netif);
 
         /*
          * 1. 輪詢 DM9051A RX，收到封包後交給 lwIP。

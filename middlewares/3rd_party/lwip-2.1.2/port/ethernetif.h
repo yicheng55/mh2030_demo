@@ -9,12 +9,31 @@
  * 以及一組便捷註冊輔助函式供 demo / 快速原型使用。
  */
 
+#include <stdint.h>
+
 #include "lwip/err.h"
 #include "lwip/netif.h"
+
+/*
+ * DM9051 types + HAL 的相對路徑。
+ * 如果 Keil 的 Include Paths 已涵蓋則自動忽略；這裡確保 header 可獨立使用。
+ */
+#include "../../../../ModuleDemo/DM9051A/dm9051_driver/core/inc/dm9051_types.h"
+#include "../../../../ModuleDemo/DM9051A/dm9051_driver/hal/inc/dm9051_hal.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* ---------------------------------------------------------------------------
+ * 每個 netif 的私有資料 — 儲存在 netif->state 中
+ * ------------------------------------------------------------------------ */
+struct ethernetif {
+    dm9051_device_t dev;
+    dm9051_hal_t    hal;
+    uint8_t         rx_buf[1514];
+    uint8_t         tx_buf[1514];
+};
 
 /* ---------------------------------------------------------------------------
  * 標準 netif 介面 (適用於進階用法: 自行管理 netif 實例)

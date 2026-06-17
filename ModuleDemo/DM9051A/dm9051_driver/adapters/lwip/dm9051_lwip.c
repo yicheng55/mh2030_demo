@@ -31,6 +31,11 @@
 
 #include "ethernetif.h"
 
+/* DM9051 Core driver headers */
+#include "../../../../ModuleDemo/DM9051A/dm9051_driver/core/inc/dm9051_core.h"
+#include "../../../../ModuleDemo/DM9051A/dm9051_driver/hal/inc/dm9051_hal.h"
+#include "../../../../ModuleDemo/DM9051A/dm9051_driver/ports/mh2030a/dm9051_hal_mh2030a_spi1.h"
+
 /* ---------------------------------------------------------------------------
  * 靜態 netif 實例 — 供既有 dm9051_lwip_poll() 等無參數 API 使用
  * ------------------------------------------------------------------------ */
@@ -143,6 +148,38 @@ void dm9051_lwip_poll(struct netif *netif)
     }
 }
 
+/* ---------------------------------------------------------------------------
+ * dm9051_lwip_link_poll — 輪詢 PHY link 狀態並同步 lwIP 旗標
+ *
+ * 主迴圈中定期呼叫 (建議 100-500ms 間隔)，偵測實體網路連線狀態變化。
+ * 內部會讀取 DM9051 NSR 暫存器 bit 6 (LINKST)，並呼叫 netif_set_link_up/down，
+ * 進而觸發已註冊的 link callback (ethernetif_update_config)。
+ * ------------------------------------------------------------------------ */
+void dm9051_lwip_link_poll(struct netif *netif)
+{
+    struct ethernetif *eth;
+    int link_up;
+
+    if (netif == NULL || netif->state == NULL) {
+        return;
+    }
+
+    eth = (struct ethernetif *)netif->state;
+
+    /* 真正讀取 DM9051 PHY 狀態 (NSR bit 6) */
+    link_up = dm9051_core_link_is_up(&eth->dev);
+
+    if (link_up) {
+        if (!netif_is_link_up(netif)) {
+            netif_set_link_up(netif);
+        }
+    } else {
+        if (netif_is_link_up(netif)) {
+            netif_set_link_down(netif);
+        }
+    }
+}
+
 /* ===========================================================================
  * 以下為向後相容的簡易入口 — 操作預設靜態 netif
  * ======================================================================== */
@@ -164,4 +201,10 @@ int dm9051_lwip_simple_init(void)
 void dm9051_lwip_simple_poll(void)
 {
     dm9051_lwip_poll(&dm9051_netif);
+}
+
+/** @brief 簡易版 link poll：輪詢內部靜態 netif 的 PHY link 狀態。 */
+void dm9051_lwip_simple_link_poll(void)
+{
+    dm9051_lwip_link_poll(&dm9051_netif);
 }

@@ -49,6 +49,9 @@ int dm9051_lwip_init(struct netif *netif, const void *dev);
 /** @brief 單次輪詢：收 RX 封包 + TX done poll。 */
 void dm9051_lwip_poll(struct netif *netif);
 
+/** @brief 輪詢 PHY link 狀態並同步 lwIP 旗標 (建議 100-500ms 週期呼叫)。 */
+void dm9051_lwip_link_poll(struct netif *netif);
+
 /* ---------------------------------------------------------------------------
  * 簡易無參數 API — 操作內部靜態 netif 實例
  * ------------------------------------------------------------------------ */
@@ -58,6 +61,9 @@ int dm9051_lwip_simple_init(void);
 
 /** @brief 輪詢內部靜態 netif (等同於 dm9051_lwip_poll)。 */
 void dm9051_lwip_simple_poll(void);
+
+/** @brief 簡易版 link poll：輪詢內部靜態 netif 的 PHY link 狀態。 */
+void dm9051_lwip_simple_link_poll(void);
 
 #ifdef __cplusplus
 }
