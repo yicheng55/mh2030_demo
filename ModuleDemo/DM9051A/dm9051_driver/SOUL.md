@@ -17,7 +17,7 @@
 
 ---
 
-## 核心哲學：分層與契約
+## 核心哲學：分層與介面
 
 ### 四層架構 (嚴格單向依賴)
 
@@ -128,7 +128,7 @@ typedef struct dm9051_hal_ops {
 
 ### 2. 可驗證性 > 假設正確
 
-- 每層都有 **契約文件** (HAL_CONTRACT, API_BOUNDARY, STATE_MODEL)
+- 每層都有 **介面文件** (HAL_CONTRACT, API_BOUNDARY, STATE_MODEL)
 - Staged 專案可獨立編譯、獨立燒錄、獨立測試
 - Smoke test (`main_uip_mh2030a_smoke.c`) 只做：開機 → Chip ID → Link → 收發一包
 - 複雜功能 (DMA、IRQ、lwIP) 逐層啟用，各自有獨立驗證入口
@@ -156,7 +156,7 @@ typedef struct dm9051_hal_ops {
 | **核心型別** | `core/inc/dm9051_types.h` | `dm9051_device_t`、config、error codes |
 | **核心暫存器** | `core/inc/dm9051_regs.h` | DM9051A 所有暫存器定義 |
 | **核心實作** | `core/src/dm9051_core.c` | 開關機、收發、PHY、中斷狀態 |
-| **HAL 契約** | `hal/inc/dm9051_hal.h` | vtable 定義、錯誤碼 |
+| **HAL 介面** | `hal/inc/dm9051_hal.h` | vtable 定義、錯誤碼 |
 | **MH2030A Polling** | `ports/mh2030a/dm9051_hal_mh2030a_spi1.c/h` | SPI1 polling 實作 |
 | **MH2030A DMA** | `ports/mh2030a/dm9051_hal_mh2030a_spi1_dma.c/h` | DMA FIFO (進行中) |
 | **MH2030A IRQ** | `ports/mh2030a/dm9051_hal_mh2030a_int.c/h` | PF6/EXTI6 事件轉發 |
@@ -172,7 +172,7 @@ typedef struct dm9051_hal_ops {
 ## 開發工作流 (Soul-level)
 
 ```
-1. 閱讀契約 → 2. 寫測試/驗證入口 → 3. 實作最小可行 → 4. 在 staged 專案跑通
+1. 閱讀介面 → 2. 寫測試/驗證入口 → 3. 實作最小可行 → 4. 在 staged 專案跑通
                                                     ↓
 5. 文件同步更新 (HAL_CONTRACT / STATE_MODEL / API_BOUNDARY)
                                                     ↓
@@ -191,10 +191,10 @@ typedef struct dm9051_hal_ops {
 
 > 這專案不是為了「重構而重構」。它是為了**下一顆 MCU、下一個堆疊、下一個專案**不再從頭寫起。
 >
-> 當你在 `ports/` 裡加新 MCU 時，如果發現 core 需要改 — 代表契約不夠完整，請先補契約。
+> 當你在 `ports/` 裡加新 MCU 時，如果發現 core 需要改 — 代表介面不夠完整，請先補介面。
 > 當你在 `adapters/` 裡加新堆疊時，如果發現 core 需要改 — 代表核心職責外洩，請修正分層。
 >
-> **分層是自由的代價，契約是自由的保證。**
+> **分層是自由的代價，介面是自由的保證。**
 
 ---
 
