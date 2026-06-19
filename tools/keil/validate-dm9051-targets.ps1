@@ -2,6 +2,13 @@ param(
     [string]$ProjectFile = "ModuleDemo/DM9051A/USER/DM9051A.uvprojx"
 )
 
+# Which targets are expected in which project file
+$projectTargets = @{
+    "DM9051A.uvprojx" = @("DM9051A", "DM9051A_SPI_DMA", "MH2030A_DM9051_uIP", "MH2030A_DM9051_uIP_dma", "MH2030A_DM9051_uIP_int", "AT32F403A_DM9051")
+    "DM9051A_uip.uvprojx" = @("MH2030A_DM9051_uIP", "AT32F403A_DM9051_uIP")
+    "DM9051A_lwip.uvprojx" = @("MH2030A_DM9051_uIP", "MH2030A_DM9051_LWIP", "AT32F403A_DM9051_LWIP")
+}
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
@@ -69,6 +76,64 @@ $expected = @{
             "mh2030a_dm9051_int.c" = 1
         }
     }
+    "AT32F403A_DM9051" = @{
+        OutputDir = "..\OBJ_AT32F403A\"
+        Define = "USE_STDPERIPH_DRIVER,DM9051_AT32F403A_DIAG=1,DM9051_TX_WAIT_DONE=1,DM9051_AT32F403A_USE_DMA=1,DM9051_AT32F403A_USE_IRQ=1"
+        Files = @{
+            "main.c" = 0
+            "main_uip_mh2030a.c" = 0
+            "mh2030a_dm9051_spi.c" = 0
+            "mh2030a_dm9051_spi_dma.c" = 0
+            "mh2030a_dm9051_int.c" = 0
+            "mh20xx_it.c" = 0
+            "system_mh20xx.c" = 0
+            "startup_mh20xx.s" = 0
+            "delay.c" = 1
+            "dm9051_hal_at32f403a_spi1.c" = 1
+            "dm9051_hal_at32f403a_spi1_dma.c" = 1
+            "dm9051_hal_at32f403a_int.c" = 1
+            "at32f403a_board.c" = 1
+            "main_at32f403a_smoke.c" = 1
+        }
+    }
+    "AT32F403A_DM9051_uIP" = @{
+        OutputDir = "..\OBJ_AT32F403A_UIP\"
+        Define = "USE_STDPERIPH_DRIVER,AT32F403A_UIP_PORT,DM9051_AT32F403A_DIAG=1,DM9051_TX_WAIT_DONE=1,DM9051_AT32F403A_USE_DMA=1,DM9051_AT32F403A_USE_IRQ=1"
+        Files = @{
+            "main_uip_mh2030a_smoke.c" = 0
+            "main_uip_mh2030a_demo.c" = 0
+            "mh20xx_it.c" = 0
+            "system_mh20xx.c" = 0
+            "startup_mh20xx.s" = 0
+            "delay.c" = 1
+            "dm9051_hal_at32f403a_spi1.c" = 1
+            "dm9051_hal_at32f403a_spi1_dma.c" = 1
+            "dm9051_hal_at32f403a_int.c" = 1
+            "at32f403a_board.c" = 1
+            "at32f403a_uip_clock.c" = 1
+            "main_at32f403a_uip_demo.c" = 1
+        }
+    }
+    "AT32F403A_DM9051_LWIP" = @{
+        OutputDir = "..\OBJ_AT32F403A_LWIP\"
+        Define = "USE_STDPERIPH_DRIVER,AT32F403A_LWIP_PORT,NO_SYS=1,DM9051_AT32F403A_DIAG=1,DM9051_TX_WAIT_DONE=1,DM9051_AT32F403A_USE_DMA=1,DM9051_AT32F403A_USE_IRQ=1"
+        Files = @{
+            "main_uip_mh2030a_smoke.c" = 0
+            "main_uip_mh2030a_demo.c" = 0
+            "main_dm9051_lwip_example.c" = 0
+            "mh20xx_it.c" = 0
+            "system_mh20xx.c" = 0
+            "startup_mh20xx.s" = 0
+            "delay.c" = 1
+            "dm9051_hal_at32f403a_spi1.c" = 1
+            "dm9051_hal_at32f403a_spi1_dma.c" = 1
+            "dm9051_hal_at32f403a_int.c" = 1
+            "at32f403a_board.c" = 1
+            "at32f403a_lwip_clock.c" = 1
+            "ethernetif_at32f403a.c" = 1
+            "main_at32f403a_lwip_demo.c" = 1
+        }
+    }
 }
 
 function Get-IncludeInBuildValue {
@@ -89,7 +154,14 @@ function Get-IncludeInBuildValue {
 
 $failures = New-Object System.Collections.Generic.List[string]
 
-foreach ($targetName in $expected.Keys) {
+$projectName = Split-Path -Leaf $ProjectFile
+$validTargets = $projectTargets[$projectName]
+if ($null -eq $validTargets) {
+    Write-Error "Unknown project: $projectName. Add to `$projectTargets."
+    exit 2
+}
+
+foreach ($targetName in $validTargets) {
     $t = $targets | Where-Object { $_.TargetName -eq $targetName }
     if ($null -eq $t) {
         $failures.Add("Missing target: $targetName")
@@ -97,6 +169,10 @@ foreach ($targetName in $expected.Keys) {
     }
 
     $exp = $expected[$targetName]
+    if ($null -eq $exp) {
+        Write-Host "  [SKIP] $targetName — no validation expectations defined" -ForegroundColor DarkGray
+        continue
+    }
     $actualOutputDir = [string]$t.TargetOption.TargetCommonOption.OutputDirectory
     $actualDefine = [string]$t.TargetOption.TargetArmAds.Cads.VariousControls.Define
 
@@ -116,13 +192,17 @@ foreach ($targetName in $expected.Keys) {
     }
 
     foreach ($fileName in $exp.Files.Keys) {
+        $expectedInc = [int]$exp.Files[$fileName]
+        if ($expectedInc -eq -1) {
+            continue
+        }
+
         if (-not $fileNodes.ContainsKey($fileName)) {
             $failures.Add("[$targetName] Missing file node: $fileName")
             continue
         }
 
         $actualInc = Get-IncludeInBuildValue -fileNode $fileNodes[$fileName]
-        $expectedInc = [int]$exp.Files[$fileName]
         if ($actualInc -ne $expectedInc) {
             $failures.Add("[$targetName] IncludeInBuild mismatch for $fileName. expected=$expectedInc actual=$actualInc")
         }
