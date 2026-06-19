@@ -84,10 +84,11 @@ int dm9051_at32f403a_finish_transfer(const dm9051_at32f403a_config_t *config)
     uint32_t timeout;
     int status;
 
-    status = dm9051_at32f403a_wait_spi_idle(config);
     if (config == 0) {
-        return status;
+        return DM9051_HAL_ERR_PARAM;
     }
+
+    status = dm9051_at32f403a_wait_spi_idle(config);
 
     timeout = config->spi_timeout;
     while (spi_i2s_flag_get(DM9051_AT32F403A_SPI, SPI_I2S_RDBF_FLAG) == SET) {
@@ -129,6 +130,10 @@ void dm9051_at32f403a_spi1_bus_init_common(void)
     gpio.gpio_pull = GPIO_PULL_NONE;
     gpio.gpio_pins = DM9051_AT32F403A_RST_PIN;
     gpio_init(DM9051_AT32F403A_RST_PORT, &gpio);
+
+    gpio_pin_mux_config(GPIOA, GPIO_PINS_SOURCE5, GPIO_MUX_0);
+    gpio_pin_mux_config(GPIOA, GPIO_PINS_SOURCE6, GPIO_MUX_0);
+    gpio_pin_mux_config(GPIOA, GPIO_PINS_SOURCE7, GPIO_MUX_0);
 
     gpio_default_para_init(&gpio);
     gpio.gpio_out_type = GPIO_OUTPUT_PUSH_PULL;

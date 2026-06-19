@@ -92,10 +92,11 @@ int dm9051_mh2030a_finish_transfer(const dm9051_mh2030a_config_t *config)
     uint32_t timeout;
     int status;
 
-    status = dm9051_mh2030a_wait_spi_idle(config);
     if (config == 0) {
-        return status;
+        return DM9051_HAL_ERR_PARAM;
     }
+
+    status = dm9051_mh2030a_wait_spi_idle(config);
 
     timeout = config->spi_timeout;
     while (SPI_I2S_GetFlagStatus(DM9051_MH2030A_SPI, SPI_I2S_FLAG_RXNE) == SET) {
