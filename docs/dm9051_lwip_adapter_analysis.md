@@ -1,11 +1,15 @@
 # DM9051 lwIP Adapter Layer 深度分析
 
 > **專案**: MH2030_Demo  
-> **目錄**: `ModuleDemo/DM9051A/dm9051_driver/adapters/lwip/`  
 > **MCU**: AT32F403A/AT32F407 (MH20xx, ARM Cortex-M0 via MH20xxLib)  
 > **Ethernet**: DM9051 (SPI 介面)  
 > **TCP/IP Stack**: lwIP 2.1.2  
 > **RTOS**: Bare-metal (NO_SYS=1)
+
+> **變更記錄**: commit `546d242` 已移除 `adapters/lwip/dm9051_lwip.c` / `.h` 相容包裝層。
+> lwIP 適配邏輯現集中在 `middlewares/3rd_party/lwip-2.1.2/port/ethernetif.c` / `.h`。
+> 應用層直接呼叫 `ethernetif_init()`、`ethernetif_input()`、`ethernetif_link_poll()`。
+> 下方第 3 章節的檔案列表、API 對照表與重構建議 4 已過時，保留僅供歷史參考。
 
 ---
 
@@ -91,9 +95,7 @@
 dm9051_driver/
 │
 ├── adapters/
-│   ├── lwip/                                    ← 本文件分析主體
-│   │   ├── dm9051_lwip.h                       ← 相容包裝 API header
-│   │   ├── dm9051_lwip.c                       ← 相容包裝實作 (委託 ethernetif.c)
+│   ├── lwip/                                    ← lwIP 組態檔
 │   │   └── lwipopts.h                          ← lwIP 編譯選項
 │   │
 │   └── uip/                                    ← uIP adapter (另一個 stack)
@@ -140,7 +142,7 @@ middlewares/3rd_party/lwip-2.1.2/port/
 
 | 目錄 | 對應架構層 | 角色 |
 |------|-----------|------|
-| `adapters/lwip/` | **相容包裝層** | `dm9051_lwip_*` API → 委託 ethernetif |
+| `adapters/lwip/` | **lwIP 組態** | `lwipopts.h` (已移除相容包裝層) |
 | `middlewares/.../lwip-2.1.2/port/` | **Netif 移植層** | 標準 lwIP netif init/input/linkoutput |
 | `core/` | DM9051 Core Driver | 裝置初始化、RX/TX、PHY、IRQ |
 | `hal/` | HAL Abstraction | SPI register/mem 操作抽象介面 |
@@ -1193,16 +1195,9 @@ int dm9051_adapter_core_init(dm9051_device_t *dev,
 // 建議: adapter 層做 error code 翻譯，而非直接傳遞 core error
 ```
 
-#### 建議 4: 消除兩層包裝 (dm9051_lwip.c + ethernetif.c)
+#### ~~建議 4: 消除兩層包裝 (dm9051_lwip.c + ethernetif.c)~~ ✅ 已實作 (commit `546d242`)
 
-```
-目前:
-  dm9051_lwip_input() → ethernetif_input() → low_level_input()
-
-建議:
-  直接呼叫 ethernetif_input()，移除 dm9051_lwip.c 的多餘包裝層。
-  (保留 dm9051_lwip.h API 作為相容 stub 即可)
-```
+`dm9051_lwip.c` / `dm9051_lwip.h` 已移除，應用層直接呼叫 `ethernetif_init()`、`ethernetif_input()`、`ethernetif_link_poll()`。
 
 ### 16.3 建議目錄結構
 

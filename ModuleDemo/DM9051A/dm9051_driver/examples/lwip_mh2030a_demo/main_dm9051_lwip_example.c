@@ -6,7 +6,7 @@
  * 若要放進 Keil target，請確認 include path 已包含：
  *   - middlewares/3rd_party/lwip-2.1.2/src/include
  *   - apps/lwip_web2403v2_freelw
- *   - ModuleDemo/DM9051A/dm9051_driver/adapters/lwip
+ *   - ModuleDemo/DM9051A/dm9051_driver/core/inc
  */
 
 #include <stdint.h>

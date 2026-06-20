@@ -47,8 +47,6 @@ MH2030A SPI / GPIO / IRQ / Delay
 | `ports/mh2030a/mh2030a_uip_clock.c` | 提供 uIP 使用的系統 clock/timer 支援。 | uIP 平台時間層 |
 | `ports/mh2030a/mh2030a_uip_clock.h` | 宣告 uIP clock 相關 API。 | uIP 平台時間介面 |
 | `ports/mh2030a/mh20xx_it.c` | 放置 MH2030A 中斷向量或中斷服務函式整合。 | MCU 中斷整合層 |
-| `adapters/lwip/dm9051_lwip.c` | 將 DM9051 driver 接到 lwIP `struct netif`，處理 `netif` 初始化、封包輸入與輸出。 | lwIP 適配層 |
-| `adapters/lwip/dm9051_lwip.h` | 宣告 lwIP adapter API，例如 `dm9051_if_init()`、`dm9051_lwip_input()`。 | lwIP 適配介面 |
 | `adapters/lwip/lwipopts.h` | lwIP 編譯與功能設定。 | lwIP 組態層 |
 | `adapters/uip/dm9051_uip.c` | 將 DM9051 core API 包裝成 uIP 可使用的輸入、輸出、poll 與 interrupt flow。 | uIP 適配層 |
 | `adapters/uip/dm9051_uip.h` | 宣告 uIP adapter API，例如 `dm9051_uip_init()`、`dm9051_uip_poll()`。 | uIP 適配介面 |
@@ -140,7 +138,7 @@ DM9051 RX FIFO
 | 檢查封包 | `dm9051_core_receive_ex()` | 讀取 RX ready byte，判斷是否有封包。 |
 | 讀取 RX header | core RX helper | 解析封包狀態與長度。 |
 | 讀取 payload | `read_mem` | 從 DM9051 RX FIFO 讀出 Ethernet frame。 |
-| 交給協定棧 | `dm9051_uip_input()` / `dm9051_lwip_input()` | 將 frame 傳入 uIP 或 lwIP。 |
+| 交給協定棧 | `dm9051_uip_input()` / `ethernetif_input()` | 將 frame 傳入 uIP 或 lwIP。 |
 
 ### 4.4 傳送封包流程
 
@@ -168,7 +166,7 @@ uIP / lwIP
 | 可以收包但不能送包 | `core/src/dm9051_core.c` | TX length register、`MWCMD` FIFO write、`TCR_TXREQ` 是否正確觸發。 |
 | 中斷模式無反應 | `ports/mh2030a/dm9051_hal_mh2030a_int.c` | EXTI line、NVIC enable、INT pin polarity、core interrupt flag。 |
 | DMA 模式異常 | `ports/mh2030a/dm9051_hal_mh2030a_spi1_dma.c` | DMA channel、transfer length、FIFO command sequence、cache/資料對齊問題。 |
-| lwIP 沒有收到封包 | `adapters/lwip/dm9051_lwip.c` | `netif->input`、`pbuf_alloc`、`linkoutput`、`NO_SYS` poll loop。 |
+| lwIP 沒有收到封包 | `middlewares/3rd_party/lwip-2.1.2/port/ethernetif.c` | `netif->input`、`pbuf_alloc`、`linkoutput`、`NO_SYS` poll loop。 |
 
 ## 6. 維護與擴充建議
 

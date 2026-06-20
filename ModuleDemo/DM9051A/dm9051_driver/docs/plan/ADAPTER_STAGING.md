@@ -13,8 +13,7 @@ The production uIP adapter remains unchanged.
 | uIP | `dm9051_uip_output(buf, len)` | Calls `dm9051_core_send()` on the attached device. No uIP packet queue integration yet. |
 | uIP | `dm9051_uip_poll()` | No-op. |
 | uIP | `dm9051_uip_target_mode()` | Returns `"staging"`. |
-| lwIP | `dm9051_lwip_init(netif, dev)` | Requires non-NULL `netif` and a valid staged netif device; otherwise returns `DM9051_ERR_PARAM`, then `DM9051_ERR_NOT_READY`. |
-| lwIP | `dm9051_lwip_poll(netif)` | No-op. |
+| lwIP | (removed — `dm9051_lwip.c/h` deleted in favor of direct `ethernetif.c/h` API) | — |
 
 `dm9051_netif_device_is_valid()` is intentionally permissive at this stage. It
 checks only that the device pointer exists; MAC and IP policy should be copied
