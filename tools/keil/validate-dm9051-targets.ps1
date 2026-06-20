@@ -4,9 +4,12 @@ param(
 
 # Which targets are expected in which project file
 $projectTargets = @{
-    "DM9051A.uvprojx" = @("DM9051A", "DM9051A_SPI_DMA", "MH2030A_DM9051_uIP", "MH2030A_DM9051_uIP_dma", "MH2030A_DM9051_uIP_int", "AT32F403A_DM9051")
-    "DM9051A_uip.uvprojx" = @("MH2030A_DM9051_uIP", "AT32F403A_DM9051_uIP")
-    "DM9051A_lwip.uvprojx" = @("MH2030A_DM9051_uIP", "MH2030A_DM9051_LWIP", "AT32F403A_DM9051_LWIP")
+    "DM9051A.uvprojx" = @("DM9051A", "DM9051A_SPI_DMA", "MH2030A_DM9051_uIP", "MH2030A_DM9051_uIP_dma", "MH2030A_DM9051_uIP_int")
+    "DM9051A_uip.uvprojx" = @("MH2030A_DM9051_uIP")
+    "DM9051A_lwip.uvprojx" = @("MH2030A_DM9051_uIP", "MH2030A_DM9051_LWIP")
+    "DM9051A_at32f403a.uvprojx" = @("AT32F403A_DM9051")
+    "DM9051A_at32f403a_uip.uvprojx" = @("AT32F403A_DM9051_uIP")
+    "DM9051A_at32f403a_lwip.uvprojx" = @("AT32F403A_DM9051_LWIP")
 }
 
 Set-StrictMode -Version Latest
