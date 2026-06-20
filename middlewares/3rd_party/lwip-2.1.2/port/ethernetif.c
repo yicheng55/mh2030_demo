@@ -383,6 +383,36 @@ void ethernetif_update_config(struct netif *netif)
 }
 
 /* ---------------------------------------------------------------------------
+ * ethernetif_link_poll — 輪詢 PHY link 狀態並同步 lwIP 旗標
+ *
+ * 主迴圈中定期呼叫 (建議 100-500ms 間隔)，偵測實體網路連線狀態變化。
+ * 內部會讀取 DM9051 NSR 暫存器 bit 6 (LINKST)，並呼叫 netif_set_link_up/down。
+ * 此為 dm9051_lwip_link_poll 的標準 netif 移植版本。
+ * ------------------------------------------------------------------------ */
+void ethernetif_link_poll(struct netif *netif)
+{
+    struct ethernetif *eth;
+    int link_up;
+
+    if (netif == NULL || netif->state == NULL) {
+        return;
+    }
+
+    eth = (struct ethernetif *)netif->state;
+    link_up = dm9051_core_link_is_up(&eth->dev);
+
+    if (link_up) {
+        if (!netif_is_link_up(netif)) {
+            netif_set_link_up(netif);
+        }
+    } else {
+        if (netif_is_link_up(netif)) {
+            netif_set_link_down(netif);
+        }
+    }
+}
+
+/* ---------------------------------------------------------------------------
  * ethernetif_register — 便捷註冊單一 netif
  *
  * 適合 demo / 快速原型: 配置靜態 netif，以 DHCP 或用靜態 IP 啟動。

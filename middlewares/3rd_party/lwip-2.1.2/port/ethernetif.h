@@ -58,6 +58,9 @@ err_t ethernetif_input(struct netif *netif);
 /** @brief Link 狀態變更回呼。透過 netif_set_link_callback 註冊。 */
 void ethernetif_update_config(struct netif *netif);
 
+/** @brief 輪詢 PHY link 狀態並同步 lwIP 旗標 (建議 100-500ms 週期呼叫)。 */
+void ethernetif_link_poll(struct netif *netif);
+
 /* ---------------------------------------------------------------------------
  * 便捷輔助 API (適用於簡單 demo)
  *

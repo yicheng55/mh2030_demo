@@ -24,14 +24,14 @@
 #include "lwip/timeouts.h"
 #include "netif/ethernet.h"
 
-#include "dm9051_lwip.h"
+#include "ethernetif.h"
 #include "lwip_web2403v2_freelw.h"
 
 static struct netif g_dm9051_netif;
 
 #define DM9051_LINK_POLL_INTERVAL_MS 500U
 
-static void dm9051_lwip_link_poll_wrapper(struct netif *netif)
+static void lwip_link_poll_wrapper(struct netif *netif)
 {
     static u32_t last_link_poll_ms;
     u32_t now_ms;
@@ -47,7 +47,7 @@ static void dm9051_lwip_link_poll_wrapper(struct netif *netif)
     last_link_poll_ms = now_ms;
 
     /* 使用新的適配層 link poll 函式，會自動觸發 link callback */
-    dm9051_lwip_link_poll(netif);
+    ethernetif_link_poll(netif);
 }
 
 static void platform_init(void)
@@ -60,7 +60,7 @@ static void platform_init(void)
      *   - SPI pinmux/clock
      *   - SysTick 或 lwIP sys_now() 所需的 millisecond timer
      *
-     * DM9051A 晶片本身的初始化由 dm9051_if_init() 透過 staged core/HAL 完成。
+     * DM9051A 晶片本身的初始化由 ethernetif_init() 透過 staged core/HAL 完成。
      */
 
     mh2030a_uip_board_init(115200U);
@@ -104,7 +104,7 @@ static void network_init(void)
     memcpy(g_dm9051_netif.hwaddr, mac_addr, sizeof(mac_addr));
 
     /*
-     * 這裡 input callback 使用 ethernet_input，因為 dm9051_lwip_input()
+     * 這裡 input callback 使用 ethernet_input，因為 ethernetif_input()
      * 交給 lwIP 的是完整 Ethernet frame。
      */
     added_netif = netif_add(&g_dm9051_netif,
@@ -112,7 +112,7 @@ static void network_init(void)
                             &netmask,
                             &gateway,
                             NULL,
-                            dm9051_if_init,
+                            ethernetif_init,
                             ethernet_input);
     if (added_netif == NULL) {
         while (1) {
@@ -121,7 +121,7 @@ static void network_init(void)
     }
 
     netif_set_default(&g_dm9051_netif);
-    dm9051_lwip_link_poll_wrapper(&g_dm9051_netif);
+    lwip_link_poll_wrapper(&g_dm9051_netif);
     netif_set_up(&g_dm9051_netif);
 
     printf("[DM9051 lwIP] netif up IP=%u.%u.%u.%u mask=%u.%u.%u.%u gw=%u.%u.%u.%u\r\n",
@@ -156,14 +156,14 @@ int main(void)
     network_init();
 
     while (1) {
-        dm9051_lwip_link_poll_wrapper(&g_dm9051_netif);
+        lwip_link_poll_wrapper(&g_dm9051_netif);
 
         /*
          * 1. 輪詢 DM9051A RX，收到封包後交給 lwIP。
          *    若使用外部中斷，也建議在中斷中只設 flag，
          *    再於主迴圈或工作任務中呼叫此函式。
          */
-        dm9051_lwip_input(&g_dm9051_netif);
+        ethernetif_input(&g_dm9051_netif);
 
         /*
          * 2. 推進 lwIP 內部 timer：
