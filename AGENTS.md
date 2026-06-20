@@ -155,7 +155,7 @@ curl https://raw.githubusercontent.com/forrestchang/andrej-karpathy-skills/main/
 ```markdown
 ## 專案特定指南
 
-- 使用 TypeScript 嚴格模式
+- 使用 c語言 嚴格模式
 - 所有 API 端點必須有測試
 - 遵循 `src/utils/errors.ts` 中現有的錯誤處理模式
 ```
