@@ -131,9 +131,18 @@ SPI1 / GPIO / IRQ / Delay
 | INT | PF6 / EXTI6 |
 | RST | PF7 |
 
+## Key files to read
+
+| File | What it contains |
+|------|-----------------|
+| `SOUL.md` | Agent persona, detailed layer-boundary rules, debug checklist, API mapping (uIP adapter) |
+| `readme.md` | Comprehensive Chinese driver manual — init flow, RX/TX paths, porting guide, troubleshooting |
+| `DM9051_HAL_REFACTOR_PROMPT.md` | HAL refactoring plan and prompts |
+| `ModuleDemo/DM9051A/dm9051_driver/README.md` | New driver layout documentation |
+
 ## Conventions
 
 - Language: C (C99-ish, Keil ARMCC). No C++.
 - All Keil `.uvprojx` and `.uvoptx` tracked in git (except `.uvguix.*` per `.gitignore`).
 - Do NOT write Makefile/CMake — the project builds only in Keil MDK.
-- `CLAUDE.md` is identical to `AGENTS.md` — keep both in sync.
+- **Keep `AGENTS.md` and `CLAUDE.md` identical** — they are mirrors.
