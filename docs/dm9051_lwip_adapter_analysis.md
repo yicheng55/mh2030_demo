@@ -7,9 +7,11 @@
 > **RTOS**: Bare-metal (NO_SYS=1)
 
 > **變更記錄**: commit `546d242` 已移除 `adapters/lwip/dm9051_lwip.c` / `.h` 相容包裝層。
-> lwIP 適配邏輯現集中在 `middlewares/3rd_party/lwip-2.1.2/port/ethernetif.c` / `.h`。
+> lwIP 適配邏輯已完全集中在 `middlewares/3rd_party/lwip-2.1.2/port/ethernetif.c` / `.h`。
+> `adapters/lwip/` 目錄僅保留 `lwipopts.h` 編譯選項。
 > 應用層直接呼叫 `ethernetif_init()`、`ethernetif_input()`、`ethernetif_link_poll()`。
-> 下方第 3 章節的檔案列表、API 對照表與重構建議 4 已過時，保留僅供歷史參考。
+> 新增便捷 API: `ethernetif_register()`、`ethernetif_poll()`、`lwip_set_mac_address()`。
+> 本文檔已全面更新反映當前狀態；舊相容包裝層內容已移除。
 
 ---
 
@@ -31,15 +33,16 @@
 └──────────────────────────┬───────────────────────────────────────┘
                            │
 ┌──────────────────────────▼───────────────────────────────────────┐
-│                 Adapter Layer (兩個子層)                           │
+│             標準 lwIP Netif 移植層 (唯一 Adapter)                 │
 │                                                                   │
-│  1. 相容包裝層 (adapters/lwip/)                                   │
-│     dm9051_lwip.h / dm9051_lwip.c                                 │
-│     dm9051_if_init(), dm9051_lwip_input()                         │
-│                                                                   │
-│  2. 標準 netif 移植層 (middlewares/.../lwip-2.1.2/port/)          │
-│     ethernetif.h / ethernetif.c                                   │
-│     ethernetif_init(), ethernetif_input()                         │
+│  (middlewares/3rd_party/lwip-2.1.2/port/)                        │
+│  ethernetif.h / ethernetif.c                                     │
+│  ethernetif_init() — netif_add callback (init HW)               │
+│  ethernetif_input() — RX poll + feed lwIP                       │
+│  ethernetif_link_poll() — PHY link status polling               │
+│  ethernetif_update_config() — link change callback              │
+│  ethernetif_register() — 便捷註冊 (內部靜態 netif)              │
+│  ethernetif_poll() — 便捷輪詢                                   │
 └──────────────────────────┬───────────────────────────────────────┘
                            │
 ┌──────────────────────────▼───────────────────────────────────────┐
@@ -59,11 +62,11 @@
                            │
 ┌──────────────────────────▼───────────────────────────────────────┐
 │                    MH2030A Platform Port                          │
-│  (port/mh2030a/)                                                 │
-│  mh2030a_dm9051_spi.c        -- SPI polling implementation      │
-│  mh2030a_dm9051_spi_dma.c    -- SPI DMA implementation          │
-│  mh2030a_dm9051_int.c        -- EXTI/IRQ handling               │
-│  dm9051_hal_mh2030a.h        -- HAL ops vtable binding          │
+│  (ports/mh2030a/)                                                │
+│  dm9051_hal_mh2030a_spi1.c      -- SPI polling implementation   │
+│  dm9051_hal_mh2030a_spi1_dma.c  -- SPI DMA implementation        │
+│  dm9051_hal_mh2030a_int.c       -- EXTI/IRQ handling            │
+│  delay.c / mh2030a_board.c      -- Delay / Board setup          │
 └──────────────────────────┬───────────────────────────────────────┘
                            │
 ┌──────────────────────────▼───────────────────────────────────────┐
@@ -79,11 +82,11 @@
 |-------|------|----------|
 | **Application** | 網路應用邏輯, main loop, link detection, HTTP server | `examples/lwip_mh2030a_demo/main_dm9051_lwip_example.c` |
 | **lwIP Stack** | TCP/IP 協定處理, ARP, pbuf 管理, timer | `middlewares/3rd_party/lwip-2.1.2/` |
-| **Adapter 相容包裝** | 既有 `dm9051_lwip_*` API 的向後相容層 | `adapters/lwip/dm9051_lwip.c` |
-| **Adapter netif 移植** | 標準 lwIP netif init/input 實作 | `middlewares/.../lwip-2.1.2/port/ethernetif.c` |
+| **Adapter netif 移植** | 標準 lwIP netif init/input/link poll 實作 | `middlewares/3rd_party/lwip-2.1.2/port/ethernetif.c` |
+| **lwIP 組態** | lwIP 編譯選項 (lwipopts.h) | `adapters/lwip/lwipopts.h` |
 | **Core Driver** | DM9051 初始化, PHY 存取, RX/TX 流程 | `core/src/dm9051_core.c` |
 | **HAL** | SPI register/memory 讀寫抽象介面 | `hal/inc/dm9051_hal.h` |
-| **Platform Port** | MCU 專屬 SPI 實作, GPIO, EXTI | `port/mh2030a/` |
+| **Platform Port** | MCU 專屬 SPI 實作 (polling/DMA), GPIO, EXTI, SysTick | `ports/mh2030a/` |
 
 ---
 
@@ -95,7 +98,7 @@
 dm9051_driver/
 │
 ├── adapters/
-│   ├── lwip/                                    ← lwIP 組態檔
+│   ├── lwip/                                    ← lwIP 組態 (僅 lwipopts.h)
 │   │   └── lwipopts.h                          ← lwIP 編譯選項
 │   │
 │   └── uip/                                    ← uIP adapter (另一個 stack)
@@ -116,7 +119,7 @@ dm9051_driver/
 ├── docs/                                        ← 設計文件
 ├── examples/
 │   └── lwip_mh2030a_demo/
-│       ├── main_dm9051_lwip_example.c          ← lwIP main 範例
+│       ├── main_dm9051_lwip_example.c          ← lwIP main 範例 (直接呼叫 ethernetif_*)
 │       └── README.md
 ├── hal/
 │   └── inc/
@@ -142,73 +145,84 @@ middlewares/3rd_party/lwip-2.1.2/port/
 
 | 目錄 | 對應架構層 | 角色 |
 |------|-----------|------|
-| `adapters/lwip/` | **lwIP 組態** | `lwipopts.h` (已移除相容包裝層) |
-| `middlewares/.../lwip-2.1.2/port/` | **Netif 移植層** | 標準 lwIP netif init/input/linkoutput |
+| `adapters/lwip/` | **lwIP 組態** | `lwipopts.h` (僅編譯選項，無程式碼) |
+| `middlewares/3rd_party/lwip-2.1.2/port/` | **Netif 移植層** | 標準 lwIP netif init/input/linkoutput/link poll |
 | `core/` | DM9051 Core Driver | 裝置初始化、RX/TX、PHY、IRQ |
 | `hal/` | HAL Abstraction | SPI register/mem 操作抽象介面 |
-| `ports/mh2030a/` | Platform Port | MH2030A SPI/GPIO/IRQ 實作 |
+| `ports/mh2030a/` | Platform Port | MH2030A SPI/GPIO/IRQ/SysTick 實作 |
 | `examples/` | Application 範例 | main() + demo 流程 |
 
 ---
 
 ## 3. 檔案用途分析
 
-### 3.1 `dm9051_lwip.h` — 相容包裝 Public API (三種 API 風格)
+### 3.1 `ethernetif.h` — Netif 移植 Public API
 
 ```c
-// ====== 標準 netif 介面 (與 ethernetif_init 同義) ======
-err_t dm9051_if_init(struct netif *netif);        // netif_add init callback
-void  dm9051_lwip_input(struct netif *netif);     // 輪詢 RX 並餵入 lwIP
-int   dm9051_lwip_link_is_up(void);               // 查詢 link 狀態
+// ====== 標準 netif 介面 (適用於進階用法) ======
+err_t ethernetif_init(struct netif *netif);              // netif_add init callback
+err_t ethernetif_input(struct netif *netif);             // 輪詢 RX 並餵入 lwIP
+void ethernetif_update_config(struct netif *netif);      // link 狀態變更回呼
+void ethernetif_link_poll(struct netif *netif);           // PHY link 輪詢 (100-500ms)
 
-// ====== 舊式 staging API (相容既有程式碼) ======
-int  dm9051_lwip_init(struct netif *netif, const void *dev);   // 完整初始化
-void dm9051_lwip_poll(struct netif *netif);                    // 單次輪詢
-void dm9051_lwip_link_poll(struct netif *netif);               // link 狀態輪詢
-
-// ====== 簡易無參數 API (操作內部靜態 netif) ======
-int  dm9051_lwip_simple_init(void);
-void dm9051_lwip_simple_poll(void);
-void dm9051_lwip_simple_link_poll(void);
+// ====== 便捷輔助 API (操作內部靜態 netif，用於簡單 demo) ======
+struct netif *ethernetif_register(void);                  // 註冊預設 netif (IP=0.0.0.0)
+void lwip_set_mac_address(unsigned char *macadd);         // 自訂 MAC (register 前呼叫)
+int ethernetif_poll(void);                                // 便捷輪詢 (作用於內部 netif)
 ```
 
-### 3.2 `dm9051_lwip.c` — 相容包裝層實作
+- 不再有 `dm9051_lwip_*` 包裝 API — 應用層直接使用標準 `ethernetif_*` 介面
+- 提供兩組 API: 標準介面 (自行管理 netif) + 便捷輔助 (內部靜態 netif)
 
-```c
-// Internal state
-static struct netif dm9051_netif;                // 內部預設 netif 實例
-static struct netif *g_active_netif;             // 當前 active netif
-```
+### 3.2 `ethernetif.c` — 標準 Netif 移植實作 (核心 Adapter)
 
-實作模式：**薄型委託層** — 所有函式直接委託給 `ethernetif.c` 的標準函式：
+| 函式 | 角色 | 委託 Core Driver |
+|------|------|-----------------|
+| `low_level_init()` | 硬體初始化 | `dm9051_core_open()` + `dm9051_mh2030a_hal_bind()` |
+| `low_level_output()` | TX: pbuf → DM9051 | `dm9051_core_send()` |
+| `low_level_input()` | RX: DM9051 → pbuf | `dm9051_core_receive()` |
+| `ethernetif_init()` | netif_add init callback | 配置 `struct ethernetif` + 呼叫 `low_level_init()` |
+| `ethernetif_input()` | RX poll entry | 呼叫 `low_level_input()` → `netif->input()` |
+| `ethernetif_update_config()` | Link change callback | `dm9051_core_link_is_up()` |
+| `ethernetif_link_poll()` | 定時 link 輪詢 | `dm9051_core_link_is_up()` + `netif_set_link_up/down()` |
+| `ethernetif_register()` | 便捷註冊 | `netif_add()` + `ethernetif_init()` + `netif_set_default()` |
 
-| 相容 API | 委託對象 |
-|----------|---------|
-| `dm9051_if_init()` | `ethernetif_init()` |
-| `dm9051_lwip_input()` | `ethernetif_input()` |
-| `dm9051_lwip_init()` | `lwip_init()` + `netif_add()` + `netif_set_up()` |
-| `dm9051_lwip_poll()` | `ethernetif_input()` |
-| `dm9051_lwip_link_poll()` | `dm9051_core_link_is_up()` + `netif_set_link_up/down()` |
-| `dm9051_lwip_link_is_up()` | `netif_is_link_up()` |
+- `adapters/lwip/` 目錄已無 `dm9051_lwip.c` / `.h` — 相容包裝層已完全移除 (commit `546d242`)
+- 所有 lwIP 適配邏輯僅此一組檔案，無雙層包裝
 
 ### 3.3 `lwipopts.h` — lwIP 編譯選項
 
 | 選項 | 值 | 說明 |
 |------|-----|------|
 | `NO_SYS` | 1 | Bare-metal, 無 RTOS |
+| `LWIP_IPV4` / `LWIP_IPV6` | 1 / 0 | 僅 IPv4，無 IPv6 |
+| `LWIP_ARP` | 1 | 支援 ARP |
+| `LWIP_ETHERNET` | 1 | 支援 Ethernet frame 格式 |
+| `LWIP_CALLBACK_API` | 1 | 使用 raw callback API |
+| `LWIP_ALTCP` | 1 | 啟用 altcp 層 (HTTPD 使用) |
 | `MEM_SIZE` | 12KB | lwIP heap 大小 |
 | `MEMP_NUM_PBUF` | 8 | pbuf 結構數量 |
 | `PBUF_POOL_SIZE` | 8 | pbuf pool 數量 |
 | `PBUF_POOL_BUFSIZE` | 1536 | 每個 pool pbuf 大小 (可容納 Ethernet frame) |
 | `MEMP_NUM_TCP_PCB` | 4 | TCP 連線數 |
+| `MEMP_NUM_TCP_PCB_LISTEN` | 4 | TCP listen PCB 數 |
 | `MEMP_NUM_TCP_SEG` | 16 | TCP segment 數量 |
 | `TCP_SND_BUF` | 4×MSS | 傳送 buffer (~5840 bytes) |
 | `TCP_WND` | 2×MSS | 接收 window (~2920 bytes) |
 | `LWIP_NETIF_LINK_CALLBACK` | 1 | 啟用 link callback 機制 |
-| `LWIP_ARP` | 1 | 支援 ARP |
-| `LWIP_ETHERNET` | 1 | 支援 Ethernet frame 格式 |
-| `LWIP_ALTCP` | 1 | 啟用 altcp 層 (HTTPD 使用) |
 | `CHECKSUM_GEN_*` / `CHECKSUM_CHECK_*` | 1 | 軟體 checksum (DM9051 無 offload) |
+| `LWIP_DHCP` | 0 | 未啟用 DHCP (靜態 IP) |
+| `LWIP_STATS` | 0 | 關閉統計 (節省 ROM) |
+
+HTTPD 相關設定 (由 `apps/lwip_web2403v2_freelw` 使用):
+
+| 選項 | 值 | 說明 |
+|------|-----|------|
+| `LWIP_HTTPD_SUPPORT_REQUESTLIST` | 1 | 啟用 request 佇列 |
+| `LWIP_HTTPD_REQ_QUEUELEN` | 5 | 最大佇列長度 |
+| `LWIP_HTTPD_DYNAMIC_HEADERS` | 1 | 動態 header 支援 |
+| `HTTPD_SERVER_PORT` | 80 | HTTP 服務埠 |
+| `HTTPD_SERVER_AGENT` | `"MH2030-DM9051A/lwIP"` | Server agent 字串 |
 
 ### 3.4 `ethernetif.h` — Netif 移植 Private Data
 
@@ -228,16 +242,18 @@ struct ethernetif {
 
 ```c
 // Internal (static) functions
-static void low_level_init(struct netif *netif);      // HW init: HAL bind + core_open
+static void low_level_init(struct netif *netif);           // HW init: HAL bind + core_open
 static err_t low_level_output(struct netif *netif, struct pbuf *p);  // TX path
-static struct pbuf *low_level_input(struct netif *netif);            // RX path
+static struct pbuf *low_level_input(struct netif *netif);             // RX path
 
 // Public API
-err_t ethernetif_init(struct netif *netif);           // netif_add callback
-err_t ethernetif_input(struct netif *netif);          // RX poll entry
-void ethernetif_update_config(struct netif *netif);   // link change callback
-struct netif *ethernetif_register(void);              // 便捷註冊
-int ethernetif_poll(void);                             // 便捷輪詢
+err_t ethernetif_init(struct netif *netif);                // netif_add callback
+err_t ethernetif_input(struct netif *netif);               // RX poll entry
+void ethernetif_update_config(struct netif *netif);        // link change callback
+void ethernetif_link_poll(struct netif *netif);            // PHY link 狀態輪詢
+struct netif *ethernetif_register(void);                   // 便捷註冊 (內部靜態 netif)
+void lwip_set_mac_address(unsigned char *macadd);          // 自訂 MAC (register 前)
+int ethernetif_poll(void);                                 // 便捷輪詢 (作用於內部 netif)
 ```
 
 ---
@@ -302,7 +318,6 @@ netif_add() → ethernetif_init()
 sequenceDiagram
     participant APP as main()
     participant LWIP as lwIP Stack
-    participant ADPT as dm9051_lwip.c
     participant ETHIF as ethernetif.c
     participant CORE as Core Driver
     participant DM as DM9051 HW
@@ -311,8 +326,7 @@ sequenceDiagram
     APP->>LWIP: lwip_init()
     Note over LWIP: TCP/IP init<br/>pbuf pool init<br/>netif list init
 
-    APP->>ADPT: dm9051_if_init(netif)
-    ADPT->>ETHIF: ethernetif_init(netif)
+    APP->>ETHIF: netif_add(..., ethernetif_init, ethernet_input)
     ETHIF->>ETHIF: mem_malloc(struct ethernetif)
     ETHIF->>ETHIF: netif->output = etharp_output
     ETHIF->>ETHIF: netif->linkoutput = low_level_output
@@ -322,9 +336,9 @@ sequenceDiagram
     CORE->>DM: reset, probe, init device
     DM-->>CORE: VID=0x0A46, PID=0x9051
     CORE-->>ETHIF: OK
-    ETHIF-->>ADPT: ERR_OK
-    ADPT-->>APP: netif_add() returns netif
+    ETHIF-->>APP: ERR_OK (netif_add returns netif)
 
+    APP->>LWIP: netif_set_link_callback(netif, ethernetif_update_config)
     APP->>LWIP: netif_set_default(netif)
     APP->>LWIP: netif_set_up(netif)
     APP->>APP: lwip_web2403v2_freelw_init()<br/>HTTP server start
@@ -341,33 +355,31 @@ sequenceDiagram
 | Init | `ethernetif_init()` → `low_level_init()` | `dm9051_core_open()` | 硬體初始化 + netif 綁定 |
 | RX frame | `ethernetif_input()` → `low_level_input()` | `dm9051_core_receive()` | 讀取 RX frame → pbuf |
 | TX frame | `low_level_output()` | `dm9051_core_send()` | pbuf chain → tx_buf → TX FIFO |
-| Link poll | `dm9051_lwip_link_poll()` | `dm9051_core_link_is_up()` | 讀 NSR bit 6 |
+| Link poll | `ethernetif_link_poll()` | `dm9051_core_link_is_up()` | 讀 NSR bit 6 |
 | Link callback | `ethernetif_update_config()` | `dm9051_core_link_is_up()` | 由 `netif_set_link_callback` 觸發 |
 | TX linkoutput | `netif->linkoutput` → `low_level_output` | `dm9051_core_send()` | lwIP TX 進入點 |
 | L3 output | `netif->output` → `etharp_output` | — | lwIP ARP 處理後 call linkoutput |
 
-### 5.2 三層 API 入口對比
+### 5.2 API 入口對比
 
 | 使用場景 | 建議 API | 複雜度 |
 |----------|----------|--------|
-| 自訂 netif + 自行管理 IP | `dm9051_if_init()` + `dm9051_lwip_input()` | 高 |
-| 快速測試 (預設 MAC/IP) | `dm9051_lwip_init()` + `dm9051_lwip_poll()` | 中 |
-| 一鍵啟動 (內部靜態 netif) | `dm9051_lwip_simple_init()` + `dm9051_lwip_simple_poll()` | 低 |
+| 自訂 netif + 自行管理 IP | `netif_add()` + `ethernetif_init()` + `ethernetif_input()` | 高 |
+| 快速測試 (預設 MAC/IP) | `ethernetif_register()` + `ethernetif_poll()` | 中 |
+| 完整 demo (含 HTTP server) | `main_dm9051_lwip_example.c` 範例 | 低 (複製貼上) |
 
-### 5.3 dm9051_lwip_init() 相容包裝流程
+### 5.3 便捷 API 使用流程 (`ethernetif_register()`)
 
 ```c
-dm9051_lwip_init(netif, dev)
-  ├── IP4_ADDR(ipaddr,   0,0,0,0)              // IP=0.0.0.0 (DHCP or 後設)
-  ├── IP4_ADDR(netmask,  0,0,0,0)
-  ├── IP4_ADDR(gateway,  0,0,0,0)
-  ├── [if hwaddr全零] → 設定預設 MAC
-  ├── lwip_init()
-  ├── netif_add(netif, &ip, &mask, &gw, NULL,
-  │             dm9051_if_init, ethernet_input)
-  ├── netif_set_default(netif)
-  ├── netif_set_up(netif)
-  └── g_active_netif = netif
+ethernetif_register()
+  ├── 設定預設 MAC (可透過 lwip_set_mac_address() 覆寫)
+  ├── IP4_ADDR(&ipaddr,   0,0,0,0)              // IP=0.0.0.0 (後設)
+  ├── IP4_ADDR(&netmask,  0,0,0,0)
+  ├── IP4_ADDR(&gateway,  0,0,0,0)
+  ├── netif_add(&eth_netif, &ipaddr, &netmask, &gateway,
+  │             NULL, ethernetif_init, ethernet_input)
+  ├── netif_set_link_callback(&eth_netif, ethernetif_update_config)
+  └── netif_set_default(&eth_netif)
 ```
 
 ---
@@ -379,10 +391,9 @@ dm9051_lwip_init(netif, dev)
 ```
 [Main Loop]                              [main_dm9051_lwip_example.c:158]
     │
-    ├── dm9051_lwip_link_poll_wrapper()  ← link 狀態監測 (500ms)
+    ├── lwip_link_poll_wrapper()         ← link 狀態監測 (500ms, 內部呼叫 ethernetif_link_poll)
     │
-    └── dm9051_lwip_input(&g_dm9051_netif)
-        └── ethernetif_input(netif)
+    └── ethernetif_input(&g_dm9051_netif)
             │
             └── p = low_level_input(netif)
                 │
@@ -447,7 +458,7 @@ sequenceDiagram
     DM->>DM: Packet arrives from PHY<br/>stored in RX FIFO
     Note over DM: INT pin (if IRQ mode)
 
-    APP->>ETHIF: dm9051_lwip_input(netif)
+    APP->>ETHIF: ethernetif_input(netif)
     ETHIF->>LLI: low_level_input(netif)
 
     LLI->>CORE: dm9051_core_receive(rx_buf, 1514)
@@ -586,11 +597,11 @@ dm9051_core_link_is_up(&eth->dev)
 
 ### 8.2 兩種 Link 更新路徑
 
-#### 路徑 A: `dm9051_lwip_link_poll()` (應用層輪詢)
+#### 路徑 A: `ethernetif_link_poll()` (應用層輪詢)
 
 ```c
-// dm9051_lwip.c — 應用層定期呼叫 (建議 100-500ms)
-dm9051_lwip_link_poll(netif)
+// ethernetif.c — 應用層定期呼叫 (建議 100-500ms)
+ethernetif_link_poll(netif)
   ├── eth = (struct ethernetif *)netif->state
   ├── link_up = dm9051_core_link_is_up(&eth->dev)
   │
@@ -601,14 +612,14 @@ dm9051_lwip_link_poll(netif)
       └── 觸發 link callback: ethernetif_update_config()
 ```
 
-#### 路徑 B: `ethernetif_update_config()` (lwIP Link Callback)
+#### 路徑 B: `ethernetif_update_config()` (lwIP Link Callback + PHY 輪詢)
 
 ```c
 // ethernetif.c — 由 netif_set_link_callback 註冊
-// 每當 netif_set_link_up/down 被呼叫時自動觸發
+// 每當 netif_set_link_up/down 被呼叫時觸發，同時也實際輪詢 PHY 硬體
 ethernetif_update_config(netif)
   ├── eth = (struct ethernetif *)netif->state
-  ├── link_up = dm9051_core_link_is_up(&eth->dev)
+  ├── link_up = dm9051_core_link_is_up(&eth->dev)   // 真正讀取 NSR bit 6
   │
   ├── [link_up && !netif_is_link_up] → netif_set_link_up(netif)
   └── [!link_up && netif_is_link_up] → netif_set_link_down(netif)
@@ -624,10 +635,10 @@ int main(void)
     network_init();
 
     while (1) {
-        dm9051_lwip_link_poll_wrapper(&g_dm9051_netif); // 500ms link poll ← 先檢查 link
-        dm9051_lwip_input(&g_dm9051_netif);             // RX 輪詢
-        sys_check_timeouts();                           // lwIP timer
-        lwip_web2403v2_freelw_poll();                  // 應用層 hook
+        lwip_link_poll_wrapper(&g_dm9051_netif);   // 500ms link poll (內部 ethernetif_link_poll)
+        ethernetif_input(&g_dm9051_netif);          // RX 輪詢
+        sys_check_timeouts();                       // lwIP timer
+        lwip_web2403v2_freelw_poll();              // 應用層 hook
     }
 }
 ```
@@ -637,34 +648,32 @@ int main(void)
 ```mermaid
 sequenceDiagram
     participant APP as main()<br/>while(1)
-    participant ADPT as dm9051_lwip.c
     participant ETHIF as ethernetif.c
     participant CORE as dm9051_core.c
     participant DM as DM9051 HW
     participant LWIP as lwIP Stack
 
     Note over APP: 500ms interval
-    APP->>ADPT: dm9051_lwip_link_poll(netif)
-    ADPT->>ETHIF: (via netif->state)
-    ADPT->>CORE: dm9051_core_link_is_up(&eth->dev)
+    APP->>ETHIF: ethernetif_link_poll(netif)
+    ETHIF->>CORE: dm9051_core_link_is_up(&eth->dev)
     CORE->>DM: read_reg(NSR)
     DM-->>CORE: NSR value (bit 6 = LINKST)
 
     alt LINK changed from DOWN → UP
-        CORE-->>ADPT: link_up = 1
-        ADPT->>LWIP: netif_set_link_up(netif)
+        CORE-->>ETHIF: link_up = 1
+        ETHIF->>LWIP: netif_set_link_up(netif)
         LWIP->>LWIP: callback: ethernetif_update_config(netif)
         LWIP->>LWIP: netif flags |= NETIF_FLAG_LINK_UP
         Note over LWIP: lwIP now allows TX/RX
     else LINK changed from UP → DOWN
-        CORE-->>ADPT: link_up = 0
-        ADPT->>LWIP: netif_set_link_down(netif)
+        CORE-->>ETHIF: link_up = 0
+        ETHIF->>LWIP: netif_set_link_down(netif)
         LWIP->>LWIP: callback: ethernetif_update_config(netif)
         LWIP->>LWIP: netif flags &= ~NETIF_FLAG_LINK_UP
         Note over APP,TX: low_level_output returns ERR_RTE<br/>until link is up again
     else no change
-        CORE-->>ADPT: link_up same as before
-        Note over ADPT: no lwIP action
+        CORE-->>ETHIF: link_up same as before
+        Note over ETHIF: no lwIP action
     end
 ```
 
@@ -678,7 +687,7 @@ sequenceDiagram
 [DM9051 INT Pin] (硬體中斷)
     │
     ▼
-[EXTI ISR]                                     [port/mh2030a/mh2030a_dm9051_int.c]
+[EXTI ISR]                                     [ports/mh2030a/dm9051_hal_mh2030a_int.c]
     │
     ├── 清除 EXTI pending bit
     ├── hal->ops->irq_disable()                ← 關閉 EXTI (防止巢狀中斷)
@@ -692,10 +701,10 @@ sequenceDiagram
 ```
 [Main Loop]                                    [main_dm9051_lwip_example.c]
     │
-    ├── dm9051_lwip_link_poll_wrapper(netif)   ← 500ms link 監測
+    ├── lwip_link_poll_wrapper(netif)          ← 500ms link 監測 (內部 ethernetif_link_poll)
     │
     ├── [if IRQ mode: interrupt_event flag]
-    │     └── dm9051_lwip_input(netif)         ← 進入 RX 處理
+    │     └── ethernetif_input(netif)          ← 進入 RX 處理
     │
     ├── sys_check_timeouts()                   ← lwIP timer 處理
     │
@@ -707,11 +716,10 @@ sequenceDiagram
 ```
 [Main Loop]
     │
-    ├── dm9051_lwip_link_poll_wrapper(netif)
+    ├── lwip_link_poll_wrapper(netif)
     │
-    ├── dm9051_lwip_input(netif)              ← 每次 loop 都輪詢 RX (polling)
-    │     └── ethernetif_input(netif)
-    │           └── low_level_input(netif)    ← 直接讀取 DM9051 RX FIFO
+    ├── ethernetif_input(netif)               ← 每次 loop 都輪詢 RX (polling)
+    │     └── low_level_input(netif)          ← 直接讀取 DM9051 RX FIFO
     │
     ├── sys_check_timeouts()
     │
@@ -840,9 +848,9 @@ do {
 ```c
 // main_dm9051_lwip_example.c — main loop
 while (1) {
-    dm9051_lwip_link_poll_wrapper(netif);
-    dm9051_lwip_input(netif);
-    sys_check_timeouts();        // ← lwIP 內部 timer 推進
+    lwip_link_poll_wrapper(netif);  // 內部 ethernetif_link_poll()
+    ethernetif_input(netif);
+    sys_check_timeouts();           // ← lwIP 內部 timer 推進
     lwip_web2403v2_freelw_poll();
 }
 ```
@@ -932,8 +940,7 @@ uIP Adapter 設計:
        └── dm9051_uip_output()          // 同步傳送回應
 
 lwIP Adapter 設計:
-  [Main Loop] → dm9051_lwip_input()
-       └── ethernetif_input()
+  [Main Loop] → ethernetif_input()
              └── low_level_input()      // 讀取 frame → pbuf
              └── netif->input(p)        // 非同步餵入 lwIP
                    └── etharp_input()
@@ -953,14 +960,9 @@ graph TD
         HTTPD["lwip_web2403v2_freelw.c<br/>HTTP server"]
     end
 
-    subgraph "Compatibility Wrapper (adapters/lwip/)"
-        LWIP_H["dm9051_lwip.h"]
-        LWIP_C["dm9051_lwip.c<br/>dm9051_if_init<br/>dm9051_lwip_input<br/>dm9051_lwip_poll<br/>dm9051_lwip_link_poll"]
-    end
-
     subgraph "lwIP Netif Port (middlewares/.../port/)"
         ETHIF_H["ethernetif.h<br/>struct ethernetif"]
-        ETHIF_C["ethernetif.c<br/>ethernetif_init<br/>ethernetif_input<br/>low_level_init<br/>low_level_input<br/>low_level_output<br/>ethernetif_update_config"]
+        ETHIF_C["ethernetif.c<br/>ethernetif_init<br/>ethernetif_input<br/>low_level_init<br/>low_level_input<br/>low_level_output<br/>ethernetif_update_config<br/>ethernetif_link_poll<br/>ethernetif_register"]
         SYS_ARCH["sys_arch.c<br/>sys_now()<br/>sys_jiffies()"]
         CC_H["arch/cc.h<br/>packed struct, endian"]
     end
@@ -972,16 +974,13 @@ graph TD
     subgraph "DM9051 Core + HAL + Port"
         CORE["dm9051_core.c<br/>dm9051_core_open<br/>dm9051_core_receive<br/>dm9051_core_send<br/>dm9051_core_link_is_up"]
         HAL_H["dm9051_hal.h<br/>struct dm9051_hal_ops"]
-        HAL_PORT["port/mh2030a/<br/>dm9051_hal_mh2030a_*.c"]
+        HAL_PORT["ports/mh2030a/<br/>dm9051_hal_mh2030a_*.c"]
         MCU_LIB["MH20xxLib<br/>SPI, GPIO, EXTI"]
     end
 
-    MAIN --> LWIP_C
+    MAIN --> ETHIF_C
     MAIN --> HTTPD
     MAIN --> SYS_ARCH
-
-    LWIP_C --> ETHIF_C
-    LWIP_C --> LWIP_STACK
 
     ETHIF_C --> CORE
     ETHIF_C --> HAL_PORT
@@ -1004,8 +1003,7 @@ graph TD
 ```
 ===== RX 路徑 =====
 main()
-  └── dm9051_lwip_input(netif)              [dm9051_lwip.c]
-        └── ethernetif_input(netif)          [ethernetif.c]
+  └── ethernetif_input(netif)               [ethernetif.c]
               └── low_level_input(netif)
                     ├── dm9051_core_receive(dev, rx_buf, 1514)
                     │     ├── dm9051_core_bus_acquire()
@@ -1053,7 +1051,7 @@ main()
         ├── lwip_init()                      ← lwIP stack init (only once)
         ├── netif_add(&netif, &ip, &mask, &gw,
         │             NULL,
-        │             dm9051_if_init,         ← 由 ADPT 委託 ETHIF
+        │             ethernetif_init,        ← 直接註冊標準 netif init
         │             ethernet_input)
         │     └── ethernetif_init(netif)
         │           ├── mem_malloc(struct ethernetif)
@@ -1067,7 +1065,7 @@ main()
         │                 └── netif->flags |= BCAST | ETHARP | ETHERNET
         │
         ├── netif_set_default(&netif)
-        ├── dm9051_lwip_link_poll_wrapper()  ← initial link poll
+        ├── lwip_link_poll_wrapper()         ← initial link poll (內部 ethernetif_link_poll)
         ├── netif_set_up(&netif)
         │
         └── lwip_web2403v2_freelw_init(&netif)
@@ -1091,16 +1089,16 @@ lwIP Adapter:
                     input/output)
 ```
 
-**兩種 adapter 都是 Adapter Pattern 的實例**，但實作層次不同：
+**兩種 adapter 都是 Adapter Pattern 的實例**：
 - uIP: 直接包裝 core API (自訂函式名稱)
-- lwIP: 兩層轉接 (相容包裝 → 標準 netif → core)
+- lwIP: 標準 netif vtable 實作 (ethernetif_init/input/output)
 
 ### 15.2 Layered Architecture
 
 ```
 uIP:  Application → Adapter → Core → HAL → Port → MCU
-lwIP: Application → Adapter → Core → HAL → Port → MCU
-                         └→ [lwIP Stack]
+lwIP: Application → ethernetif → Core → HAL → Port → MCU
+                         └→ [lwIP Stack] ←── ethernetif_input()
 ```
 
 兩種架構都嚴格遵守單向依賴：
@@ -1146,7 +1144,7 @@ uIP 和 lwIP adapter 都共享同一套 HAL 抽象 — **無重複**。
 | 重複區域 | 檔案 | 說明 | 建議 |
 |----------|------|------|------|
 | `dm9051_uip_mh2030a_smoke_open()` vs `low_level_init()` | uIP demo vs ethernetif.c | 兩者都做 `core_open()` + `hal_bind()` | 共用一個 init helper |
-| `dm9051_uip_stack_init()` vs `dm9051_lwip_init()` | uIP adapter vs lwIP adapter | 兩者都做 netif config + mac 設定 | 可共用 stack 初始化工廠 |
+| `dm9051_uip_stack_init()` vs 應用層 `network_init()` | uIP adapter vs lwIP demo | 兩者都做 netif config + mac 設定 | 可共用 stack 初始化工廠 |
 | `dm9051_hal_mh2030a_spi1.h` (new port) vs `port/mh2030a/dm9051_hal_mh2030a.h` (old port) | 兩套 port 實作 | 新版是 `ports/`, 舊版是 `port/` (不同 directory) | 舊版應移除, 統一使用 `ports/mh2030a/` |
 | 中斷處理: `dm9051_core_interrupt_set/take/reset` | Core API | uIP/lwIP 共用同一組 | 無重複 (Core 層) |
 
@@ -1195,15 +1193,15 @@ int dm9051_adapter_core_init(dm9051_device_t *dev,
 // 建議: adapter 層做 error code 翻譯，而非直接傳遞 core error
 ```
 
-#### ~~建議 4: 消除兩層包裝 (dm9051_lwip.c + ethernetif.c)~~ ✅ 已實作 (commit `546d242`)
+#### ✅ 建議 4: 消除兩層包裝 (dm9051_lwip.c + ethernetif.c)
 
-`dm9051_lwip.c` / `dm9051_lwip.h` 已移除，應用層直接呼叫 `ethernetif_init()`、`ethernetif_input()`、`ethernetif_link_poll()`。
+`dm9051_lwip.c` / `dm9051_lwip.h` 已移除 (commit `546d242`)，應用層直接呼叫 `ethernetif_init()`、`ethernetif_input()`、`ethernetif_link_poll()`。
 
-### 16.3 建議目錄結構
+### 16.3 建議目錄結構 (當前狀態)
 
 ```
 adapters/
-├── common/                          ← 新增: 共用 adapter 工具
+├── common/                          ← 尚未實作: 共用 adapter 工具
 │   ├── dm9051_adapter_helper.c
 │   └── dm9051_adapter_helper.h
 │
@@ -1213,10 +1211,9 @@ adapters/
 │   ├── dm9051_uip_stack.c
 │   └── dm9051_uip_stack.h
 │
-└── lwip/                            ← lwIP adapter (建議簡化)
-    ├── dm9051_lwip.h                ← 僅保留 public API header
-    ├── dm9051_lwip.c                ← 薄型相容層 (委託 ethernetif.c)
+└── lwip/                            ← lwIP 組態 (僅 lwipopts.h)
     └── lwipopts.h                   ← lwIP 配置
+                                    ← dm9051_lwip.c/h 已移除
 ```
 
 ---
@@ -1226,8 +1223,8 @@ adapters/
 ### 17.1 lwIP Adapter 設計特點
 
 1. **標準化**: 遵循 lwIP 標準 `netif` 介面，與 STM32Cube / NXP MCU 的 ethernetif 風格一致
-2. **向後相容**: `dm9051_lwip_*` 包裝層允許既有程式碼無痛遷移
-3. **漸進式初始**: 提供三層 API (標準/舊式/簡易)，適合不同開發階段
+2. **簡潔單層**: `dm9051_lwip.c/h` 相容包裝層已移除，僅存 `ethernetif.c/h` 單層架構
+3. **雙模式 API**: 標準介面 (自行管理 netif) + 便捷輔助 (內部靜態 netif)，適合不同開發階段
 4. **pbuf 管理**: 完整利用 lwIP pbuf chain 與 pool 機制，但需要額外 copy
 5. **非同步 TX**: 透過 TCP callback 驅動，不同於 uIP 的同步模式
 
@@ -1250,10 +1247,10 @@ adapters/
 
 ### 17.4 lwIP Adapter API 完整對照表
 
-| 功能 | 標準 netif API | 相容包裝 API | 簡易 API |
-|------|---------------|-------------|---------|
-| init | `ethernetif_init()` | `dm9051_if_init()` | `dm9051_lwip_simple_init()` |
-| RX poll | `ethernetif_input()` | `dm9051_lwip_input()` | `dm9051_lwip_simple_poll()` |
-| link poll | — | `dm9051_lwip_link_poll()` | `dm9051_lwip_simple_link_poll()` |
-| 全部初始化 | `netif_add` + `lwip_init` + ... | `dm9051_lwip_init()` | `dm9051_lwip_simple_init()` |
-| register + poll | `ethernetif_register()` + `ethernetif_poll()` | — | `dm9051_lwip_simple_init/poll()` |
+| 功能 | 標準 netif API | 便捷輔助 API | 說明 |
+|------|---------------|-------------|------|
+| init | `ethernetif_init()` | `ethernetif_register()` | 前者自行管理 netif；後者使用內部靜態 netif |
+| RX poll | `ethernetif_input()` | `ethernetif_poll()` | 前者需傳入 netif 指標 |
+| link poll | `ethernetif_link_poll()` | 需自行包裝 wrapper | 例如 `lwip_link_poll_wrapper()` |
+| link callback | `ethernetif_update_config()` | 透過 `netif_set_link_callback` 註冊 | 自動偵測 link 變化 |
+| 全部初始化 | `lwip_init()` + `netif_add()` + ... | `ethernetif_register()` + `netif_set_up()` | 便捷版可減少樣板程式碼 |
