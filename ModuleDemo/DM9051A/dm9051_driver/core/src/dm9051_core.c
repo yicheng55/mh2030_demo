@@ -787,6 +787,19 @@ static void dm9051_show_rxbstatistic(uint8_t *htc, int n)
     DM9051_DIAG_PRINTF("\r\n");
 }
 
+/**
+ * 這是 dm9051_core_rxb_error 函數的功能解說。
+ *
+ * 這個函數用於處理 DM9051 裝置中的 RxB 錯誤。它會接收一個 DM9051 裝置的指標和 RxB 的值作為參數。
+ * 如果 RxB 的值小於 2，則會將 DM9051 裝置重置，並返回 DM9051_ERR_NOT_READY 的錯誤代碼。
+ * 否則，它會計算出 RxB 在錯誤記錄陣列中的索引，並將這個索引的值加 1。如果這個索引的值小於 0xff，則會返回 DM9051_ERR_NOT_READY 的錯誤代碼。
+ * 如果這個索引的值等於 0xff，則會將 DM9051 裝置重置，並返回 DM9051_ERR_NOT_READY 的錯誤代碼。
+ * 最後，它會將 DM9051 裝置的錯誤記錄陣列更新後，返回 DM9051_ERR_NOT_READY 的錯誤代碼。
+ *
+ * @param dev DM9051 裝置的指標
+ * @param rxb RxB 的值
+ * @return DM9051_ERR_NOT_READY 的錯誤代碼
+ */
 static int dm9051_core_rxb_error(dm9051_device_t *dev, uint8_t rxb)
 {
     uint8_t index;
