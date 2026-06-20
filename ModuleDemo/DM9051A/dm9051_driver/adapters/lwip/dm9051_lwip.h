@@ -27,13 +27,13 @@ extern "C" {
 #endif
 
 /* ---------------------------------------------------------------------------
- * 標準 netif 介面 (與 ethernetif_init_E 同義)
+ * 標準 netif 介面 (與 ethernetif_init)
  * ------------------------------------------------------------------------ */
 
-/** @brief netif_add init callback。等同 ethernetif_init_E。 */
+/** @brief netif_add init callback。等同 ethernetif_init。 */
 err_t dm9051_if_init(struct netif *netif);
 
-/** @brief 輪詢 DM9051 RX 並餵入 lwIP (等同 ethernetif_input_E)。 */
+/** @brief 輪詢 DM9051 RX 並餵入 lwIP (等同 ethernetif_input)。 */
 void dm9051_lwip_input(struct netif *netif);
 
 /** @brief 查詢 link 狀態 (1 = UP, 0 = DOWN)。 */
