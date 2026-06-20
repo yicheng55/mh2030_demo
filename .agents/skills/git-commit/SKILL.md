@@ -159,71 +159,40 @@ git log @{u}..HEAD --oneline 2>/dev/null
 
 ### 步驟 4：生成提交訊息
 
-基於專案規範和變更內容生成訊息：
+基於專案規範和變更內容生成訊息。使用以下格式：
 
 ```
-<type>(<scope>): <subject>
+# Summary (one line, 72 chars or less)
 
-<body>
+# Detailed description:
+# - 
+# - 
+# - 
 
-<footer>
+# Concluding explanation:
+# 
 ```
 
-**必需**：`type` + `subject`（10-72 字元） **可選**：`scope`、`body`、`footer`
-
-#### Subject 規則
-
-- 一句話精準概括，不囉嗦、不拆分描述
-- 祈使句：`add` 而非 `added`
-- 英文首字母小寫，中文正常大小寫
-- 句尾不加標點
-
-#### Body 規則
-
-- **簡單變更不寫 body**：單一檔案小修改（<10 行）、純格式/拼字修正等，subject 已經足夠說明
-- **以下情況建議寫 body**：
-  - 新增檔案 > 50 行（解釋檔案用途、包含的主要內容）
-  - 多個檔案的非簡單修改（說明變更的動機和各部分關聯）
-  - 實現邏輯需補充上下文（為什麼這樣做，而非做了什麼）
-  - 破壞性變更（說明影響範圍和遷移指引）
-- **以下情況強制寫 body**：
-  - 破壞性變更
-  - Commit 同時包含兩種不同目的的變更（若無法拆分時，需在 body 說明各部分的理由）
-- 每行限制 72 字元
-- 不要僅羅列修改的檔案列表，不要重複 subject 已表達的內容
-- body 與 subject 之間保留一個空行
-
-#### Footer 規則
+生成後移除 `#` 註解標記，渲染為：
 
 ```
-BREAKING CHANGE: API endpoints now require authentication
-Closes #123
-Refs #456
+[Component] Brief description of changes
+
+Detailed changes:
+- 
+- 
+- 
+
+Overall impact and purpose:
 ```
 
-#### Scope 使用規範
+#### 規則
 
-- 使用小寫字母，不超過 15 字元
-- 跨模組或不確定時省略 scope
-- 從專案已有提交或 commitlint `scope-enum` 中取得可用值
-
-#### 破壞性變更
-
-兩種標記方式（均為 Conventional Commits 標準）：
-
-**方式 1：類型後加 `!`**
-```
-feat!: remove deprecated endpoints
-feat(api)!: remove deprecated endpoints
-```
-
-**方式 2：Footer 中宣告**
-```
-feat(api): remove deprecated endpoints
-
-BREAKING CHANGE: v1 endpoints are no longer available.
-Migration guide: docs/migration.md
-```
+- **Line 1**: `[Component] Brief summary (≤50 chars)`
+- **Detailed changes**: 使用 bullet points (`-`) 列出變更
+- **Concluding explanation**: 說明 overall impact 和 purpose（為何這樣改）
+- **每行 ≤72 字元**
+- 單一檔案小修改（<10 行）、純格式/拼字修正等，可只寫 summary 行，省略 detailed changes 和 conclusion
 
 ## 注意事項
 
@@ -234,67 +203,55 @@ Migration guide: docs/migration.md
 
 ## 範例
 
-### 基礎
+### 基礎（簡短）
 
 ```
-feat: add dark mode support
-fix: 修復登入逾時問題
-docs: 更新安裝指南
+[DM9051] Fix SPI DMA timeout on large transfers
 ```
 
-### 帶 Scope
+### 一般
 
 ```
-feat(auth): 實作 OAuth2 登入
-fix(ui): 修復行動端按鈕對齊問題
+[DM9051] Refactor HAL vtable binding for platform portability
+
+Detailed changes:
+- Extract platform-specific SPI ops into dm9051_hal_vtable.c
+- Add dm9051_hal_bind() entry point for port registration
+- Remove hardcoded MH2030A calls from core driver
+
+Overall impact and purpose:
+Unblocks AT32F415 porting by making the HAL interface truly
+platform-agnostic. Core driver no longer depends on any MH2030A
+headers.
 ```
 
-### 帶 Issue
+### 破壞性變更
 
 ```
-feat(auth): #1254 實作 OAuth2 登入
-fix(ui): #123 修復行動端按鈕對齊問題
+[API] Migrate pagination to cursor-based model
+
+Detailed changes:
+- Replace page/limit query params with cursor and limit
+- Remove offset-based skip logic from list endpoints
+- Add cursor encoding/decoding utility functions
+
+Overall impact and purpose:
+BREAKING CHANGE - older page/limit params no longer accepted.
+Cursor pagination improves consistency for large datasets and
+eliminates offset drift issues. Migration guide available in
+docs/migration.md.
 ```
 
-### 帶 Body — 破壞性變更
+### 新增大型文件
 
 ```
-feat(api)!: 重構分頁介面為 cursor-based
+[DOC] Add lwIP adapter architecture analysis
 
-舊的 page/limit 參數不再支援，遷移方式見 docs/migration.md
+Detailed changes:
+- Document HAL vtable binding mechanism
+- Map RX/TX data flow through netif layer
+- Describe error handling strategy for each path
 
-Closes #42
-```
-
-### 新增大型文件（建議寫 body）
-
-```
-docs: add lwIP adapter architecture analysis document
-
-Covering HAL vtable binding mechanism, RX/TX data flow,
-netif integration points, and error handling strategy
-for the DM9051-lwIP adapter layer.
-```
-
-### 不同目的需拆分（反例 → 正例）
-
-❌ **錯誤：修復 + 文件混在同一個 commit**
-```
-fix(dm9051_lwip.h): remove stale _E suffix in doc comments, add lwIP analysis doc
-```
-
-✅ **正確：拆成兩個 commit**
-```
-fix(dm9051_lwip.h): correct function name references in comments
-
-ethernetif_init_E -> ethernetif_init
-ethernetif_input_E -> ethernetif_input
-(comment-only change, no behavioral impact)
-```
-
-```
-docs: add lwIP adapter architecture analysis
-
-1264-line design doc covering HAL vtable binding, RX/TX
-data flow, netif integration, and error handling strategy.
+Overall impact and purpose:
+Provides a comprehensive reference for future DM9051 adapter implementations and porting efforts.
 ```
