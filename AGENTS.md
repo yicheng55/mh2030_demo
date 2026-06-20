@@ -1,148 +1,171 @@
-<!-- gitnexus:start -->
-# GitNexus — Code Intelligence
+# 受 Karpathy 啟發的 Claude Code 指南
 
-This project is indexed by GitNexus as **mh2030_demo** (24814 symbols, 39332 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+> 查看我的新專案 [Multica](https://github.com/multica-ai/multica) —— 一個用於執行和管理編碼智能體的開源平台，支援可複用的技能。
+>
+> 在 X 上關注我：[https://x.com/jiayuan_jy](https://x.com/jiayuan_jy)
 
-> Index stale? Run `node .gitnexus/run.cjs analyze` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? `npx gitnexus analyze` (npm 11 crash → `npm i -g gitnexus`; #1939).
+一個單一的 `CLAUDE.md` 檔案，用於改善 Claude Code 的行為，源自 [Andrej Karpathy 的觀察](https://x.com/karpathy/status/2015883857489522876) 關於 LLM 編碼陷阱的總結。
 
-## Always Do
+[English](./README.md) | 繁體中文
 
-- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
-- **MUST run `detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows. For regression review, compare against the default branch: `detect_changes({scope: "compare", base_ref: "master"})`.
-- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
-- When exploring unfamiliar code, use `query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
-- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `context({name: "symbolName"})`.
+## 問題所在
 
-## Never Do
+來自 Andrej 的推文：
 
-- NEVER edit a function, class, or method without first running `impact` on it.
-- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
-- NEVER rename symbols with find-and-replace — use `rename` which understands the call graph.
-- NEVER commit changes without running `detect_changes()` to check affected scope.
+> "模型會代你做錯誤假設，然後不假思索地執行。它們不管理自身的困惑，不尋求澄清，不呈現矛盾，不展示權衡，在應該提出異議時也不反駁。"
 
-## Resources
+> "它們真的很喜歡把程式碼和 API 搞複雜，堆疊抽象概念，不清理死程式碼……明明 100 行能搞定的事情，非要實現成 1000 行的臃腫架構。"
 
-| Resource | Use for |
-|----------|---------|
-| `gitnexus://repo/mh2030_demo/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/mh2030_demo/clusters` | All functional areas |
-| `gitnexus://repo/mh2030_demo/processes` | All execution flows |
-| `gitnexus://repo/mh2030_demo/process/{name}` | Step-by-step execution trace |
+> "它們有時仍會改動或刪除自己理解不足的程式碼和註解，即使這些內容與任務本身無關。"
 
-## CLI
+## 解決方案
 
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+四個原則，集中在一個檔案中，直接解決這些問題：
 
-<!-- gitnexus:end -->
+| 原則 | 解決什麼問題 |
+|-----------|-----------|
+| **編碼前思考** | 錯誤假設、隱藏困惑、缺少權衡 |
+| **簡潔優先** | 過度複雜、臃腫抽象 |
+| **精準修改** | 無關編輯、觸碰不應碰的程式碼 |
+| **目標驅動執行** | 透過測試優先、可驗證的成功標準 |
 
-# mh2030_demo — Repo Guide
+## 四個原則詳解
 
-## What it is
+### 1. 編碼前思考
 
-Davicom **MH2030A** (ARM Cortex-M0) firmware SDK + **DM9051A SPI Ethernet** driver demo. C, bare-metal (1 FreeRTOS example), built with **Keil MDK uVision 5** (`.uvprojx`, not Makefile/CMake). Secondary IAR template exists.
+**不要假設。不要隱藏困惑。呈現權衡。**
 
-## Build (Keil MDK)
+LLM 經常默默選擇一種解釋然後執行。這個原則強制明確推理：
 
-Three Keil projects under `ModuleDemo/DM9051A/USER/`:
+- **明確說明假設** — 如果不確定，詢問而不是猜測
+- **呈現多種解釋** — 當存在歧義時，不要默默選擇
+- **適時提出異議** — 如果存在更簡單的方法，說出來
+- **困惑時停下來** — 指出不清楚的地方並要求澄清
 
-| Project file | Purpose |
-|---|---|
-| `DM9051A.uvprojx` | Bare DM9051 function test (no TCP/IP) |
-| `DM9051A_uip.uvprojx` | uIP + DM9051 integration |
-| `DM9051A_lwip.uvprojx` | lwIP + DM9051 integration |
+### 2. 簡潔優先
 
-**5 target configurations** (switchable in Keil uVision):
+**用最少的程式碼解決問題。不要過度推測。**
 
-| Target | Purpose | Entrypoint | Output dir |
-|---|---|---|---|
-| `DM9051A` | Polling SPI, no DMA | `main.c` | `..\OBJ\` |
-| `DM9051A_SPI_DMA` | DMA SPI | `main.c` | `..\OBJ\` |
-| `MH2030A_DM9051_uIP` | uIP + polling SPI | `main_uip_mh2030a.c` | `..\OBJ_UIP\` |
-| `MH2030A_DM9051_uIP_dma` | uIP + DMA SPI | `main_uip_mh2030a.c` | `..\OBJ_UIP\` |
-| `MH2030A_DM9051_uIP_int` | uIP + interrupt | `main_uip_mh2030a.c` | `..\OBJ_UIP_INT\` |
+對抗過度工程的傾向：
 
-Key preprocessor defines vary by target: `USE_STDPERIPH_DRIVER`, `MH2030A_UIP_PORT`, `MH2030A_DM9051_SPI_DMA`, `DMPLUG_INT`.
+- 不要添加要求之外的功能
+- 不要為一次性程式碼建立抽象
+- 不要添加未要求的"靈活性"或"可配置性"
+- 不要為不可能發生的場景做錯誤處理
+- 如果 200 行程式碼可以寫成 50 行，重寫它
 
-## Validate Keil project targets
+**檢驗標準：** 資深工程師會覺得這過於複雜嗎？如果是，簡化。
 
-```powershell
-pwsh tools/keil/validate-dm9051-targets.ps1
-```
-Validates output dirs, defines, and file inclusion/exclusion per target. Fails if mismatched.
+### 3. 精準修改
 
-## Project structure
+**只碰必須碰的。只清理自己造成的混亂。**
 
-| Path | Role |
-|---|---|
-| `ModuleDemo/DM9051A/` | **Primary development area** — DM9051 driver + Keil projects |
-| `ModuleDemo/DM9051A/dm9051_driver/` | **New refactored driver** (layered architecture) |
-| `ModuleDemo/DM9051A/bsp/` + `port/` | **Old** board-support / port layer (being replaced) |
-| `ModuleDemo/X/` | Other peripheral demos (GPIO, SPI, I2C, USART, etc.) |
-| `drivers/` | **Old** monolithic DM9051 driver v1.6.1a (do NOT edit unless targeting legacy) |
-| `middlewares/` | uIP + lwIP 2.1.2 source (upstream, ported) |
-| `apps/` | Application-level demo (lwIP web server, uIP example) |
-| `Libraries/` | CMSIS, startup code `startup_mh20xx.s`, MH20xxLib peripheral HAL |
-| `tools/keil/` | Validation script only |
+編輯現有程式碼時：
 
-## DM9051 driver — two versions coexist
+- 不要"改進"相鄰的程式碼、註解或格式
+- 不要重構沒壞的東西
+- 匹配現有風格，即使你更傾向於不同的寫法
+- 如果注意到無關的死程式碼，提一下 —— 不要刪除它
 
-| Version | Path | Style |
-|---|---|---|
-| **Old (legacy)** | `drivers/dm9051_edriver_v1.6.1a_beta/` | Monolithic, single-file style |
-| **New (active)** | `ModuleDemo/DM9051A/dm9051_driver/` | Layered: Core → HAL → Platform Port → Stack Adapter |
+當你的改動產生孤兒程式碼時：
 
-Edit the **new** driver unless specifically asked to fix the old one. The `port/` and `bsp/` directories under `ModuleDemo/DM9051A/` contain older port code that the new driver's `ports/mh2030a/` is superseding.
+- 刪除因你的改動而變得無用的匯入/變數/函式
+- 不要刪除預先存在的死程式碼，除非被要求
 
-## New driver layering
+**檢驗標準：** 每一行修改都應該能直接追溯到使用者的請求。
+
+### 4. 目標驅動執行
+
+**定義成功標準。循環驗證直到達成。**
+
+將指令式任務轉化為可驗證的目標：
+
+| 不要這樣做... | 轉化為... |
+|--------------|-----------------|
+| "添加驗證" | "為無效輸入編寫測試，然後讓它們通過" |
+| "修復 bug" | "編寫重現 bug 的測試，然後讓它通過" |
+| "重構 X" | "確保重構前後測試都能通過" |
+
+對於多步驟任務，說明一個簡短的計劃：
 
 ```
-Application / uIP / lwIP
-        |
-Network Stack Adapter  (adapters/uip/, adapters/lwip/)
-        |
-DM9051 Core Driver    (core/src/, core/inc/)
-        |
-DM9051 HAL Interface  (hal/inc/dm9051_hal.h — vtable contract)
-        |
-MH2030A Platform Port (ports/mh2030a/ — SPI1, DMA, IRQ, delay, board)
-        |
-SPI1 / GPIO / IRQ / Delay
+1. [步驟] → 驗證: [檢查]
+2. [步驟] → 驗證: [檢查]
+3. [步驟] → 驗證: [檢查]
 ```
 
-- Core driver is platform-agnostic (no GPIO/SPI/delay calls).
-- HAL is a function-pointer vtable in `dm9051_hal.h`.
-- Platform port binds MH2030A SPI1, DMA, EXTI, SysTick.
+強而有力的成功標準讓 LLM 能夠獨立循環執行。弱標準（"讓它工作"）需要不斷澄清。
 
-## Hardware pin mapping (MH2030A + DM9051A)
+## 安裝
 
-| Signal | Pin |
-|---|---|
-| CS | PA15 |
-| SCK | PB3 |
-| MISO | PB4 |
-| MOSI | PB5 |
-| INT | PF6 / EXTI6 |
-| RST | PF7 |
+**選項 A：Claude Code 插件（推薦）**
 
-## Key files to read
+在 Claude Code 中，首先添加插件市場：
+```
+/plugin marketplace add forrestchang/andrej-karpathy-skills
+```
 
-| File | What it contains |
-|------|-----------------|
-| `SOUL.md` | Agent persona, detailed layer-boundary rules, debug checklist, API mapping (uIP adapter) |
-| `readme.md` | Comprehensive Chinese driver manual — init flow, RX/TX paths, porting guide, troubleshooting |
-| `DM9051_HAL_REFACTOR_PROMPT.md` | HAL refactoring plan and prompts |
-| `ModuleDemo/DM9051A/dm9051_driver/README.md` | New driver layout documentation |
+然後安裝插件：
+```
+/plugin install andrej-karpathy-skills@karpathy-skills
+```
 
-## Conventions
+這會將指南安裝為 Claude Code 插件，使其在你所有專案中可用。
 
-- Language: C (C99-ish, Keil ARMCC). No C++.
-- All Keil `.uvprojx` and `.uvoptx` tracked in git (except `.uvguix.*` per `.gitignore`).
-- Do NOT write Makefile/CMake — the project builds only in Keil MDK.
-- **Keep `AGENTS.md` and `CLAUDE.md` identical** — they are mirrors.
+**選項 B：CLAUDE.md（按專案）**
+
+新專案：
+```bash
+curl -o CLAUDE.md https://raw.githubusercontent.com/forrestchang/andrej-karpathy-skills/main/CLAUDE.md
+```
+
+已有專案（追加）：
+```bash
+echo "" >> CLAUDE.md
+curl https://raw.githubusercontent.com/forrestchang/andrej-karpathy-skills/main/CLAUDE.md >> CLAUDE.md
+```
+
+## 在 Cursor 中使用
+
+本倉庫包含一個已提交的 Cursor 專案規則 ([`.cursor/rules/karpathy-guidelines.mdc`](.cursor/rules/karpathy-guidelines.mdc))，因此在 Cursor 中開啟專案時同樣適用這些指南。詳情請參閱 **[CURSOR.md](CURSOR.md)**，包括如何在其他專案中使用該規則，以及它與 Claude Code 的關係。
+
+## 核心洞察
+
+來自 Andrej：
+
+> "LLM 非常擅長循環執行直到達成特定目標……不要告訴它該做什麼，給它成功標準，然後看著它完成。"
+
+"目標驅動執行"原則正是捕捉了這一點：將指令式指令轉化為帶有驗證循環的宣告式目標。
+
+## 如何判斷它在起作用
+
+如果你看到以下情況，說明這些指南正在發揮作用：
+
+- **diff 中不必要的改動更少** —— 只有請求的改動出現
+- **因過度複雜而導致的重寫更少** —— 程式碼第一次就寫得簡潔
+- **澄清問題在實現之前提出** —— 而不是在犯錯之後
+- **乾淨、精簡的 PR** —— 沒有順帶的重構或"改進"
+
+## 定製
+
+這些指南設計用於與專案特定指令合併。將它們添加到你現有的 `CLAUDE.md` 或建立一個新的。
+
+對於專案特定規則，添加如下章節：
+
+```markdown
+## 專案特定指南
+
+- 使用 TypeScript 嚴格模式
+- 所有 API 端點必須有測試
+- 遵循 `src/utils/errors.ts` 中現有的錯誤處理模式
+```
+
+## 權衡說明
+
+這些指南傾向於**謹慎而非速度**。對於瑣碎的任務（簡單的拼寫錯誤修復、顯而易見的一行修改），請自行判斷 —— 並非每個改動都需要完整的嚴謹流程。
+
+目標是減少非瑣碎工作中代價高昂的錯誤，而不是拖慢簡單任務。
+
+## 許可
+
+MIT
