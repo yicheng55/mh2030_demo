@@ -5,22 +5,8 @@
 #include "../../adapters/uip/dm9051_uip.h"
 #include "../../adapters/uip/dm9051_uip_stack.h"
 #include "app_call.h"
-#if DM9051_MH2030A_USE_IRQ
-#include "../../ports/mh2030a/dm9051_hal_mh2030a_int.h"
-#endif
 
 #include <stdio.h>
-
-#define LINK_DETECTION                   1
-#define DM9051_LINK_DETECTION_INTERVAL   500u
-#define DM9051_LINK_POLL_LOOP_FALLBACK   20000u
-#define DM9051_LINKUP_STATUS_PRINT_COUNT 5u
-#define DM9051_STATUS_PRINT_LIMIT        50u
-#define DM9051_STATUS_PRINT_STEP         10u
-
-#if !DM9051_MH2030A_USE_IRQ
-#define dm9051_mh2030a_irq_count()       0u
-#endif
 
 #define DM9051_UIP_IP0    192u
 #define DM9051_UIP_IP1    168u
@@ -41,7 +27,8 @@ static const uint8_t dm9051_demo_mac[DM9051_MAC_ADDR_LENGTH] = {
     0x00u, 0x60u, 0x6Eu, 0x90u, 0x51u, 0x01u
 };
 
-static volatile uint32_t dm9051_demo_link_timer;
+static struct uip_ethernetif *g_eth;
+static dm9051_netif_device_t g_netif;
 
 static void dm9051_demo_netif_config(dm9051_netif_device_t *dev)
 {
@@ -63,113 +50,34 @@ static void dm9051_demo_netif_config(dm9051_netif_device_t *dev)
     dev->netmask_ip[3] = DM9051_UIP_MASK3;
 }
 
-static int dm9051_demo_read_link_up(dm9051_device_t *dev)
+static void platform_init(void)
 {
-    return dm9051_core_link_is_up(dev);
-}
-
-static int dm9051_demo_handle_link_detection(dm9051_device_t *dev,
-                                             const dm9051_netif_device_t *netif,
-                                             volatile uint32_t localtime)
-{
-    static int last_link_state = -1;
-    static int first_link_check = 1;
-    static uint32_t fallback_poll_count = 0u;
-    static uint32_t status_timer = 0u;
-    static uint32_t linkup_print_count = 0u;
-    int poll_due;
-    int on_linkup;
-    int on_dhcp;
-
-#if (LINK_DETECTION > 0)
-    ++fallback_poll_count;
-    poll_due = (first_link_check != 0) ||
-               ((uint32_t)(localtime - dm9051_demo_link_timer) >=
-                DM9051_LINK_DETECTION_INTERVAL) ||
-               (localtime < dm9051_demo_link_timer) ||
-               (fallback_poll_count >= DM9051_LINK_POLL_LOOP_FALLBACK);
-
-    if (poll_due != 0) {
-        first_link_check = 0;
-        fallback_poll_count = 0u;
-        dm9051_demo_link_timer = localtime;
-
-        on_linkup = dm9051_demo_read_link_up(dev);
-        if (on_linkup != last_link_state) {
-            printf("[DM9051 uIP] Link: State changed from %s to %s\r\n",
-                   (last_link_state == 1) ? "UP" :
-                   (last_link_state == 0) ? "DOWN" : "UNKNOWN",
-                   on_linkup ? "UP" : "DOWN");
-
-            if ((last_link_state == 0) && (on_linkup == 1)) {
-                status_timer = 0u;
-                linkup_print_count = DM9051_LINKUP_STATUS_PRINT_COUNT;
-                printf("[DM9051 uIP] Link UP detected: Will print Network Status %lu times\r\n",
-                       (unsigned long)linkup_print_count);
-            }
-
-            last_link_state = on_linkup;
-        }
-
-        on_dhcp = 0;
-        if (linkup_print_count > 0u) {
-            printf("[DM9051 uIP] Network Status: Link=%s, DHCP=%s, IP=%u.%u.%u.%u, IRQ=%lu (LinkUp count: %lu)\r\n",
-                   on_linkup ? "UP" : "DOWN",
-                   on_dhcp ? "ON" : "OFF",
-                   netif->static_ip[0], netif->static_ip[1],
-                   netif->static_ip[2], netif->static_ip[3],
-                   (unsigned long)dm9051_mh2030a_irq_count(),
-                   (unsigned long)linkup_print_count);
-            linkup_print_count--;
-        } else if (status_timer <= DM9051_STATUS_PRINT_LIMIT) {
-            if ((status_timer % DM9051_STATUS_PRINT_STEP) == 0u) {
-                printf("[DM9051 uIP] Network Status: Link=%s, DHCP=%s, IP=%u.%u.%u.%u, IRQ=%lu\r\n",
-                       on_linkup ? "UP" : "DOWN",
-                       on_dhcp ? "ON" : "OFF",
-                       netif->static_ip[0], netif->static_ip[1],
-                       netif->static_ip[2], netif->static_ip[3],
-                       (unsigned long)dm9051_mh2030a_irq_count());
-            }
-            status_timer++;
-        }
-    }
-#endif
-
-    return (last_link_state == 1) ? 1 : 0;
-}
-
-int main(void)
-{
-    dm9051_netif_device_t netif;
-    const dm9051_device_t *dev;
-    dm9051_device_t *mutable_dev;
-    int status;
-
     mh2030a_uip_board_init(115200);
     mh2030a_uip_tick_init();
+}
 
-    printf("[DM9051 uIP] MH2030A staged uIP demo start\r\n");
+static void network_init(void)
+{
+    int status;
 
     status = dm9051_uip_mh2030a_smoke_open(dm9051_demo_mac);
-    dev = dm9051_uip_mh2030a_smoke_device();
+    g_eth = dm9051_uip_mh2030a_smoke_eth();
+
+    printf("[DM9051 uIP] MH2030A staged uIP demo start\r\n");
     printf("[DM9051 uIP] open status=%d found=%d VID=0x%04X PID=0x%04X CHIPR=0x%02X\r\n",
            status,
-           dm9051_core_device_found(dev),
-           dm9051_core_vendor_id(dev),
-           dm9051_core_product_id(dev),
-           dm9051_core_chip_revision(dev));
+           dm9051_core_device_found(&g_eth->dev),
+           dm9051_core_vendor_id(&g_eth->dev),
+           dm9051_core_product_id(&g_eth->dev),
+           dm9051_core_chip_revision(&g_eth->dev));
 
-    mutable_dev = dm9051_uip_mh2030a_smoke_mutable_device();
-
-    status = dm9051_uip_attach(mutable_dev);
-    printf("[DM9051 uIP] attach status=%d\r\n", status);
     if (status != DM9051_OK) {
         while (1) {
         }
     }
 
-    dm9051_demo_netif_config(&netif);
-    status = dm9051_uip_stack_init(&netif);
+    dm9051_demo_netif_config(&g_netif);
+    status = dm9051_uip_stack_init(g_eth, &g_netif);
     printf("[DM9051 uIP] stack status=%d\r\n", status);
     if (status != DM9051_OK) {
         while (1) {
@@ -180,11 +88,24 @@ int main(void)
     httpd_init();
     printf("[DM9051 uIP] HTTP server listening on port 80\r\n");
 #endif
+}
+
+int main(void)
+{
+    static int prev_link = -1;
+
+    platform_init();
+    network_init();
 
     while (1) {
-        (void)dm9051_demo_handle_link_detection(mutable_dev,
-                                                &netif,
-                                                mh2030a_uip_millis());
+        int link_up = dm9051_uip_link_poll(g_eth);
+
+        if (link_up != prev_link) {
+            printf("[DM9051 uIP] Link %s\r\n",
+                   link_up ? "UP" : "DOWN");
+            prev_link = link_up;
+        }
+
         dm9051_uip_stack_poll();
     }
 }

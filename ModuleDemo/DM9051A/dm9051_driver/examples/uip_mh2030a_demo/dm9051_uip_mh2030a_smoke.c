@@ -7,14 +7,14 @@
 
 #include "dm9051_uip_mh2030a_smoke.h"
 
+#include "../../core/inc/dm9051_core.h"
 #include "../../hal/inc/dm9051_hal.h"
 #include "../../ports/mh2030a/dm9051_hal_mh2030a_spi1.h"
 #if DM9051_MH2030A_USE_IRQ
 #include "../../ports/mh2030a/dm9051_hal_mh2030a_int.h"
 #endif
 
-static dm9051_device_t dm9051_uip_mh2030a_smoke_dev;
-static dm9051_hal_t dm9051_uip_mh2030a_smoke_hal;
+static struct uip_ethernetif s_smoke_eth_inst;
 static int dm9051_uip_mh2030a_smoke_status = DM9051_ERR_NOT_READY;
 
 static int dm9051_uip_mh2030a_hal_status_to_core_status(int status)
@@ -61,7 +61,7 @@ int dm9051_uip_mh2030a_smoke_open(const uint8_t *mac_addr)
     port_config.irq_mode = DM9051_MH2030A_IRQ_OFF;
 #endif
 
-    status = dm9051_mh2030a_hal_bind(&dm9051_uip_mh2030a_smoke_hal,
+    status = dm9051_mh2030a_hal_bind(&s_smoke_eth_inst.hal,
                                      &port_config);
     if (status != DM9051_HAL_OK) {
         dm9051_uip_mh2030a_smoke_status =
@@ -70,13 +70,13 @@ int dm9051_uip_mh2030a_smoke_open(const uint8_t *mac_addr)
     }
 
 #if DM9051_MH2030A_USE_IRQ
-    dm9051_mh2030a_irq_attach_device(&dm9051_uip_mh2030a_smoke_dev);
+    dm9051_mh2030a_irq_attach_device(&s_smoke_eth_inst.dev);
 #endif
 
     dm9051_uip_mh2030a_smoke_status =
-        dm9051_core_open(&dm9051_uip_mh2030a_smoke_dev,
+        dm9051_core_open(&s_smoke_eth_inst.dev,
                          &core_config,
-                         &dm9051_uip_mh2030a_smoke_hal);
+                         &s_smoke_eth_inst.hal);
 #if DM9051_MH2030A_USE_IRQ
     if (dm9051_uip_mh2030a_smoke_status != DM9051_OK) {
         dm9051_mh2030a_irq_detach_device();
@@ -86,35 +86,22 @@ int dm9051_uip_mh2030a_smoke_open(const uint8_t *mac_addr)
     return dm9051_uip_mh2030a_smoke_status;
 }
 
+struct uip_ethernetif *dm9051_uip_mh2030a_smoke_eth(void)
+{
+    return &s_smoke_eth_inst;
+}
+
 const dm9051_device_t *dm9051_uip_mh2030a_smoke_device(void)
 {
-    return &dm9051_uip_mh2030a_smoke_dev;
+    return &s_smoke_eth_inst.dev;
 }
 
 dm9051_device_t *dm9051_uip_mh2030a_smoke_mutable_device(void)
 {
-    return &dm9051_uip_mh2030a_smoke_dev;
+    return &s_smoke_eth_inst.dev;
 }
 
 int dm9051_uip_mh2030a_smoke_last_status(void)
 {
     return dm9051_uip_mh2030a_smoke_status;
-}
-
-uint16_t dm9051_uip_mh2030a_smoke_receive(uint8_t *buf, uint16_t buf_len)
-{
-    if (dm9051_uip_mh2030a_smoke_status != DM9051_OK) {
-        return 0u;
-    }
-
-    return dm9051_core_receive(&dm9051_uip_mh2030a_smoke_dev, buf, buf_len);
-}
-
-int dm9051_uip_mh2030a_smoke_send(const uint8_t *buf, uint16_t len)
-{
-    if (dm9051_uip_mh2030a_smoke_status != DM9051_OK) {
-        return DM9051_ERR_NOT_READY;
-    }
-
-    return dm9051_core_send(&dm9051_uip_mh2030a_smoke_dev, buf, len);
 }

@@ -7,7 +7,8 @@
 extern "C" {
 #endif
 
-int dm9051_uip_stack_init(const dm9051_netif_device_t *dev);
+int dm9051_uip_stack_init(struct uip_ethernetif *eth,
+                           const dm9051_netif_device_t *netif);
 void dm9051_uip_stack_poll(void);
 
 #ifdef __cplusplus

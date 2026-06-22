@@ -122,17 +122,24 @@ static void dm9051_uip_stack_print_rx_burst(const char *reason,
     }
 }
 
-int dm9051_uip_stack_init(const dm9051_netif_device_t *dev)
+int dm9051_uip_stack_init(struct uip_ethernetif *eth,
+                           const dm9051_netif_device_t *netif)
 {
     struct uip_eth_addr ethaddr;
     uip_ipaddr_t ipaddr;
     int status;
 
-    if (!dm9051_netif_device_is_valid(dev) || (dev->mac_addr == 0)) {
+    if ((eth == NULL) || !dm9051_netif_device_is_valid(netif) ||
+        (netif->mac_addr == 0)) {
         return DM9051_ERR_PARAM;
     }
 
-    status = dm9051_uip_init(dev);
+    status = dm9051_uip_attach(&eth->dev);
+    if (status != DM9051_OK) {
+        return status;
+    }
+
+    status = dm9051_uip_init(netif);
     if (status != DM9051_OK) {
         return status;
     }
@@ -140,22 +147,22 @@ int dm9051_uip_stack_init(const dm9051_netif_device_t *dev)
     uip_init();
     uip_arp_init();
 
-    (void)memcpy(ethaddr.addr, dev->mac_addr, sizeof(ethaddr.addr));
+    (void)memcpy(ethaddr.addr, netif->mac_addr, sizeof(ethaddr.addr));
     uip_setethaddr(ethaddr);
 
     uip_ipaddr(ipaddr,
-               dev->static_ip[0], dev->static_ip[1],
-               dev->static_ip[2], dev->static_ip[3]);
+               netif->static_ip[0], netif->static_ip[1],
+               netif->static_ip[2], netif->static_ip[3]);
     uip_sethostaddr(ipaddr);
 
     uip_ipaddr(ipaddr,
-               dev->gateway_ip[0], dev->gateway_ip[1],
-               dev->gateway_ip[2], dev->gateway_ip[3]);
+               netif->gateway_ip[0], netif->gateway_ip[1],
+               netif->gateway_ip[2], netif->gateway_ip[3]);
     uip_setdraddr(ipaddr);
 
     uip_ipaddr(ipaddr,
-               dev->netmask_ip[0], dev->netmask_ip[1],
-               dev->netmask_ip[2], dev->netmask_ip[3]);
+               netif->netmask_ip[0], netif->netmask_ip[1],
+               netif->netmask_ip[2], netif->netmask_ip[3]);
     uip_setnetmask(ipaddr);
 
 #if DM9051_UIP_ENABLE_PERIODIC
@@ -171,8 +178,8 @@ int dm9051_uip_stack_init(const dm9051_netif_device_t *dev)
            ethaddr.addr[0], ethaddr.addr[1], ethaddr.addr[2],
            ethaddr.addr[3], ethaddr.addr[4], ethaddr.addr[5]);
     printf("[DM9051 uIP] IP  %u.%u.%u.%u\r\n",
-           dev->static_ip[0], dev->static_ip[1],
-           dev->static_ip[2], dev->static_ip[3]);
+           netif->static_ip[0], netif->static_ip[1],
+           netif->static_ip[2], netif->static_ip[3]);
 
     return DM9051_OK;
 }

@@ -115,6 +115,15 @@ void dm9051_uip_poll(void)
 #endif
 }
 
+int dm9051_uip_link_poll(struct uip_ethernetif *eth)
+{
+    if ((eth == 0) || !dm9051_core_device_found(&eth->dev)) {
+        return 0;
+    }
+
+    return dm9051_core_link_is_up(&eth->dev);
+}
+
 const char *dm9051_uip_target_mode(void)
 {
     return "staging";
