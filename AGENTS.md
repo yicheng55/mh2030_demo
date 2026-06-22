@@ -1,171 +1,114 @@
-# 受 Karpathy 啟發的 Claude Code 指南
+# 行為原則（Karpathy 啟發）
 
-> 查看我的新專案 [Multica](https://github.com/multica-ai/multica) —— 一個用於執行和管理編碼智能體的開源平台，支援可複用的技能。
->
-> 在 X 上關注我：[https://x.com/jiayuan_jy](https://x.com/jiayuan_jy)
+- **編碼前思考** — 不確定就問，不要默默猜；呈現權衡而非隱藏困惑
+- **簡潔優先** — 用最少程式碼解決問題，不要為不存在的情境做抽象
+- **精準修改** — 只碰必須碰的，只清理自己造成的混亂；每一行修改應能追溯到使用者請求
+- **目標驅動執行** — 定義可驗證的成功標準，循環直到達成
 
-一個單一的 `CLAUDE.md` 檔案，用於改善 Claude Code 的行為，源自 [Andrej Karpathy 的觀察](https://x.com/karpathy/status/2015883857489522876) 關於 LLM 編碼陷阱的總結。
+# mh2030_demo — 倉庫指引
 
-[English](./README.md) | 繁體中文
+## 專案概要
 
-## 問題所在
+Davicom MH2030A (ARM Cortex-M0) + DM9051A SPI 乙太網路驅動 SDK 與 demo。
+C99，Keil MDK uVision 5 (`.uvprojx`)。非 Makefile/CMake。
 
-來自 Andrej 的推文：
+## 建置方式
 
-> "模型會代你做錯誤假設，然後不假思索地執行。它們不管理自身的困惑，不尋求澄清，不呈現矛盾，不展示權衡，在應該提出異議時也不反駁。"
+三個 Keil 專案位於 `ModuleDemo/DM9051A/USER/`：
 
-> "它們真的很喜歡把程式碼和 API 搞複雜，堆疊抽象概念，不清理死程式碼……明明 100 行能搞定的事情，非要實現成 1000 行的臃腫架構。"
+| 專案檔 | 用途 |
+|---|---|
+| `DM9051A.uvprojx` | 裸 DM9051 功能測試（無 TCP/IP），2 個 target |
+| `DM9051A_uip.uvprojx` | uIP + DM9051，3 個 target |
+| `DM9051A_lwip.uvprojx` | lwIP + DM9051 |
 
-> "它們有時仍會改動或刪除自己理解不足的程式碼和註解，即使這些內容與任務本身無關。"
+5 個 target 切換關鍵前置定義：`USE_STDPERIPH_DRIVER`、`MH2030A_UIP_PORT`、`MH2030A_DM9051_SPI_DMA`、`DMPLUG_INT`。
 
-## 解決方案
-
-四個原則，集中在一個檔案中，直接解決這些問題：
-
-| 原則 | 解決什麼問題 |
-|-----------|-----------|
-| **編碼前思考** | 錯誤假設、隱藏困惑、缺少權衡 |
-| **簡潔優先** | 過度複雜、臃腫抽象 |
-| **精準修改** | 無關編輯、觸碰不應碰的程式碼 |
-| **目標驅動執行** | 透過測試優先、可驗證的成功標準 |
-
-## 四個原則詳解
-
-### 1. 編碼前思考
-
-**不要假設。不要隱藏困惑。呈現權衡。**
-
-LLM 經常默默選擇一種解釋然後執行。這個原則強制明確推理：
-
-- **明確說明假設** — 如果不確定，詢問而不是猜測
-- **呈現多種解釋** — 當存在歧義時，不要默默選擇
-- **適時提出異議** — 如果存在更簡單的方法，說出來
-- **困惑時停下來** — 指出不清楚的地方並要求澄清
-
-### 2. 簡潔優先
-
-**用最少的程式碼解決問題。不要過度推測。**
-
-對抗過度工程的傾向：
-
-- 不要添加要求之外的功能
-- 不要為一次性程式碼建立抽象
-- 不要添加未要求的"靈活性"或"可配置性"
-- 不要為不可能發生的場景做錯誤處理
-- 如果 200 行程式碼可以寫成 50 行，重寫它
-
-**檢驗標準：** 資深工程師會覺得這過於複雜嗎？如果是，簡化。
-
-### 3. 精準修改
-
-**只碰必須碰的。只清理自己造成的混亂。**
-
-編輯現有程式碼時：
-
-- 不要"改進"相鄰的程式碼、註解或格式
-- 不要重構沒壞的東西
-- 匹配現有風格，即使你更傾向於不同的寫法
-- 如果注意到無關的死程式碼，提一下 —— 不要刪除它
-
-當你的改動產生孤兒程式碼時：
-
-- 刪除因你的改動而變得無用的匯入/變數/函式
-- 不要刪除預先存在的死程式碼，除非被要求
-
-**檢驗標準：** 每一行修改都應該能直接追溯到使用者的請求。
-
-### 4. 目標驅動執行
-
-**定義成功標準。循環驗證直到達成。**
-
-將指令式任務轉化為可驗證的目標：
-
-| 不要這樣做... | 轉化為... |
-|--------------|-----------------|
-| "添加驗證" | "為無效輸入編寫測試，然後讓它們通過" |
-| "修復 bug" | "編寫重現 bug 的測試，然後讓它通過" |
-| "重構 X" | "確保重構前後測試都能通過" |
-
-對於多步驟任務，說明一個簡短的計劃：
-
-```
-1. [步驟] → 驗證: [檢查]
-2. [步驟] → 驗證: [檢查]
-3. [步驟] → 驗證: [檢查]
+驗證 target 設定：
+```powershell
+pwsh tools/keil/validate-dm9051-targets.ps1
 ```
 
-強而有力的成功標準讓 LLM 能夠獨立循環執行。弱標準（"讓它工作"）需要不斷澄清。
+## 專案結構
 
-## 安裝
+| 路徑 | 角色 |
+|---|---|
+| `ModuleDemo/DM9051A/` | **主要開發區** — DM9051 driver + Keil 專案 |
+| `ModuleDemo/DM9051A/dm9051_driver/` | **新版分層驅動**（Core → HAL → Port → Adapter） |
+| `drivers/dm9051_edriver_v1.6.1a_beta/` | **舊版單檔驅動**（勿編輯，除非指定要修舊版） |
+| `middlewares/` | uIP 1.0 + lwIP 2.1.2（上游，已移植） |
+| `apps/` | 應用範例（lwIP web server, uIP demo） |
+| `Libraries/` | CMSIS + startup + MH20xxLib 週邊 HAL |
+| `tools/keil/` | target 驗證腳本 |
 
-**選項 A：Claude Code 插件（推薦）**
+## 新版驅動分層
 
-在 Claude Code 中，首先添加插件市場：
 ```
-/plugin marketplace add forrestchang/andrej-karpathy-skills
-```
-
-然後安裝插件：
-```
-/plugin install andrej-karpathy-skills@karpathy-skills
-```
-
-這會將指南安裝為 Claude Code 插件，使其在你所有專案中可用。
-
-**選項 B：CLAUDE.md（按專案）**
-
-新專案：
-```bash
-curl -o CLAUDE.md https://raw.githubusercontent.com/forrestchang/andrej-karpathy-skills/main/CLAUDE.md
-```
-
-已有專案（追加）：
-```bash
-echo "" >> CLAUDE.md
-curl https://raw.githubusercontent.com/forrestchang/andrej-karpathy-skills/main/CLAUDE.md >> CLAUDE.md
+Application / uIP / lwIP
+        |
+Network Stack Adapter  (adapters/uip/, adapters/lwip/)
+        |
+DM9051 Core Driver    (core/src/, core/inc/)
+        |
+DM9051 HAL vtable     (hal/inc/dm9051_hal.h)
+        |
+MH2030A Platform Port (ports/mh2030a/ — SPI1, DMA, IRQ, delay, board)
 ```
 
-## 在 Cursor 中使用
+## 分層守則
 
-本倉庫包含一個已提交的 Cursor 專案規則 ([`.cursor/rules/karpathy-guidelines.mdc`](.cursor/rules/karpathy-guidelines.mdc))，因此在 Cursor 中開啟專案時同樣適用這些指南。詳情請參閱 **[CURSOR.md](CURSOR.md)**，包括如何在其他專案中使用該規則，以及它與 Claude Code 的關係。
+- Core 不直接操作 SPI/GPIO — 所有硬體操作透過 `dm9051_hal_t` vtable
+- Adapter 不直接操作暫存器 — 僅呼叫 Core API
+- Port 不含協定棧邏輯 — 僅負責 MCU peripheral 與 HAL binding
+- Register 定義集中 `dm9051_regs.h`，共用型別集中 `dm9051_types.h`
 
-## 核心洞察
+## 硬體腳位對應
 
-來自 Andrej：
+| Signal | Pin |
+|---|---|
+| CS | PA15 |
+| SCK | PB3 |
+| MISO | PB4 |
+| MOSI | PB5 |
+| INT | PF6 / EXTI6 |
+| RST | PF7 |
 
-> "LLM 非常擅長循環執行直到達成特定目標……不要告訴它該做什麼，給它成功標準，然後看著它完成。"
+## GitNexus 工作流程
 
-"目標驅動執行"原則正是捕捉了這一點：將指令式指令轉化為帶有驗證循環的宣告式目標。
+此專案已由 GitNexus 索引（24814 symbols, 39332 relationships, 300 execution flows）。
+- 編輯任何符號前**必須**先執行 `impact({target: "...", direction: "upstream"})`
+- HIGH/CRITICAL 風險必須警示使用者並等待確認
+- 勿用 find-and-replace 重新命名符號 — 使用 `rename`
+- Commit 前必須執行 `detect_changes()` 驗證影響範圍
+- 索引更新：`node .gitnexus/run.cjs analyze`
 
-## 如何判斷它在起作用
+其他工作流程技能檔（`.claude/skills/gitnexus/`）：
+- `gitnexus-exploring` — 理解架構 / 查詢程式碼流程
+- `gitnexus-impact-analysis` — 修改前衝擊分析
+- `gitnexus-debugging` — 追蹤 bug / 錯誤
+- `gitnexus-refactoring` — 重新命名 / 提取 / 重構
+- `gitnexus-pr-review` — 審查 PR
 
-如果你看到以下情況，說明這些指南正在發揮作用：
+## 參考文件
 
-- **diff 中不必要的改動更少** —— 只有請求的改動出現
-- **因過度複雜而導致的重寫更少** —— 程式碼第一次就寫得簡潔
-- **澄清問題在實現之前提出** —— 而不是在犯錯之後
-- **乾淨、精簡的 PR** —— 沒有順帶的重構或"改進"
+| 檔案 | 內容 |
+|---|---|
+| `SOUL.md` | 完整 agent persona、分層邊界規則、除錯檢查清單、uIP adapter API 對應 |
+| `CLAUDE.md` | AGENTS.md 的同步鏡像（兩者需保持一致） |
+| `readme.md` | 詳盡的中文驅動手冊：init 流程、RX/TX 路徑、移植指南 |
+| `docs/dm9051_uip_adapter_analysis.md` | uIP adapter 深度分析（呼叫鏈、資料流、封包複製） |
+| `docs/dm9051_lwip_adapter_analysis.md` | lwIP adapter 深度分析 |
+| `docs/DM9051_HAL_REFACTOR_PROMPT.md` | HAL 重構計劃與 prompt |
+| `ModuleDemo/DM9051A/dm9051_driver/README.md` | 新版驅動佈局文件 |
 
-## 定製
+## 慣例
 
-這些指南設計用於與專案特定指令合併。將它們添加到你現有的 `CLAUDE.md` 或建立一個新的。
-
-對於專案特定規則，添加如下章節：
-
-```markdown
-## 專案特定指南
-
-- 使用 c語言 嚴格模式
-- 所有 API 端點必須有測試
-- 遵循 `src/utils/errors.ts` 中現有的錯誤處理模式
-```
-
-## 權衡說明
-
-這些指南傾向於**謹慎而非速度**。對於瑣碎的任務（簡單的拼寫錯誤修復、顯而易見的一行修改），請自行判斷 —— 並非每個改動都需要完整的嚴謹流程。
-
-目標是減少非瑣碎工作中代價高昂的錯誤，而不是拖慢簡單任務。
-
-## 許可
-
-MIT
+- C (Keil ARMCC)，無 C++
+- AGENTS.md 與 CLAUDE.md 需保持一致（同步鏡像）
+- 繁體中文註解與文件
+- 命名慣例：`snake_case`，前綴 `dm9051_`、`mh2030a_`、`uip_`、`ethernetif_`
+- `.uvprojx` 和 `.uvoptx` 納入版控（但 `.uvguix.*` 排除）
+- lwIP 為 `NO_SYS=1` 裸機模式，無 RTOS
+- `core/` 和 `hal/` 不能引入 uIP / lwIP / MH2030A header
+- `adapters/` 不能引入 MH2030A SPI / GPIO / IRQ header
+- `DM9051_USE_UIP` 和 `DM9051_USE_LWIP` 不能同時定義
