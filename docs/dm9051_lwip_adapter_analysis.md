@@ -10,7 +10,6 @@
 > lwIP 適配邏輯已完全集中在 `middlewares/3rd_party/lwip-2.1.2/port/ethernetif.c` / `.h`。
 > `adapters/lwip/` 目錄僅保留 `lwipopts.h` 編譯選項。
 > 應用層直接呼叫 `ethernetif_init()`、`ethernetif_input()`、`ethernetif_link_poll()`。
-> 新增便捷 API: `ethernetif_register()`、`ethernetif_poll()`、`lwip_set_mac_address()`。
 > 本文檔已全面更新反映當前狀態；舊相容包裝層內容已移除。
 
 ---
@@ -41,8 +40,7 @@
 │  ethernetif_input() — RX poll + feed lwIP                       │
 │  ethernetif_link_poll() — PHY link status polling               │
 │  ethernetif_update_config() — link change callback              │
-│  ethernetif_register() — 便捷註冊 (內部靜態 netif)              │
-│  ethernetif_poll() — 便捷輪詢                                   │
+
 └──────────────────────────┬───────────────────────────────────────┘
                            │
 ┌──────────────────────────▼───────────────────────────────────────┐
@@ -165,14 +163,9 @@ err_t ethernetif_input(struct netif *netif);             // 輪詢 RX 並餵入 
 void ethernetif_update_config(struct netif *netif);      // link 狀態變更回呼
 void ethernetif_link_poll(struct netif *netif);           // PHY link 輪詢 (100-500ms)
 
-// ====== 便捷輔助 API (操作內部靜態 netif，用於簡單 demo) ======
-struct netif *ethernetif_register(void);                  // 註冊預設 netif (IP=0.0.0.0)
-void lwip_set_mac_address(unsigned char *macadd);         // 自訂 MAC (register 前呼叫)
-int ethernetif_poll(void);                                // 便捷輪詢 (作用於內部 netif)
 ```
 
 - 不再有 `dm9051_lwip_*` 包裝 API — 應用層直接使用標準 `ethernetif_*` 介面
-- 提供兩組 API: 標準介面 (自行管理 netif) + 便捷輔助 (內部靜態 netif)
 
 ### 3.2 `ethernetif.c` — 標準 Netif 移植實作 (核心 Adapter)
 
@@ -185,7 +178,6 @@ int ethernetif_poll(void);                                // 便捷輪詢 (作�
 | `ethernetif_input()` | RX poll entry | 呼叫 `low_level_input()` → `netif->input()` |
 | `ethernetif_update_config()` | Link change callback | `dm9051_core_link_is_up()` |
 | `ethernetif_link_poll()` | 定時 link 輪詢 | `dm9051_core_link_is_up()` + `netif_set_link_up/down()` |
-| `ethernetif_register()` | 便捷註冊 | `netif_add()` + `ethernetif_init()` + `netif_set_default()` |
 
 - `adapters/lwip/` 目錄已無 `dm9051_lwip.c` / `.h` — 相容包裝層已完全移除 (commit `546d242`)
 - 所有 lwIP 適配邏輯僅此一組檔案，無雙層包裝
@@ -251,9 +243,6 @@ err_t ethernetif_init(struct netif *netif);                // netif_add callback
 err_t ethernetif_input(struct netif *netif);               // RX poll entry
 void ethernetif_update_config(struct netif *netif);        // link change callback
 void ethernetif_link_poll(struct netif *netif);            // PHY link 狀態輪詢
-struct netif *ethernetif_register(void);                   // 便捷註冊 (內部靜態 netif)
-void lwip_set_mac_address(unsigned char *macadd);          // 自訂 MAC (register 前)
-int ethernetif_poll(void);                                 // 便捷輪詢 (作用於內部 netif)
 ```
 
 ---
@@ -365,22 +354,7 @@ sequenceDiagram
 | 使用場景 | 建議 API | 複雜度 |
 |----------|----------|--------|
 | 自訂 netif + 自行管理 IP | `netif_add()` + `ethernetif_init()` + `ethernetif_input()` | 高 |
-| 快速測試 (預設 MAC/IP) | `ethernetif_register()` + `ethernetif_poll()` | 中 |
 | 完整 demo (含 HTTP server) | `main_dm9051_lwip_example.c` 範例 | 低 (複製貼上) |
-
-### 5.3 便捷 API 使用流程 (`ethernetif_register()`)
-
-```c
-ethernetif_register()
-  ├── 設定預設 MAC (可透過 lwip_set_mac_address() 覆寫)
-  ├── IP4_ADDR(&ipaddr,   0,0,0,0)              // IP=0.0.0.0 (後設)
-  ├── IP4_ADDR(&netmask,  0,0,0,0)
-  ├── IP4_ADDR(&gateway,  0,0,0,0)
-  ├── netif_add(&eth_netif, &ipaddr, &netmask, &gateway,
-  │             NULL, ethernetif_init, ethernet_input)
-  ├── netif_set_link_callback(&eth_netif, ethernetif_update_config)
-  └── netif_set_default(&eth_netif)
-```
 
 ---
 
@@ -962,7 +936,7 @@ graph TD
 
     subgraph "lwIP Netif Port (middlewares/.../port/)"
         ETHIF_H["ethernetif.h<br/>struct ethernetif"]
-        ETHIF_C["ethernetif.c<br/>ethernetif_init<br/>ethernetif_input<br/>low_level_init<br/>low_level_input<br/>low_level_output<br/>ethernetif_update_config<br/>ethernetif_link_poll<br/>ethernetif_register"]
+        ETHIF_C["ethernetif.c<br/>ethernetif_init<br/>ethernetif_input<br/>low_level_init<br/>low_level_input<br/>low_level_output<br/>ethernetif_update_config<br/>ethernetif_link_poll"]
         SYS_ARCH["sys_arch.c<br/>sys_now()<br/>sys_jiffies()"]
         CC_H["arch/cc.h<br/>packed struct, endian"]
     end
@@ -1224,7 +1198,7 @@ adapters/
 
 1. **標準化**: 遵循 lwIP 標準 `netif` 介面，與 STM32Cube / NXP MCU 的 ethernetif 風格一致
 2. **簡潔單層**: `dm9051_lwip.c/h` 相容包裝層已移除，僅存 `ethernetif.c/h` 單層架構
-3. **雙模式 API**: 標準介面 (自行管理 netif) + 便捷輔助 (內部靜態 netif)，適合不同開發階段
+3. **雙模式 API**: 標準介面 (自行管理 netif) + 輔助 API (內部靜態 netif)，適合不同開發階段
 4. **pbuf 管理**: 完整利用 lwIP pbuf chain 與 pool 機制，但需要額外 copy
 5. **非同步 TX**: 透過 TCP callback 驅動，不同於 uIP 的同步模式
 
@@ -1245,12 +1219,11 @@ adapters/
 - **NO_SYS=1 bare-metal** → 所有 lwIP 操作在主迴圈順序執行，無 preemption
 - **TX busy wait** → TX 完成前 CPU 被佔用 (最長 ~12.5ms)
 
-### 17.4 lwIP Adapter API 完整對照表
+### 17.4 lwIP Adapter API 一覽表
 
-| 功能 | 標準 netif API | 便捷輔助 API | 說明 |
-|------|---------------|-------------|------|
-| init | `ethernetif_init()` | `ethernetif_register()` | 前者自行管理 netif；後者使用內部靜態 netif |
-| RX poll | `ethernetif_input()` | `ethernetif_poll()` | 前者需傳入 netif 指標 |
-| link poll | `ethernetif_link_poll()` | 需自行包裝 wrapper | 例如 `lwip_link_poll_wrapper()` |
-| link callback | `ethernetif_update_config()` | 透過 `netif_set_link_callback` 註冊 | 自動偵測 link 變化 |
-| 全部初始化 | `lwip_init()` + `netif_add()` + ... | `ethernetif_register()` + `netif_set_up()` | 便捷版可減少樣板程式碼 |
+| 功能 | API | 說明 |
+|------|-----|------|
+| init | `ethernetif_init()` | netif_add init callback，初始化硬體 |
+| RX poll | `ethernetif_input()` | 輪詢 DM9051 RX 並餵入 lwIP |
+| link poll | `ethernetif_link_poll()` | 定期輪詢 PHY link 狀態 (建議 100-500ms) |
+| link callback | `ethernetif_update_config()` | 透過 `netif_set_link_callback` 註冊 |

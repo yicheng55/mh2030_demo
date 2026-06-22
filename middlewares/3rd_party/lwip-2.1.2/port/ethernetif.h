@@ -5,8 +5,7 @@
  * @file ethernetif.h
  * @brief DM9051 SPI Ethernet lwIP netif 移植層介面。
  *
- * 與 ethernetif.c 成對，提供標準的 lwIP netif init / input 函式，
- * 以及一組便捷註冊輔助函式供 demo / 快速原型使用。
+ * 與 ethernetif.c 成對，提供標準的 lwIP netif init / input 函式。
  */
 
 #include <stdint.h>
@@ -60,21 +59,6 @@ void ethernetif_update_config(struct netif *netif);
 
 /** @brief 輪詢 PHY link 狀態並同步 lwIP 旗標 (建議 100-500ms 週期呼叫)。 */
 void ethernetif_link_poll(struct netif *netif);
-
-/* ---------------------------------------------------------------------------
- * 便捷輔助 API (適用於簡單 demo)
- *
- * 管理一個內部靜態 netif 實例，無需自行宣告 netif 變數。
- * ------------------------------------------------------------------------ */
-
-/** @brief 註冊一個預設 netif (IP=0.0.0.0, 使用 DHCP 或後續手動設定)。 */
-struct netif *ethernetif_register(void);
-
-/** @brief 在 ethernetif_register() 之前呼叫，自訂 MAC 位址。 */
-void lwip_set_mac_address(unsigned char *macadd);
-
-/** @brief 便捷輪詢：呼叫 ethernetif_input 作用於內部 netif。回傳 0 表示成功。 */
-int ethernetif_poll(void);
 
 /* ---------------------------------------------------------------------------
  * PTP 硬體時間戳 (預留 / 視晶片支援啟用)
