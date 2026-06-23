@@ -70,9 +70,8 @@
 <!-- ============================================================ -->
 <h2 id="sec1">1. 架構總覽</h2>
 
-<div class="figure-card" data-svg="svg/flow_01.svg" data-modal-id="modalFlow1" style="max-width:650px;">
-  <div class="figure-header">Figure 1 — 整體軟體架構圖</div>
-  <div class="figure-body">
+<div class="figure-card" style="max-width:650px;padding:1rem;border:1px solid var(--border-color,#e2e8f0);margin:1.2rem 0;">
+  <div class="figure-header" style="font-weight:600;font-size:.9rem;padding-bottom:.5rem;border-bottom:1px solid #e2e8f0;margin-bottom:.75rem;">Figure 1 — 整體軟體架構圖</div>
 <svg viewBox="0 0 600 480" style="width:100%">
 <defs>
 <marker id="a1-lw" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5Z" fill="#64748b"/></marker>
@@ -84,44 +83,34 @@
 <linearGradient id="g6-lw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f43f5e"/><stop offset="100%" stop-color="#e11d48"/></linearGradient>
 <linearGradient id="g7-lw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#475569"/><stop offset="100%" stop-color="#334155"/></linearGradient>
 </defs>
-<rect x="130" y="8" width="340" height="48" class="layer-rect" fill="url(#g1-lw)" stroke="#1d4ed8" rx="6" ry="6" stroke-width="1.5"/>
+<rect x="130" y="8" width="340" height="48" fill="url(#g1-lw)" stroke="#1d4ed8" rx="6" ry="6" stroke-width="1.5"/>
 <text x="300" y="29" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">Application Layer</text>
 <text x="300" y="44" text-anchor="middle" fill="#bfdbfe" font-size="9">main_dm9051_lwip_example.c / HTTP server</text>
 <line x1="300" y1="56" x2="300" y2="74" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#a1-lw)"/>
-
-<rect x="110" y="76" width="380" height="48" class="layer-rect" fill="url(#g2-lw)" stroke="#6d28d9" rx="6" ry="6" stroke-width="1.5"/>
+<rect x="110" y="76" width="380" height="48" fill="url(#g2-lw)" stroke="#6d28d9" rx="6" ry="6" stroke-width="1.5"/>
 <text x="300" y="97" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">lwIP TCP/IP Stack</text>
 <text x="300" y="112" text-anchor="middle" fill="#ddd6fe" font-size="9">lwip_init / tcp_write / tcp_output / etharp_output / sys_check_timeouts</text>
 <line x1="300" y1="124" x2="300" y2="142" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#a1-lw)"/>
-
-<rect x="130" y="144" width="340" height="48" class="layer-rect" fill="url(#g3-lw)" stroke="#b45309" rx="6" ry="6" stroke-width="1.5"/>
+<rect x="130" y="144" width="340" height="48" fill="url(#g3-lw)" stroke="#b45309" rx="6" ry="6" stroke-width="1.5"/>
 <text x="300" y="165" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">Netif Port (Adapter)</text>
 <text x="300" y="180" text-anchor="middle" fill="#fef3c7" font-size="9">ethernetif.c / ethernetif.h — low_level_init / input / output</text>
 <line x1="300" y1="192" x2="300" y2="210" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#a1-lw)"/>
-
-<rect x="120" y="212" width="360" height="48" class="layer-rect" fill="url(#g4-lw)" stroke="#047857" rx="6" ry="6" stroke-width="1.5"/>
+<rect x="120" y="212" width="360" height="48" fill="url(#g4-lw)" stroke="#047857" rx="6" ry="6" stroke-width="1.5"/>
 <text x="300" y="233" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">DM9051 Core Driver</text>
 <text x="300" y="248" text-anchor="middle" fill="#d1fae5" font-size="9">dm9051_core_open / receive / send / link_is_up / interrupt_*</text>
 <line x1="300" y1="260" x2="300" y2="278" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#a1-lw)"/>
-
-<rect x="140" y="280" width="320" height="42" class="layer-rect" fill="url(#g5-lw)" stroke="#0e7490" rx="6" ry="6" stroke-width="1.5"/>
+<rect x="140" y="280" width="320" height="42" fill="url(#g5-lw)" stroke="#0e7490" rx="6" ry="6" stroke-width="1.5"/>
 <text x="300" y="299" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">HAL Abstraction Layer</text>
 <text x="300" y="313" text-anchor="middle" fill="#cffafe" font-size="9">struct dm9051_hal_ops vtable</text>
 <line x1="300" y1="322" x2="300" y2="340" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#a1-lw)"/>
-
-<rect x="120" y="342" width="360" height="48" class="layer-rect" fill="url(#g6-lw)" stroke="#be123c" rx="6" ry="6" stroke-width="1.5"/>
+<rect x="120" y="342" width="360" height="48" fill="url(#g6-lw)" stroke="#be123c" rx="6" ry="6" stroke-width="1.5"/>
 <text x="300" y="363" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">MH2030A Platform Port</text>
 <text x="300" y="378" text-anchor="middle" fill="#fecdd3" font-size="9">SPI Polling / SPI DMA / EXTI-IRQ / HAL binding</text>
 <line x1="300" y1="390" x2="300" y2="408" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#a1-lw)"/>
-
-<rect x="100" y="410" width="400" height="42" class="layer-rect" fill="url(#g7-lw)" stroke="#1e293b" rx="6" ry="6" stroke-width="1.5"/>
+<rect x="100" y="410" width="400" height="42" fill="url(#g7-lw)" stroke="#1e293b" rx="6" ry="6" stroke-width="1.5"/>
 <text x="300" y="429" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">MCU HAL / Peripheral Layer</text>
 <text x="300" y="443" text-anchor="middle" fill="#cbd5e1" font-size="9">MH20xxLib / AT32F403A_407 StdPeriph / CMSIS Cortex-M0</text>
 </svg>
-  </div>
-  <div class="figure-footer">
-    分層架構：Application → lwIP Stack → ethernetif.c (Netif Port) → DM9051 Core → HAL → MH2030A Port → MCU
-  </div>
 </div>
 
 <h3 id="sec1-1">分層職責</h3>
@@ -1373,28 +1362,6 @@ int dm9051_adapter_core_init(dm9051_device_t *dev,
       <div class="modal-body svg-modal-body">
         <div class="svg-zoom-container">
           <img src="svg/sequence_04.svg" alt="Link Status Change Flow" class="svg-zoomable" style="max-width:100%;height:auto;cursor:zoom-in;">
-        </div>
-      </div>
-      <div class="modal-footer justify-content-center gap-2">
-        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-in" title="Zoom In"><i class="bi bi-zoom-in"></i></button>
-        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-out" title="Zoom Out"><i class="bi bi-zoom-out"></i></button>
-        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-reset" title="Reset Zoom">1:1</button>
-        <span class="badge bg-secondary svg-zoom-level ms-2">100%</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade" id="modalFlow1" tabindex="-1">
-  <div class="modal-dialog modal-xl modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Figure 1 — Architecture Overview</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body svg-modal-body">
-        <div class="svg-zoom-container">
-          <img src="svg/flow_01.svg" alt="Architecture Overview" class="svg-zoomable" style="max-width:100%;height:auto;cursor:zoom-in;">
         </div>
       </div>
       <div class="modal-footer justify-content-center gap-2">
