@@ -1,267 +1,222 @@
 ---
-name: git-commit
-description: 建立符合規範的 git 提交訊息，並在提交前 review 將提交的變更。優先遵循專案現有提交規範，支援 Conventional Commits 格式。使用場景：使用者要求建立提交、編寫提交訊息、提交前檢查變更
+name: xin-gitcommit
+description: >-
+  依照 Xin 專案 Git commit 規範，協助撰寫、確認並執行 commit（與可選的 push）。
+  Use when the user wants to commit changes, write a commit message, git commit,
+  寫 commit、提交、commit message、推版、push。
 ---
 
-# Git 提交訊息
+# Git Commit 助手（xin-gitcommit）
 
-建立清晰、規範的 git 提交訊息。優先遵循專案現有風格，其次參考 Conventional Commits 標準。
+依照 [COMMIT_CONVENTION.md](COMMIT_CONVENTION.md) 為本專案產生符合規範的 commit message，
+並依使用者需求執行 commit / push。
+
+---
+
+## 模式說明
+
+| 模式 | 觸發方式 | 行為 |
+|------|----------|------|
+| **草稿模式** | 只要求寫 commit msg | 產出草稿供使用者自行執行，不執行任何 git 指令 |
+| **半自動模式** | 要求「幫我 commit」 | 顯示草稿 → 使用者確認 → 執行 `git commit`，不 push |
+| **全自動模式** | 要求「幫我 commit 並 push」 | 顯示草稿 → 使用者確認 → 執行 `git commit` + `git push` |
+
+> ⚠️ **全自動模式強制確認**：不論使用者說「直接做」或「不用問我」，
+> commit message 草稿**一定要讓使用者看到並明確批准後**才能執行 commit 與 push。
+> Push 是對共用遠端的不可逆操作，禁止跳過確認步驟。
+
+---
 
 ## 執行流程
 
-### 步驟 1：確定專案規範（首次）
+### Step 1 — 確認 Staging 範圍
 
-**如果對話中已透過本技能確定過專案規範，直接複用，跳過本步驟。**
+先執行 `git status` 與 `git diff --cached --name-only` 取得目前狀態，再依以下情況處理：
 
-首次執行時並行收集以下資訊：
+**情況 A：使用者在指令中已指定檔案或路徑**
+（例如：`/xin-gitcommit Assets/GameXXX/Scripts/`）
+
+- 僅對指定範圍執行 `git add <paths>`，其他異動檔案保持原狀
+- 執行前列出將要 stage 的檔案清單，讓使用者確認
+
+**情況 B：目前已有 staged 變更（且使用者未另外指定）**
+
+- 直接使用現有 staged 內容，不額外 `git add`
+- 顯示已 staged 的檔案清單供使用者確認範圍正確
+
+**情況 C：無任何 staged 變更，使用者也未指定檔案**
+
+- 列出所有 unstaged 異動檔案（含路徑），讓使用者選擇：
+  1. 指定要 stage 的檔案或目錄（可多個）
+  2. 或輸入「全部」代為執行 `git add -A`（需再次確認）
+- 不可自行判斷並 stage 所有變更
+
+收集完 staged 範圍後，再執行：
 
 ```bash
-git log -5 --pretty=format:"%s"
-git branch --show-current
+git diff --cached          # 已 stage 的完整 diff（用於分析 commit 內容）
+git log --oneline -5       # 最近 5 筆 commit（用於對齊風格）
 ```
 
-同時檢查專案根目錄是否存在 commitlint 配置（`.commitlintrc.*`、`commitlint.config.*`、`package.json` 中的 `"commitlint"` 欄位）。
+- 若使用者有提供 QC 編號，記下備用。
 
-#### 確定提交格式規範
+#### 模組分離判斷
 
-按優先級取第一個匹配：
+分析 `git diff --cached` 結果是否涉及多個業務模組路徑
+（如 Assets/GameXXX/ 與 Assets/GameYYY/ 分屬不同模組）：
 
-1. **commitlint 配置**：找到則嚴格按其規則生成，提取 `extends`（預設）、`parserPreset`（解析模式）、`rules`（type-enum、scope-enum、header-max-length 等）
-2. **提交歷史風格**：從最近 5 條提交推斷類型名稱（`feat`/`feature`）、語言（中文/英文）、issue 引用位置（subject 中/footer 中）
-3. **Conventional Commits**：以上均無明確規範時使用預設標準
+- 所有變更屬同一模組 → 繼續
+- 涉及多個模組 → 列出各模組變更行數，詢問使用者：
+  - 是否要拆分個別 commit？
+  - 或維持同一個 commit 一起提交？
 
-#### 提交類型
+#### 從 Branch 名稱提取 QC 編號
 
-優先使用專案已有類型。無明確類型時參考：
+若使用者未提供 QC 編號，也可從目前分支名稱解析：
 
-| 類型 | 說明 |
-|------|------|
-| `feat` / `feature` | 新功能 |
-| `fix` / `bugfix` | Bug 修復 |
-| `docs` | 文件變更 |
-| `style` | 程式碼格式（不影響功能） |
-| `refactor` | 重構（功能不變） |
-| `perf` | 效能最佳化 |
-| `test` | 測試相關 |
-| `chore` | 建置/工具鏈 |
+- `feature/#1234` → `1234`
+- `fix/567-login-bug` → `567`
+- `issue/890` → `890`
 
-#### 提取分支關聯的 Issue
+解析到的 QC 編號併入 Step 5 Footer 處理。
 
-從目前分支名中提取 issue 編號：
+### Step 2 — 判斷 Type
 
-- `feature/#1254` → `#1254`
-- `fix/123-login-blank` → `#123`
-- `feat/new-feature-456` → `#456`
-- `issue/789` → `#789`
-- `feature/PROJ-123-desc` → `#PROJ-123`
+依 COMMIT_CONVENTION.md 規則選出**唯一**一個 Type：
 
-解析到 issue 編號時，按上述確定的引用風格放置（subject 中或 footer 中）。
+- 同時有 fix 與 feat → 優先用 `fix`
+- Localization / GameStreet 更動 → 用 `feat` 或 `fix`（非 `docs`）
+- 僅格式調整 → `style`；僅重構 → `refactor`；第三方更新 → `chore`
 
-### 步驟 2：收集變更資料
+### Step 3 — 撰寫 Subject
 
-**一次並行執行以下命令**，不要分步呼叫：
+- 祈使句、50 字以內、不加句號
+- 必須描述**實際改動內容**，不可只寫 QC 編號
+- 優先以繁體中文撰寫（與既有 commit 風格一致）
 
-暫存區有內容時：
-```bash
-git status --short
-git diff --cached --stat
-git diff --cached
-git diff --cached --check
-git log @{u}..HEAD --oneline 2>/dev/null
-```
+### Step 4 — 判斷 Body（選填）
 
-暫存區為空時：
-```bash
-git status --short
-git diff --stat
-git diff
-git diff --check
-git log @{u}..HEAD --oneline 2>/dev/null
-```
+需要 Body 的情況：
+- 標題無法完整說明複雜改動（多個修正點）
+- 需補充測試方式或排除 QA 測項
+- 有場景異動（格式：`+場景異動: GameXXX、GameYYY。`）
+- 盡量精簡，不需要有太具體改動的描述(例如實際把檔案更動內容說出來)
 
-基於收集的資料一次性完成以下判斷：
-
-#### 模組判斷
-
-**先判斷變更目的（按提交類型分類）**：
-
-從 diff 內容將每個檔案歸類到提交類型（feat / fix / docs / refactor / chore 等）。若出現 **不同提交類型的檔案**，視為目的不同質，強烈建議拆分提交。例如：`*.h` 的註解修正（fix）＋ 新增 `docs/*.md`（docs）→ 應拆成兩個 commit。
-
-**再判斷業務模組（已確認目的同質後）**：
-
-**屬於同一模組（一起提交）**：
-- 同一功能的不同部分（API、型別、工具函式）
-- 功能開發 + 相關文件/配置/依賴
-
-**不相關（分開提交）**：
-- 不同業務模組的變更
-- 不同提交類型的變更（修復 + 文件、功能 + 重構等）
-- 程式碼 + 部署/CI 配置
-
-#### 處理邏輯
-
-**所有變更屬於同一模組**：直接提交。
-
-**大部分屬於同一模組，少量不相關**：
-```
-主要模組：使用者模組
-不相關變更（建議暫不提交）：
-- src/api/orders.ts (訂單模組)
-
-跳過不相關內容，僅提交使用者模組相關變更？(y/n)
-```
-
-**多個模組變更相當**：
-```
-使用者模組：70行 | 訂單模組：90行
-建議先提交變更較多的模組，是否僅提交訂單模組？(y/n/all)
-```
-
-#### 合併提交檢查
-
-基於 `git log @{u}..HEAD` 結果判斷。僅在有領先遠端的本地提交時合併。合併條件：同一類型 + 相同模組檔案、同一 bug 的修復、文件連續更新。其他情況不合併。
-
-### 步驟 3：提交前 Review
-
-**使用者明確要求跳過 review 時（如"不 review"、"直接提交"），跳過本步驟。**
-
-**直接複用步驟 2 已收集的 diff 資料**，不要重新執行 git diff 命令。
-
-先判斷目前執行環境使用的 agent 及其能力，按以下優先級執行：
-
-- **支援 subagent 的 agent**：必須啟動獨立 subagent 執行 review，避免主執行緒上下文、使用者後續追問或已有結論干擾判斷；如果 subagent 環境也支援內置 review 能力，由 subagent 優先使用內置能力。
-- **不支援 subagent，但帶內置 review 能力的 agent**：使用該 agent 自帶的 review 能力檢查本次將提交的變更。
-- **無內置 review 能力或無法確認能力的 agent**：直接基於步驟 2 收集的 diff 進行 review。
-- **使用者明確要求使用某種 review 方式**：遵循使用者要求，同時保留下方阻塞問題處理邏輯。
-
-優先 review 暫存區；如果沒有暫存內容，則 review 工作區變更；如果步驟 2 決定拆分提交，只 review 將納入本次提交的檔案。
-
-#### Subagent Review 要求
-
-使用 subagent review 時，只傳遞客觀材料：本次提交範圍、`git diff --stat`、完整 diff、相關使用者需求和本步驟檢查項。不要傳遞主執行緒的判斷結論、期望結果或提交訊息草稿。subagent 輸出應優先列出阻塞問題，其次列出非阻塞風險；無問題時明確說明未發現阻塞問題。
-
-#### Review 檢查項
-
-- **敏感資訊**：密碼、金鑰、token、私有憑證、真實生產憑據
-- **臨時程式碼**：除錯日誌、中斷點、TODO 佔位、硬編碼測試資料
-- **衝突與格式**：衝突標記、尾隨空格、縮排異常、格式化噪音
-- **提交範圍**：是否混入不相關檔案、生成物、大檔案或本地環境配置
-- **行為風險**：明顯的空值風險、錯誤處理缺失、破壞性變更未說明
-- **測試影響**：是否需要執行或補充測試；不能執行時在結果中說明原因
-
-#### Review 處理邏輯
-
-**無阻塞問題**：繼續生成提交訊息，並可在回覆中簡要說明 review 通過。
-
-**發現阻塞問題**：先停止提交，向使用者列出問題、檔案位置和建議修復方式；不要生成會掩蓋問題的提交訊息。
-
-**發現非阻塞風險**：繼續生成提交訊息，但在回覆中提示風險和建議驗證項。
-
-### 步驟 4：生成提交訊息
-
-基於專案規範和變更內容生成訊息。使用以下格式：
+### Step 5 — 判斷 Footer（有 QC 編號時必填）
 
 ```
-# Summary (one line, 72 chars or less)
-
-# Detailed description:
-# - 
-# - 
-# - 
-# - 
-# - 
-
-# Concluding explanation:
-# 
+issue 4831
+issue 4832
 ```
 
-生成後移除 `#` 註解標記，渲染為：
+每個 QC 獨立一行，格式嚴格為 `issue XXXX`。
+若有實際說QC是單檔的，格式為 `單檔issue XXXX`。
+
+### Step 6 — 提交前 Review（使用 Subagent）
+
+基於 Step 1 收集的 diff 執行獨立 review：
+
+- 啟動 subagent，僅傳遞客觀材料（staged file list、完整 diff）
+- 不傳遞主執行緒對 Type/Subject 的判斷結論，避免引導
+
+檢查項：
+
+- **敏感資訊**：密碼、金鑰、token、私有憑證
+- **臨時程式碼**：除錯日誌、TODO 佔位、硬編碼測試資料
+- **衝突與格式**：衝突標記、尾隨空格、縮排異常
+- **提交範圍**：不相關檔案、生成物、大檔案混入
+
+處理邏輯：
+
+- **無阻塞問題** → 繼續執行 Step 7
+- **有阻塞問題** → 列出問題檔案位置與建議修復方式，暫停提交
+- **有非阻塞風險** → 繼續 Step 7，但輸出草稿時一併提示風險
+
+---
+
+### Step 7 — 輸出草稿並確認
+
+以下方模板呈現草稿，**等待使用者明確回覆「確認」或修改意見**：
 
 ```
-[Component] Brief description of changes
+────────────────────────────────
+📝 Commit Message 草稿
+────────────────────────────────
+<Type>: <Subject>
 
-Detailed changes:
-- 
-- 
-- 
-- 
-- 
+<Body（若有）>
 
-Overall impact and purpose:
+<Footer（若有）>
+────────────────────────────────
+模式：[草稿 / commit / commit + push]
+
+請確認內容。若需調整請直接告知，確認後輸入「ok」或「確認」即可執行。
 ```
 
-#### 規則
+### Step 8 — 執行（半自動 / 全自動模式）
 
-- **Line 1**: `[Component] Brief summary (≤50 chars)`
-- **Detailed changes**: 使用 bullet points (`-`) 列出變更
-- **Concluding explanation**: 說明 overall impact 和 purpose（為何這樣改）
-- **每行 ≤72 字元**
-- 單一檔案小修改（<10 行）、純格式/拼字修正等，可只寫 summary 行，省略 detailed changes 和 conclusion
+Step 7 使用者確認後：
 
-## 注意事項
+1. **Commit**：
+   ```bash
+   git commit -m "$(cat <<'EOF'
+   <Type>: <Subject>
 
-- 僅負責建立提交，不執行推送
-- 不提交密碼、金鑰、token 等敏感資訊
-- 簡單變更不寫 body；新增大文件、複雜變更、破壞性變更應寫 body
-- 不要在提交訊息中包含 `Co-Authored-By` 等元資訊
+   <Body>
 
-## 範例
+   <Footer>
+   EOF
+   )"
+   ```
+   使用 heredoc 確保多行訊息格式正確，**禁止使用 `--no-verify`**。
 
-### 基礎（簡短）
+2. **Push**（全自動模式）：
 
-```
-[DM9051] Fix SPI DMA timeout on large transfers
-```
+   Push 前先執行：
+   ```bash
+   git log @{u}..HEAD --oneline
+   ```
+   確認本地領先提交內容符合預期，避免誤推。
 
-### 一般
+   若目前 branch 無 upstream 追蹤，告知使用者並詢問是否要設定 upstream。
 
-```
-[DM9051] Refactor HAL vtable binding for platform portability
+   確認後執行：
+   ```bash
+   git push
+   ```
 
-Detailed changes:
-- Extract platform-specific SPI ops into dm9051_hal_vtable.c
-- Add dm9051_hal_bind() entry point for port registration
-- Remove hardcoded MH2030A calls from core driver
-- Update project file to include new HAL vtable source files
-- Update build configuration to include new HAL vtable source files
+3. 回報執行結果（成功 commit hash / 失敗錯誤訊息）。
 
-Overall impact and purpose:
-Unblocks AT32F415 porting by making the HAL interface truly
-platform-agnostic. Core driver no longer depends on any MH2030A
-headers.
-```
+---
 
-### 破壞性變更
+## 格式自我檢查清單
 
-```
-[API] Migrate pagination to cursor-based model
+執行前確認 commit message 符合以下規則：
 
-Detailed changes:
-- Replace page/limit query params with cursor and limit
-- Remove offset-based skip logic from list endpoints
-- Add cursor encoding/decoding utility functions
-- Update API documentation to reflect new pagination model
-- Update client SDK to support cursor-based pagination
+- [ ] Type 只有一個，來自規範表
+- [ ] Subject ≤ 50 字，祈使句，不加句號
+- [ ] Body 與 Subject 之間有空行（若有 Body）
+- [ ] Footer 與 Body 之間有空行（若有 Footer）
+- [ ] 有 QC 編號時 Footer 必填，格式為 `issue XXXX` or `單檔issue XXXX`
+- [ ] 沒有捏造 QC 編號
 
-Overall impact and purpose:
-BREAKING CHANGE - older page/limit params no longer accepted.
-Cursor pagination improves consistency for large datasets and
-eliminates offset drift issues. Migration guide available in
-docs/migration.md.
-```
+---
 
-### 新增大型文件
+## 邊界情況
 
-```
-[DOC] Add lwIP adapter architecture analysis
+| 情況 | 處理方式 |
+|------|----------|
+| 無 staged 變更且未指定檔案 | 列出所有 unstaged 檔案，要求使用者指定範圍後再繼續 |
+| 使用者提供 QC 但未在 diff 中出現 | 仍加入 Footer，但標注「由使用者提供」 |
+| Push 遠端需要驗證或 force-push | 停止並告知，不自動加 `--force` |
+| Pre-commit hook 失敗 | 回報錯誤內容，不 amend，協助排查後重新 commit |
+| 使用者要修改草稿 | 重新輸出修改後的草稿，再次等待確認 |
+| Subagent review 發現阻塞問題 | 列出問題檔案位置與建議修復方式，暫停提交流程 |
+| 變更涉及多個業務模組 | 列出各模組行數，詢問是否拆分 commit |
+| 本地 branch 無 upstream 追蹤 | 告知無法自動 push，詢問是否要設定 upstream |
 
-Detailed changes:
-- Document HAL vtable binding mechanism
-- Map RX/TX data flow through netif layer
-- Describe error handling strategy for each path
-- Provide diagrams for packet flow and buffer management
-- Summarize key design decisions and trade-offs
+---
 
-Overall impact and purpose:
-Provides a comprehensive reference for future DM9051 adapter implementations and porting efforts.
-```
+## 參考資源
+
+- 完整規範：[COMMIT_CONVENTION.md](COMMIT_CONVENTION.md)
