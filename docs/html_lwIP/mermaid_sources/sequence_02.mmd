@@ -1,0 +1,40 @@
+sequenceDiagram
+    participant APP as main()
+    participant ETHIF as ethernetif_input
+    participant LLI as low_level_input
+    participant CORE as dm9051_core_receive
+    participant DM as DM9051 HW
+    participant LWIP as lwIP Stack
+
+    DM->>DM: Packet arrives from PHY<br/>stored in RX FIFO
+    Note over DM: INT pin (if IRQ mode)
+
+    APP->>ETHIF: ethernetif_input(netif)
+    ETHIF->>LLI: low_level_input(netif)
+
+    LLI->>CORE: dm9051_core_receive(rx_buf, 1514)
+    CORE->>DM: read MRCMDX (ready check)
+    DM-->>CORE: 0x01 (PKT_RDY)
+    CORE->>DM: read_mem(header, 4)
+    DM-->>CORE: [RSR, LEN_L, LEN_H]
+    CORE->>DM: read_mem(rx_buf, rx_len)
+    DM-->>CORE: rx_len bytes (SPI read)
+    Note over CORE,LLI: COPY #1: SPI FIFO → rx_buf
+    CORE->>DM: write ISR clear
+    CORE-->>LLI: return rx_len
+
+    LLI->>LLI: pbuf_alloc(PBUF_RAW, len, PBUF_POOL)
+    LLI->>LLI: pbuf_take(p, rx_buf, len)
+    Note over LLI: COPY #2: rx_buf → pbuf chain
+    LLI-->>ETHIF: pbuf *
+
+    ETHIF->>LWIP: netif->input(p, netif)<br/>ethernet_input
+    LWIP->>LWIP: etharp_input(p, netif)
+    alt ARP (0x0806)
+        LWIP->>LWIP: process ARP request/reply
+    else IP (0x0800)
+        LWIP->>LWIP: ip4_input() → tcp_input()
+        LWIP->>LWIP: application callback<br/>(HTTP response via uip_send)
+    end
+    LWIP-->>ETHIF: ERR_OK
+    ETHIF-->>APP: return ERR_OK

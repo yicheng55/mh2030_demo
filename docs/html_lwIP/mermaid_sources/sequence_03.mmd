@@ -1,0 +1,39 @@
+sequenceDiagram
+    participant APP as Application<br/>(HTTP callback)
+    participant LWIP as lwIP Stack
+    participant ETHIF as ethernetif.c
+    participant CORE as dm9051_core_send
+    participant DM as DM9051 HW
+
+    APP->>LWIP: tcp_write(pcb, data, len)
+    APP->>LWIP: tcp_output(pcb)
+    LWIP->>LWIP: ip4_output_if()
+    LWIP->>LWIP: etharp_output()
+    LWIP->>LWIP: etharp_query() / cache lookup
+
+    alt ARP cache MISS
+        LWIP->>ETHIF: netif->linkoutput(arp_pbuf)
+        ETHIF->>ETHIF: pbuf_copy_partial→tx_buf
+        ETHIF->>CORE: dm9051_core_send(tx_buf, arp_len)
+        CORE->>DM: write TXPLL/L, MWCMD write
+        CORE->>DM: TCR TXREQ
+        DM-->>CORE: TX done
+        Note over LWIP: ARP entry resolved
+        LWIP->>LWIP: etharp_output() retry
+    end
+
+    Note over LWIP: ARP cache HIT
+    LWIP->>ETHIF: netif->linkoutput(pbuf_p)
+    ETHIF->>ETHIF: pbuf_copy_partial(p, tx_buf, tot_len, 0)
+    Note over ETHIF: COPY #1: pbuf chain → tx_buf
+    ETHIF->>CORE: dm9051_core_send(&eth->dev, tx_buf, tot_len)
+    CORE->>DM: write TXPLL/TXPLH (length)
+    CORE->>DM: write_mem(MWCMD, tx_buf, len)
+    Note over CORE,DM: COPY #2: tx_buf → SPI TX FIFO
+    CORE->>DM: write TCR (TXREQ)
+    CORE->>DM: poll TCR_TXREQ (busy wait)
+    DM-->>CORE: TX complete
+    Note over CORE: bus_release()
+    CORE-->>ETHIF: DM9051_OK
+    ETHIF-->>LWIP: ERR_OK
+    Note over LWIP: pbuf_free(p)
