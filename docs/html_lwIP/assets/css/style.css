@@ -528,6 +528,61 @@ body {
   height: auto;
 }
 
+/* SVG Zoom Modal */
+.svg-modal-body {
+  padding: 0;
+  overflow: hidden;
+  min-height: 300px;
+}
+
+.svg-zoom-container {
+  width: 100%;
+  height: 70vh;
+  overflow: hidden;
+  position: relative;
+  background: var(--bg-code);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.svg-zoomable {
+  max-width: 100%;
+  height: auto;
+  transition: transform 0.1s ease;
+  transform-origin: 0 0;
+  display: block;
+  flex-shrink: 0;
+}
+
+.svg-zoom-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.svg-zoom-container::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+.svg-zoom-container::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.svg-zoom-container::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+.modal-footer .svg-zoom-btn {
+  min-width: 36px;
+}
+
+.modal-footer .svg-zoom-level {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.25em 0.5em;
+}
+
 /* Offcanvas for mobile */
 .offcanvas {
   background: var(--bg-sidebar);

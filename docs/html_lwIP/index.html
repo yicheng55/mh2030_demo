@@ -73,7 +73,7 @@
 <div class="figure-card" data-svg="svg/flow_01.svg" data-modal-id="modalFlow1">
   <div class="figure-header">Figure 1 — 整體軟體架構圖</div>
   <div class="figure-body">
-    <object data="svg/flow_01.svg" type="image/svg+xml" style="max-width:100%;height:auto;">Architecture Diagram</object>
+    <object data="svg/flow_01.svg" type="image/svg+xml" style="max-width:100%;height:auto;pointer-events:none;">Architecture Diagram</object>
   </div>
   <div class="figure-footer">
     分層架構：Application → lwIP Stack → ethernetif.c (Netif Port) → DM9051 Core → HAL → MH2030A Port → MCU
@@ -339,7 +339,7 @@ netif_set_up(&netif);</code></pre>
 <div class="figure-card" data-svg="svg/sequence_01.svg" data-modal-id="modalSeq1">
   <div class="figure-header">Figure 2 — Netif Registration Sequence</div>
   <div class="figure-body">
-    <object data="svg/sequence_01.svg" type="image/svg+xml" style="max-width:100%;height:auto;">Netif Registration Sequence</object>
+    <object data="svg/sequence_01.svg" type="image/svg+xml" style="max-width:100%;height:auto;pointer-events:none;">Netif Registration Sequence</object>
   </div>
   <div class="figure-footer">
     <ul>
@@ -461,7 +461,7 @@ netif_set_up(&netif);</code></pre>
 <div class="figure-card" data-svg="svg/sequence_02.svg" data-modal-id="modalSeq2">
   <div class="figure-header">Figure 3 — lwIP RX Packet Flow</div>
   <div class="figure-body">
-    <object data="svg/sequence_02.svg" type="image/svg+xml" style="max-width:100%;height:auto;">RX Packet Flow</object>
+    <object data="svg/sequence_02.svg" type="image/svg+xml" style="max-width:100%;height:auto;pointer-events:none;">RX Packet Flow</object>
   </div>
   <div class="figure-footer">
     <ul>
@@ -533,7 +533,7 @@ netif_set_up(&netif);</code></pre>
 <div class="figure-card" data-svg="svg/sequence_03.svg" data-modal-id="modalSeq3">
   <div class="figure-header">Figure 4 — lwIP TX Packet Flow</div>
   <div class="figure-body">
-    <object data="svg/sequence_03.svg" type="image/svg+xml" style="max-width:100%;height:auto;">TX Packet Flow</object>
+    <object data="svg/sequence_03.svg" type="image/svg+xml" style="max-width:100%;height:auto;pointer-events:none;">TX Packet Flow</object>
   </div>
   <div class="figure-footer">
     <ul>
@@ -604,7 +604,7 @@ int main(void)
 <div class="figure-card" data-svg="svg/sequence_04.svg" data-modal-id="modalSeq4">
   <div class="figure-header">Figure 5 — Link Status Change Flow</div>
   <div class="figure-body">
-    <object data="svg/sequence_04.svg" type="image/svg+xml" style="max-width:100%;height:auto;">Link Status Change</object>
+    <object data="svg/sequence_04.svg" type="image/svg+xml" style="max-width:100%;height:auto;pointer-events:none;">Link Status Change</object>
   </div>
   <div class="figure-footer">
     <ul>
@@ -963,11 +963,11 @@ lwIP Adapter 設計:
 
 <h3 id="sec14-1">14.1 整體呼叫圖</h3>
 
-<div class="figure-card" data-svg="svg/flow_01.svg" data-modal-id="modalFlow1">
+<div class="figure-card" data-svg="svg/flow_01.svg" data-modal-id="modalFlow2">
   <div class="figure-header">Figure 6 — Overall Function Call Graph</div>
   <div class="figure-body">
-    <object data="svg/flow_01.svg" type="image/svg+xml" style="max-width:100%;height:auto;">Function Call Graph</object>
-  </div>
+    <object data="svg/flow_01.svg" type="image/svg+xml" style="max-width:100%;height:auto;pointer-events:none;">Function Call Graph</object>
+    </div>
   <div class="figure-footer">
     <ul>
       <li>Application: main() + HTTP server</li>
@@ -1260,7 +1260,17 @@ int dm9051_adapter_core_init(dm9051_device_t *dev,
         <h5 class="modal-title">Figure 2 — Netif Registration Sequence</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body"></div>
+      <div class="modal-body svg-modal-body">
+        <div class="svg-zoom-container">
+          <img src="svg/sequence_01.svg" alt="Netif Registration Sequence" class="svg-zoomable" style="max-width:100%;height:auto;cursor:zoom-in;">
+        </div>
+      </div>
+      <div class="modal-footer justify-content-center gap-2">
+        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-in" title="Zoom In"><i class="bi bi-zoom-in"></i></button>
+        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-out" title="Zoom Out"><i class="bi bi-zoom-out"></i></button>
+        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-reset" title="Reset Zoom">1:1</button>
+        <span class="badge bg-secondary svg-zoom-level ms-2">100%</span>
+      </div>
     </div>
   </div>
 </div>
@@ -1272,7 +1282,17 @@ int dm9051_adapter_core_init(dm9051_device_t *dev,
         <h5 class="modal-title">Figure 3 — lwIP RX Packet Flow</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body"></div>
+      <div class="modal-body svg-modal-body">
+        <div class="svg-zoom-container">
+          <img src="svg/sequence_02.svg" alt="RX Packet Flow" class="svg-zoomable" style="max-width:100%;height:auto;cursor:zoom-in;">
+        </div>
+      </div>
+      <div class="modal-footer justify-content-center gap-2">
+        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-in" title="Zoom In"><i class="bi bi-zoom-in"></i></button>
+        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-out" title="Zoom Out"><i class="bi bi-zoom-out"></i></button>
+        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-reset" title="Reset Zoom">1:1</button>
+        <span class="badge bg-secondary svg-zoom-level ms-2">100%</span>
+      </div>
     </div>
   </div>
 </div>
@@ -1284,7 +1304,17 @@ int dm9051_adapter_core_init(dm9051_device_t *dev,
         <h5 class="modal-title">Figure 4 — lwIP TX Packet Flow</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body"></div>
+      <div class="modal-body svg-modal-body">
+        <div class="svg-zoom-container">
+          <img src="svg/sequence_03.svg" alt="TX Packet Flow" class="svg-zoomable" style="max-width:100%;height:auto;cursor:zoom-in;">
+        </div>
+      </div>
+      <div class="modal-footer justify-content-center gap-2">
+        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-in" title="Zoom In"><i class="bi bi-zoom-in"></i></button>
+        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-out" title="Zoom Out"><i class="bi bi-zoom-out"></i></button>
+        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-reset" title="Reset Zoom">1:1</button>
+        <span class="badge bg-secondary svg-zoom-level ms-2">100%</span>
+      </div>
     </div>
   </div>
 </div>
@@ -1296,7 +1326,17 @@ int dm9051_adapter_core_init(dm9051_device_t *dev,
         <h5 class="modal-title">Figure 5 — Link Status Change Flow</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body"></div>
+      <div class="modal-body svg-modal-body">
+        <div class="svg-zoom-container">
+          <img src="svg/sequence_04.svg" alt="Link Status Change Flow" class="svg-zoomable" style="max-width:100%;height:auto;cursor:zoom-in;">
+        </div>
+      </div>
+      <div class="modal-footer justify-content-center gap-2">
+        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-in" title="Zoom In"><i class="bi bi-zoom-in"></i></button>
+        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-out" title="Zoom Out"><i class="bi bi-zoom-out"></i></button>
+        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-reset" title="Reset Zoom">1:1</button>
+        <span class="badge bg-secondary svg-zoom-level ms-2">100%</span>
+      </div>
     </div>
   </div>
 </div>
@@ -1305,10 +1345,42 @@ int dm9051_adapter_core_init(dm9051_device_t *dev,
   <div class="modal-dialog modal-xl modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Figure 1/6 — Architecture &amp; Function Call Graph</h5>
+        <h5 class="modal-title">Figure 1 — Architecture Overview</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body"></div>
+      <div class="modal-body svg-modal-body">
+        <div class="svg-zoom-container">
+          <img src="svg/flow_01.svg" alt="Architecture Overview" class="svg-zoomable" style="max-width:100%;height:auto;cursor:zoom-in;">
+        </div>
+      </div>
+      <div class="modal-footer justify-content-center gap-2">
+        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-in" title="Zoom In"><i class="bi bi-zoom-in"></i></button>
+        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-out" title="Zoom Out"><i class="bi bi-zoom-out"></i></button>
+        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-reset" title="Reset Zoom">1:1</button>
+        <span class="badge bg-secondary svg-zoom-level ms-2">100%</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalFlow2" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Figure 6 — Overall Function Call Graph</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body svg-modal-body">
+        <div class="svg-zoom-container">
+          <img src="svg/flow_01.svg" alt="Function Call Graph" class="svg-zoomable" style="max-width:100%;height:auto;cursor:zoom-in;">
+        </div>
+      </div>
+      <div class="modal-footer justify-content-center gap-2">
+        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-in" title="Zoom In"><i class="bi bi-zoom-in"></i></button>
+        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-out" title="Zoom Out"><i class="bi bi-zoom-out"></i></button>
+        <button class="btn btn-sm btn-outline-secondary svg-zoom-btn" data-action="zoom-reset" title="Reset Zoom">1:1</button>
+        <span class="badge bg-secondary svg-zoom-level ms-2">100%</span>
+      </div>
     </div>
   </div>
 </div>
