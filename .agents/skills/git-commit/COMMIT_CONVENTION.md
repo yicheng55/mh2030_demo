@@ -1,143 +1,198 @@
-# Git Commit Message — 專案規範
+# Git Commit Message — 專案規範（嵌入式 C / MCU）
 
 ## 標準格式
 
 ```
-<Type>: <Subject>
-(空一行)
-<Body>
-(空一行)
-<Footer>
+[Component] Subject
+
+Detailed changes:
+- Change 1
+- Change 2
+
+Overall impact and purpose:
+Why this change was made at a higher level.
 ```
 
-- `<Type>` 與 `<Subject>` 為**必填**。
-- `<Body>` 與 `<Footer>` 為選填，但有填時**與標題之間的空行不可省略**。
-- 若有對應的 QC 編號，`<Footer>` 為**必填**。
+- `[Component]` 與 `Subject` 為**必填**，兩者之間有一個空格。
+- `Detailed changes:` 段落為選填，列出逐項變更（bullet points）。
+- `Overall impact and purpose:` 為選填，說明改動的總體目的與影響。
+- 若改動極小（單一檔案 < 10 行變更、純註解修正、格式調整），可僅寫 Subject。
 
 ---
 
-## Type 類型（只能選一個）
+## Component 類型（只能選一個）
 
-| Type       | 說明                                                                 | QA 測試 |
-|------------|----------------------------------------------------------------------|---------|
-| `feat`     | 功能上的變動，包含新增、修改、刪除                                   | ○ 需要  |
-| `fix`      | 修正錯誤、QC 修正                                                    | ○ 需要  |
-| `chore`    | 不修改功能也不是修 bug 的更新（如更新第三方插件、Unity 資源 Reserialize） | △ 補充說明 |
-| `refactor` | 功能不變的情況下，針對已上線功能的程式碼調整與優化                   | △ 補充說明 |
-| `perf`     | 以優化效能為重點的程式碼修改                                         | △ 補充說明 |
-| `editor`   | 其他工具的新增/修改/移除（如 GameTool、BuildTool 等 Unity 工具）     | ✕ 不須  |
-| `style`    | 程式碼格式調整（縮排、註解、缺少分號等）                             | ✕ 不須  |
-| `docs`     | 上傳或更新文件（如 README.md 或其他說明文件）                        | ✕ 不須  |
-| `test`     | 新增、修改、移除測試功能                                             | ✕ 不須  |
-| `build`    | 更新包版相關設定（如版本號、重大版號）                               | ✕ 不須  |
-| `merge`    | 合併版控、修正衝突等                                                 | ✕ 不須  |
+| Component  | 適用範圍                                                             |
+|------------|----------------------------------------------------------------------|
+| `DM9051`   | DM9051 Core Driver 核心邏輯變更（`core/`）                           |
+| `HAL`      | HAL Interface 或 vtable 結構變更（`hal/`）                           |
+| `PORT`     | 平台移植層變更 — SPI、GPIO、IRQ、DMA、delay（`ports/`）              |
+| `uIP`      | uIP 1.0 adapter 變更（`adapters/uip/`）                              |
+| `lwIP`     | lwIP 2.1.2 adapter 變更（`adapters/lwip/`）                          |
+| `APP`      | 應用層範例變更（`apps/`）                                            |
+| `DOC`      | 文件變更（markdown、HTML 文件）                                      |
+| `BUILD`    | Keil 專案配置（`.uvprojx`、`.uvoptx`）、建置腳本、編譯定義          |
+| `TOOL`     | 開發工具／腳本（PowerShell scripts、驗證工具）                       |
+| `LIBS`     | MCU peripheral library 或 CMSIS 變更（`Libraries/`）                 |
+| `SKILL`    | Agent skill 或 workflow 檔案變更（`.agents/`、`.claude/`）           |
+| `MERGE`    | 合併版控、修正衝突                                                   |
 
-### Type 選擇規則
+### Component 選擇規則
 
-- **只能選一個**，不可填複數 Type。
-- 若 commit 同時包含 `fix` 與 `feat`，因有修正原本錯誤的功能，**優先使用 `fix`**。
-- 更新 **Localization** 或 **GameStreet** 因為會影響 App 功能，應使用 `feat` 或 `fix`，而非 `docs`。
+- **只能選一個**，不可填複數 Component。
+- 變更涉及跨層（如同時改 `core/` 與 `hal/`），以主要改動所在層為準。
+- 若同時改動 driver + adapter，以底層為主（`DM9051` > `uIP` / `lwIP`）。
+- 單純改文件 → `DOC`；單純改 Keil 專案 → `BUILD`。
 
 ---
 
 ## Subject 標題規則
 
-- 言簡意賅描述此 commit 的改動。
-- **不超過 50 字**，中英文皆**不用句號結尾**。
-- 盡量以**祈使句**書寫。
-- **不應只寫 QC 編號**，需描述實際改動內容。
+- 以英文撰寫（與專案既有 commit 風格一致）。
+- **不超過 50 字元**，句末不加句號。
+- 使用**祈使句**（如 "Fix...", "Add...", "Remove...", "Refactor..."）。
+- 描述**實際改動內容**，而非問題現象。
+
+```
+# Good
+[DM9051] Fix SPI DMA timeout on large transfers
+[HAL] Add dm9051_hal_bind() entry point for port registration
+[uIP] Refactor to uip_ethernetif struct with link_poll API
+
+# Bad
+[DM9051] Fix bug
+[DM9051] Driver changes
+[DOC] Update
+```
 
 ---
 
 ## Body 本文規則（選填）
 
-- 標題不足以完整描述修正內容時再填。
-- 格式不拘，可分多行，**每行不超過 72 字**。
-- 若此 commit 需額外補充測試方法，或特定項目不需 QA 測試，在此說明。
-- 若有場景異動（如更新第三方插件或公版時需更新特定遊戲館場景），需在此補充：
-  - 格式範例：`+場景異動:Game501、Game500。`（記得補句點）
-- 若有多項內容，請用列點的方式列好(用'-'符號或數字)
-
----
-
-## Footer 頁尾規則（有 QC 編號時必填）
-
-- 格式固定：`issue QC編號`
-- 多個 QC 必須**分多行**撰寫。
+- 標題不足以完整描述時再填。格式如下：
 
 ```
-issue 4831
-issue 4832
-issue 4833
+Detailed changes:
+- Add SPI chip select toggle in dm9051_hal_read_reg()
+- Fix byte order in multi-byte register access
+- Update DM9051A_DEVICE_ID check to include revision mask
+
+Overall impact and purpose:
+Fixes incorrect register reads on platforms with
+reverse byte ordering. Verified with logic analyzer
+on MH2030A + DM9051A hardware.
 ```
+
+- `Detailed changes:` 使用 `- ` bullet point 逐項列出。
+- `Overall impact and purpose:` 說明為何這樣改、影響範圍、驗證方式。
+- 每行不超過 72 字元。
+
+### 適合寫 Body 的情況
+
+| 情況 | 範例 |
+|------|------|
+| SPI timing 調整 | `[PORT] Adjust SPI clock prescaler for 20 MHz operation` |
+| Register bit 修正 | `[DM9051] Fix RCR bit 3 mask in promiscuous mode check` |
+| 多層連動改動 | `[HAL] Split spi_read into polling and DMA variants` |
+| 破壞性 API 變更 | `[uIP] Change dm9051_uip_stack_init() signature` |
+| 記憶體使用變更 | `[DM9051] Reduce RX buffer pool from 4 to 2 KB` |
 
 ---
 
 ## 完整範例
 
-### 範例 1：有本文與頁尾
+### 範例 1：簡短（單一檔案小改動）
 
 ```
-fix: 星幣爭霸戰，修正
-
-1. 修正 QC4831，押注 0 分 FG 後會閃退卡死問題
-2. 修正 QC4832，INFO 更新
-3. 修正 QC4833，更新提示訊息
-4. 修正對戰中押注選項音量問題
-
-issue 4831
-issue 4832
-issue 4833
+[DM9051] Fix RCR promiscuous mode bit mask
 ```
 
-### 範例 2：有本文，無頁尾（無 QC 對應）
+### 範例 2：一般（含 Body）
 
 ```
-fix: 星幣爭霸戰、積分館，修正與調整
+[uIP] Refactor to uip_ethernetif struct with link_poll API
 
-星幣爭霸戰:
-1. 修正 QC4789，等待頁與對戰中壓注額不同步問題
-2. 新增可 0 分押注，調整押注介面
-3. 調整押注紀錄與積分館分開
-...
+Detailed changes:
+- Introduce struct uip_ethernetif consolidating dev/hal/rx_buf/tx_buf
+- Add dm9051_uip_link_poll() for lightweight link status polling
+- Refactor dm9051_uip_stack_init() signature to accept uip_ethernetif
+- Move dm9051_uip_attach() inside dm9051_uip_stack_init()
+- Remove redundant dm9051_uip_mh2030a_smoke_receive/send wrappers
+- Simplify main demo: delete link detection boilerplate, use link_poll
+- Export dm9051_uip_mh2030a_smoke_eth() accessor
 
-積分館:
-1. 商店中卡片分頁，點選卡片後，點其他地方可以取消點選
-
-issue 4789
+Overall impact and purpose:
+Aligns uIP adapter API with lwIP ethernetif pattern, reduces
+application boilerplate, and consolidates device state into a
+single structure for cleaner porting.
 ```
 
-### 範例 3：有標題與頁尾，無本文
+### 範例 3：文件變更
 
 ```
-fix: 鯊很大 3，修正聲音全關的情況下進入遊戲的一瞬間會有聲音的錯誤
+[DOC] Add lwIP adapter architecture analysis
 
-issue 4523
+Detailed changes:
+- Document HAL vtable binding mechanism
+- Map RX/TX data flow through netif layer
+- Describe error handling strategy for each path
+- Provide diagrams for packet flow and buffer management
+- Summarize key design decisions and trade-offs
+
+Overall impact and purpose:
+Provides a comprehensive reference for future DM9051
+adapter implementations and porting efforts.
 ```
 
-### 範例 4：只有標題（`feat` 無 QC）
+### 範例 4：平台移植
 
 ```
-feat: 遊戲大廳，移除搖滾區
+[PORT] Add MH2030A SPI1 DMA transfer implementation
 
-- 頁籤移除搖滾區，特殊遊戲合併回星幣區
-- 遊戲館入口顯示特殊遊戲
-- 調整滑動範圍，避免蓋到下方的推薦清單
-- GameStreet.dat 更新
+Detailed changes:
+- Implement dm9051_hal_read_mem_dma() using SPI1 DMA channel
+- Implement dm9051_hal_write_mem_dma() using SPI1 DMA channel
+- Add DMA completion callback with interrupt flag handling
+- Configure DMA transfer size to match DM9051 FIFO granularity
+
+Overall impact and purpose:
+Enables zero-copy RX/TX for DM9051 on MH2030A,
+reducing CPU load during network throughput tests.
 ```
 
-### 範例 5：最簡單格式
+### 範例 5：建置配置
 
 ```
-style: 移除多餘的註解
+[BUILD] Add DM9051A_SPI_DMA target with DMA preprocessor defines
+
+Detailed changes:
+- Clone DM9051A target as DM9051A_SPI_DMA
+- Add MH2030A_DM9051_SPI_DMA preprocessor define
+- Include dm9051_hal_mh2030a_spi1_dma.c in source group
+- Exclude polling-only source files from DMA target build
+
+Overall impact and purpose:
+Enables separate build configuration for DMA mode,
+avoiding compile-time ifdef branching in shared source files.
 ```
 
 ---
 
 ## 撰寫流程
 
-1. **判斷 Type**：依照改動內容選擇唯一的 Type，記住同時有 fix 與 feat 時優先用 `fix`。
-2. **寫 Subject**：50 字內、祈使句、不加句號、不只寫 QC 編號。
-3. **判斷是否需要 Body**：標題能完整說明就不用寫；有測試說明、場景異動、複雜改動時補充。若有多項內容，請用列點的方式列好(用'-'符號或數字)，描述內容請盡量精簡。
-4. **判斷是否需要 Footer**：有 QC 編號就必填，每個 QC 一行，格式為 `issue XXXX`。
-5. **檢查空行**：有 Body 或 Footer 時，確認與 Subject 之間有空行。
+1. **判斷 Component**：依改動所在目錄選擇唯一的 Component（見上表）。
+2. **寫 Subject**：`[Component] ` prefix + 50 字內英文祈使句、不加句號。
+3. **判斷是否需要 Body**：小改動免 Body；跨層、破壞性、或多項變更請補 `Detailed changes:` 與 `Overall impact and purpose:`。
+4. **檢查空行**：Subject 與 Body 之間留一個空行（若 Body 存在）。
+
+---
+
+## 邊界情況
+
+| 情況 | 處理方式 |
+|------|----------|
+| 只改 Keil `.uvprojx` | Component 使用 `BUILD` |
+| 只改 `AGENTS.md` 或 skill 檔案 | Component 使用 `SKILL` |
+| 同時改 `core/` + `adapters/` | Component 以底層為準，Body 說明跨層影響 |
+| 無法判斷 Component | 使用主目錄層級最高的變更所在層 |
+| 破壞性變更 | Body 需說明 migration path 或 backward compat |
