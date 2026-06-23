@@ -70,10 +70,54 @@
 <!-- ============================================================ -->
 <h2 id="sec1">1. 架構總覽</h2>
 
-<div class="figure-card" data-svg="svg/flow_01.svg" data-modal-id="modalFlow1">
+<div class="figure-card" data-svg="svg/flow_01.svg" data-modal-id="modalFlow1" style="max-width:650px;">
   <div class="figure-header">Figure 1 — 整體軟體架構圖</div>
   <div class="figure-body">
-    <object data="svg/flow_01.svg" type="image/svg+xml" style="max-width:100%;height:auto;pointer-events:none;">Architecture Diagram</object>
+<svg viewBox="0 0 600 480" style="width:100%">
+<defs>
+<marker id="a1-lw" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><path d="M0,0 L7,2.5 L0,5Z" fill="#64748b"/></marker>
+<linearGradient id="g1-lw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#2563eb"/></linearGradient>
+<linearGradient id="g2-lw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient>
+<linearGradient id="g3-lw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#d97706"/></linearGradient>
+<linearGradient id="g4-lw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#059669"/></linearGradient>
+<linearGradient id="g5-lw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#06b6d4"/><stop offset="100%" stop-color="#0891b2"/></linearGradient>
+<linearGradient id="g6-lw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f43f5e"/><stop offset="100%" stop-color="#e11d48"/></linearGradient>
+<linearGradient id="g7-lw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#475569"/><stop offset="100%" stop-color="#334155"/></linearGradient>
+</defs>
+<rect x="130" y="8" width="340" height="48" class="layer-rect" fill="url(#g1-lw)" stroke="#1d4ed8" rx="6" ry="6" stroke-width="1.5"/>
+<text x="300" y="29" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">Application Layer</text>
+<text x="300" y="44" text-anchor="middle" fill="#bfdbfe" font-size="9">main_dm9051_lwip_example.c / HTTP server</text>
+<line x1="300" y1="56" x2="300" y2="74" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#a1-lw)"/>
+
+<rect x="110" y="76" width="380" height="48" class="layer-rect" fill="url(#g2-lw)" stroke="#6d28d9" rx="6" ry="6" stroke-width="1.5"/>
+<text x="300" y="97" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">lwIP TCP/IP Stack</text>
+<text x="300" y="112" text-anchor="middle" fill="#ddd6fe" font-size="9">lwip_init / tcp_write / tcp_output / etharp_output / sys_check_timeouts</text>
+<line x1="300" y1="124" x2="300" y2="142" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#a1-lw)"/>
+
+<rect x="130" y="144" width="340" height="48" class="layer-rect" fill="url(#g3-lw)" stroke="#b45309" rx="6" ry="6" stroke-width="1.5"/>
+<text x="300" y="165" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">Netif Port (Adapter)</text>
+<text x="300" y="180" text-anchor="middle" fill="#fef3c7" font-size="9">ethernetif.c / ethernetif.h — low_level_init / input / output</text>
+<line x1="300" y1="192" x2="300" y2="210" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#a1-lw)"/>
+
+<rect x="120" y="212" width="360" height="48" class="layer-rect" fill="url(#g4-lw)" stroke="#047857" rx="6" ry="6" stroke-width="1.5"/>
+<text x="300" y="233" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">DM9051 Core Driver</text>
+<text x="300" y="248" text-anchor="middle" fill="#d1fae5" font-size="9">dm9051_core_open / receive / send / link_is_up / interrupt_*</text>
+<line x1="300" y1="260" x2="300" y2="278" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#a1-lw)"/>
+
+<rect x="140" y="280" width="320" height="42" class="layer-rect" fill="url(#g5-lw)" stroke="#0e7490" rx="6" ry="6" stroke-width="1.5"/>
+<text x="300" y="299" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">HAL Abstraction Layer</text>
+<text x="300" y="313" text-anchor="middle" fill="#cffafe" font-size="9">struct dm9051_hal_ops vtable</text>
+<line x1="300" y1="322" x2="300" y2="340" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#a1-lw)"/>
+
+<rect x="120" y="342" width="360" height="48" class="layer-rect" fill="url(#g6-lw)" stroke="#be123c" rx="6" ry="6" stroke-width="1.5"/>
+<text x="300" y="363" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">MH2030A Platform Port</text>
+<text x="300" y="378" text-anchor="middle" fill="#fecdd3" font-size="9">SPI Polling / SPI DMA / EXTI-IRQ / HAL binding</text>
+<line x1="300" y1="390" x2="300" y2="408" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#a1-lw)"/>
+
+<rect x="100" y="410" width="400" height="42" class="layer-rect" fill="url(#g7-lw)" stroke="#1e293b" rx="6" ry="6" stroke-width="1.5"/>
+<text x="300" y="429" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">MCU HAL / Peripheral Layer</text>
+<text x="300" y="443" text-anchor="middle" fill="#cbd5e1" font-size="9">MH20xxLib / AT32F403A_407 StdPeriph / CMSIS Cortex-M0</text>
+</svg>
   </div>
   <div class="figure-footer">
     分層架構：Application → lwIP Stack → ethernetif.c (Netif Port) → DM9051 Core → HAL → MH2030A Port → MCU
