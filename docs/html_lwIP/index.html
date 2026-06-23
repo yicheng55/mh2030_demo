@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DM9051 lwIP Adapter Layer 深度分析 — MH2030 Demo</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" rel="stylesheet" id="hljsTheme">
+<link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+
+<!-- ======== HEADER ======== -->
+<header class="header">
+  <button class="sidebar-toggle" id="sidebarToggle" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas" aria-label="Toggle navigation">
+    <i class="bi bi-list"></i>
+  </button>
+  <div class="brand">
+    DM9051 lwIP Adapter Analysis
+    <small>MH2030 Demo / AT32F403A / DM9051A</small>
+  </div>
+  <button id="themeToggle" class="theme-switch" onclick="toggleTheme()">
+    <i class="bi bi-moon-fill"></i> Dark
+  </button>
+</header>
+
+<!-- ======== SIDEBAR (Desktop) ======== -->
+<aside class="sidebar d-none d-lg-block" id="sidebarDesktop">
+  <div class="search-wrapper">
+    <input type="text" class="search-box" id="searchInput" placeholder="Search titles, APIs..." autocomplete="off">
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <div class="sidebar-inner" id="sidebarNav"></div>
+</aside>
+
+<!-- ======== SIDEBAR (Mobile Offcanvas) ======== -->
+<div class="offcanvas offcanvas-start d-lg-none" tabindex="-1" id="sidebarOffcanvas">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">Navigation</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body p-0">
+    <div class="search-wrapper" style="position:relative;">
+      <input type="text" class="search-box" id="searchInputMobile" placeholder="Search..." autocomplete="off">
+    </div>
+    <div id="sidebarNavMobile"></div>
+  </div>
+</div>
+
+<!-- ======== MAIN CONTENT ======== -->
+<main class="main-content" id="mainContent">
+
+<h1 id="dm9051-lwip-adapter-layer">DM9051 lwIP Adapter Layer 深度分析</h1>
+
+<div class="info-box info">
+  <strong>專案</strong>: MH2030_Demo &nbsp;|&nbsp;
+  <strong>MCU</strong>: AT32F403A/AT32F407 (MH20xx, ARM Cortex-M0 via MH20xxLib) &nbsp;|&nbsp;
+  <strong>Ethernet</strong>: DM9051 (SPI 介面) &nbsp;|&nbsp;
+  <strong>TCP/IP Stack</strong>: lwIP 2.1.2 &nbsp;|&nbsp;
+  <strong>RTOS</strong>: Bare-metal (NO_SYS=1)
+</div>
+
+<div class="info-box warning">
+  <strong>變更記錄</strong>: commit <code>546d242</code> 已移除 <code>adapters/lwip/dm9051_lwip.c</code> / <code>.h</code> 相容包裝層。lwIP 適配邏輯已完全集中在 <code>middlewares/3rd_party/lwip-2.1.2/port/ethernetif.c</code> / <code>.h</code>。<code>adapters/lwip/</code> 目錄僅保留 <code>lwipopts.h</code> 編譯選項。應用層直接呼叫 <code>ethernetif_init()</code>、<code>ethernetif_input()</code>、<code>ethernetif_link_poll()</code>。本文檔已全面更新反映當前狀態；舊相容包裝層內容已移除。
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 1 -->
+<!-- ============================================================ -->
+<h2 id="sec1">1. 架構總覽</h2>
+
+<div class="figure-card" data-svg="svg/flow_01.svg" data-modal-id="modalFlow1">
+  <div class="figure-header">Figure 1 — 整體軟體架構圖</div>
+  <div class="figure-body">
+    <object data="svg/flow_01.svg" type="image/svg+xml" style="max-width:100%;height:auto;">Architecture Diagram</object>
+  </div>
+  <div class="figure-footer">
+    分層架構：Application → lwIP Stack → ethernetif.c (Netif Port) → DM9051 Core → HAL → MH2030A Port → MCU
+  </div>
+</div>
+
+<h3 id="sec1-1">分層職責</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>Layer</th><th>職責</th><th>檔案位置</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Application</strong></td><td>網路應用邏輯, main loop, link detection, HTTP server</td><td><code>examples/lwip_mh2030a_demo/main_dm9051_lwip_example.c</code></td></tr>
+<tr><td><strong>lwIP Stack</strong></td><td>TCP/IP 協定處理, ARP, pbuf 管理, timer</td><td><code>middlewares/3rd_party/lwip-2.1.2/</code></td></tr>
+<tr><td><strong>Adapter netif 移植</strong></td><td>標準 lwIP netif init/input/link poll 實作</td><td><code>middlewares/3rd_party/lwip-2.1.2/port/ethernetif.c</code></td></tr>
+<tr><td><strong>lwIP 組態</strong></td><td>lwIP 編譯選項 (lwipopts.h)</td><td><code>adapters/lwip/lwipopts.h</code></td></tr>
+<tr><td><strong>Core Driver</strong></td><td>DM9051 初始化, PHY 存取, RX/TX 流程</td><td><code>core/src/dm9051_core.c</code></td></tr>
+<tr><td><strong>HAL</strong></td><td>SPI register/memory 讀寫抽象介面</td><td><code>hal/inc/dm9051_hal.h</code></td></tr>
+<tr><td><strong>Platform Port</strong></td><td>MCU 專屬 SPI 實作 (polling/DMA), GPIO, EXTI, SysTick</td><td><code>ports/mh2030a/</code></td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 2 -->
+<!-- ============================================================ -->
+<h2 id="sec2">2. 實體目錄與檔案階層</h2>
+
+<h3 id="sec2-1">2.1 完整目錄樹 (DM9051 Driver 相關)</h3>
+
+<pre><code class="language-plaintext">dm9051_driver/
+│
+├── adapters/
+│   ├── lwip/                                    ← lwIP 組態 (僅 lwipopts.h)
+│   │   └── lwipopts.h                          ← lwIP 編譯選項
+│   │
+│   └── uip/                                    ← uIP adapter (另一個 stack)
+│       ├── dm9051_uip.c
+│       ├── dm9051_uip.h
+│       ├── dm9051_uip_stack.c
+│       └── dm9051_uip_stack.h
+│
+├── core/                                        ← DM9051 核心 driver
+│   ├── inc/
+│   │   ├── dm9051_core.h
+│   │   ├── dm9051_regs.h
+│   │   └── dm9051_types.h
+│   └── src/
+│       ├── dm9051_core.c
+│       └── dm9051_debug.c
+│
+├── docs/                                        ← 設計文件
+├── examples/
+│   └── lwip_mh2030a_demo/
+│       ├── main_dm9051_lwip_example.c          ← lwIP main 範例 (直接呼叫 ethernetif_*)
+│       └── README.md
+├── hal/
+│   └── inc/
+│       └── dm9051_hal.h
+└── ports/
+    └── mh2030a/                                ← MH2030A 平台移植</code></pre>
+
+<h3 id="sec2-2">2.2 lwIP Port 層檔案</h3>
+
+<pre><code class="language-plaintext">middlewares/3rd_party/lwip-2.1.2/port/
+│
+├── ethernetif.c                                ← 標準 netif 移植 (核心實作)
+├── ethernetif.h                                ← netif 移植 header
+├── sys_arch.c                                  ← NO_SYS 系統抽象層 (sys_now, sys_jiffies)
+└── arch/
+    ├── cc.h                                    ← 編譯器相關 (packed struct, endian, assert)
+    └── sys_arch.h                              ← 系統抽象 header</code></pre>
+
+<h3 id="sec2-3">2.3 目錄與分層對應</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>目錄</th><th>對應架構層</th><th>角色</th></tr>
+</thead>
+<tbody>
+<tr><td><code>adapters/lwip/</code></td><td><strong>lwIP 組態</strong></td><td><code>lwipopts.h</code> (僅編譯選項，無程式碼)</td></tr>
+<tr><td><code>middlewares/3rd_party/lwip-2.1.2/port/</code></td><td><strong>Netif 移植層</strong></td><td>標準 lwIP netif init/input/linkoutput/link poll</td></tr>
+<tr><td><code>core/</code></td><td>DM9051 Core Driver</td><td>裝置初始化、RX/TX、PHY、IRQ</td></tr>
+<tr><td><code>hal/</code></td><td>HAL Abstraction</td><td>SPI register/mem 操作抽象介面</td></tr>
+<tr><td><code>ports/mh2030a/</code></td><td>Platform Port</td><td>MH2030A SPI/GPIO/IRQ/SysTick 實作</td></tr>
+<tr><td><code>examples/</code></td><td>Application 範例</td><td>main() + demo 流程</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 3 -->
+<!-- ============================================================ -->
+<h2 id="sec3">3. 檔案用途分析</h2>
+
+<h3 id="sec3-1">3.1 <code>ethernetif.h</code> — Netif 移植 Public API</h3>
+
+<pre><code class="language-c">// ====== 標準 netif 介面 (適用於進階用法) ======
+err_t ethernetif_init(struct netif *netif);              // netif_add init callback
+err_t ethernetif_input(struct netif *netif);             // 輪詢 RX 並餵入 lwIP
+void ethernetif_update_config(struct netif *netif);      // link 狀態變更回呼
+void ethernetif_link_poll(struct netif *netif);           // PHY link 輪詢 (100-500ms)</code></pre>
+
+<p>不再有 <code>dm9051_lwip_*</code> 包裝 API — 應用層直接使用標準 <code>ethernetif_*</code> 介面</p>
+
+<h3 id="sec3-2">3.2 <code>ethernetif.c</code> — 標準 Netif 移植實作 (核心 Adapter)</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>函式</th><th>角色</th><th>委託 Core Driver</th></tr>
+</thead>
+<tbody>
+<tr><td><code>low_level_init()</code></td><td>硬體初始化</td><td><code>dm9051_core_open()</code> + <code>dm9051_mh2030a_hal_bind()</code></td></tr>
+<tr><td><code>low_level_output()</code></td><td>TX: pbuf → DM9051</td><td><code>dm9051_core_send()</code></td></tr>
+<tr><td><code>low_level_input()</code></td><td>RX: DM9051 → pbuf</td><td><code>dm9051_core_receive()</code></td></tr>
+<tr><td><code>ethernetif_init()</code></td><td>netif_add init callback</td><td>配置 <code>struct ethernetif</code> + 呼叫 <code>low_level_init()</code></td></tr>
+<tr><td><code>ethernetif_input()</code></td><td>RX poll entry</td><td>呼叫 <code>low_level_input()</code> → <code>netif->input()</code></td></tr>
+<tr><td><code>ethernetif_update_config()</code></td><td>Link change callback</td><td><code>dm9051_core_link_is_up()</code></td></tr>
+<tr><td><code>ethernetif_link_poll()</code></td><td>定時 link 輪詢</td><td><code>dm9051_core_link_is_up()</code> + <code>netif_set_link_up/down()</code></td></tr>
+</tbody>
+</table>
+</div>
+
+<ul>
+<li><code>adapters/lwip/</code> 目錄已無 <code>dm9051_lwip.c</code> / <code>.h</code> — 相容包裝層已完全移除 (commit <code>546d242</code>)</li>
+<li>所有 lwIP 適配邏輯僅此一組檔案，無雙層包裝</li>
+</ul>
+
+<h3 id="sec3-3">3.3 <code>lwipopts.h</code> — lwIP 編譯選項</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>選項</th><th>值</th><th>說明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>NO_SYS</code></td><td>1</td><td>Bare-metal, 無 RTOS</td></tr>
+<tr><td><code>LWIP_IPV4</code> / <code>LWIP_IPV6</code></td><td>1 / 0</td><td>僅 IPv4，無 IPv6</td></tr>
+<tr><td><code>LWIP_ARP</code></td><td>1</td><td>支援 ARP</td></tr>
+<tr><td><code>LWIP_ETHERNET</code></td><td>1</td><td>支援 Ethernet frame 格式</td></tr>
+<tr><td><code>LWIP_CALLBACK_API</code></td><td>1</td><td>使用 raw callback API</td></tr>
+<tr><td><code>LWIP_ALTCP</code></td><td>1</td><td>啟用 altcp 層 (HTTPD 使用)</td></tr>
+<tr><td><code>MEM_SIZE</code></td><td>12KB</td><td>lwIP heap 大小</td></tr>
+<tr><td><code>MEMP_NUM_PBUF</code></td><td>8</td><td>pbuf 結構數量</td></tr>
+<tr><td><code>PBUF_POOL_SIZE</code></td><td>8</td><td>pbuf pool 數量</td></tr>
+<tr><td><code>PBUF_POOL_BUFSIZE</code></td><td>1536</td><td>每個 pool pbuf 大小 (可容納 Ethernet frame)</td></tr>
+<tr><td><code>MEMP_NUM_TCP_PCB</code></td><td>4</td><td>TCP 連線數</td></tr>
+<tr><td><code>MEMP_NUM_TCP_PCB_LISTEN</code></td><td>4</td><td>TCP listen PCB 數</td></tr>
+<tr><td><code>MEMP_NUM_TCP_SEG</code></td><td>16</td><td>TCP segment 數量</td></tr>
+<tr><td><code>TCP_SND_BUF</code></td><td>4×MSS</td><td>傳送 buffer (~5840 bytes)</td></tr>
+<tr><td><code>TCP_WND</code></td><td>2×MSS</td><td>接收 window (~2920 bytes)</td></tr>
+<tr><td><code>LWIP_NETIF_LINK_CALLBACK</code></td><td>1</td><td>啟用 link callback 機制</td></tr>
+<tr><td><code>CHECKSUM_GEN_*</code> / <code>CHECKSUM_CHECK_*</code></td><td>1</td><td>軟體 checksum (DM9051 無 offload)</td></tr>
+<tr><td><code>LWIP_DHCP</code></td><td>0</td><td>未啟用 DHCP (靜態 IP)</td></tr>
+<tr><td><code>LWIP_STATS</code></td><td>0</td><td>關閉統計 (節省 ROM)</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>HTTPD 相關設定</strong> (由 <code>apps/lwip_web2403v2_freelw</code> 使用):</p>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>選項</th><th>值</th><th>說明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>LWIP_HTTPD_SUPPORT_REQUESTLIST</code></td><td>1</td><td>啟用 request 佇列</td></tr>
+<tr><td><code>LWIP_HTTPD_REQ_QUEUELEN</code></td><td>5</td><td>最大佇列長度</td></tr>
+<tr><td><code>LWIP_HTTPD_DYNAMIC_HEADERS</code></td><td>1</td><td>動態 header 支援</td></tr>
+<tr><td><code>HTTPD_SERVER_PORT</code></td><td>80</td><td>HTTP 服務埠</td></tr>
+<tr><td><code>HTTPD_SERVER_AGENT</code></td><td><code>"MH2030-DM9051A/lwIP"</code></td><td>Server agent 字串</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="sec3-4">3.4 <code>ethernetif.h</code> — Netif 移植 Private Data</h3>
+
+<pre><code class="language-c">struct ethernetif {
+    dm9051_device_t dev;             // DM9051 裝置實例
+    dm9051_hal_t    hal;             // HAL vtable 綁定
+    uint8_t         rx_buf[1514];    // RX 連續 buffer (SPI read 需要)
+    uint8_t         tx_buf[1514];    // TX 連續 buffer (SPI write 需要)
+};</code></pre>
+
+<ul>
+<li><code>netif->state</code> 指向 <code>struct ethernetif</code> (由 <code>ethernetif_init</code> 配置)</li>
+<li><code>rx_buf</code> 和 <code>tx_buf</code> 為連續記憶體區塊，因 DM9051 SPI <code>read_mem</code>/<code>write_mem</code> 需要連續 buffer</li>
+</ul>
+
+<h3 id="sec3-5">3.5 <code>ethernetif.c</code> — 標準 lwIP Netif 移植 (核心實作)</h3>
+
+<pre><code class="language-c">// Internal (static) functions
+static void low_level_init(struct netif *netif);           // HW init: HAL bind + core_open
+static err_t low_level_output(struct netif *netif, struct pbuf *p);  // TX path
+static struct pbuf *low_level_input(struct netif *netif);             // RX path
+
+// Public API
+err_t ethernetif_init(struct netif *netif);                // netif_add callback
+err_t ethernetif_input(struct netif *netif);               // RX poll entry
+void ethernetif_update_config(struct netif *netif);        // link change callback
+void ethernetif_link_poll(struct netif *netif);            // PHY link 狀態輪詢</code></pre>
+
+<!-- ============================================================ -->
+<!-- SECTION 4 -->
+<!-- ============================================================ -->
+<h2 id="sec4">4. Netif 註冊流程</h2>
+
+<h3 id="sec4-1">4.1 <code>netif_add()</code> 初始化的標準流程</h3>
+
+<pre><code class="language-c">lwip_init();                              // lwIP stack init (一次)
+
+netif_add(&netif, &ip, &mask, &gw,       // 註冊 netif
+          NULL,                           // state (ethernetif_init 會 malloc)
+          ethernetif_init,                // ← init callback
+          ethernet_input);                // ← input callback (接收 Ethernet frame)
+
+netif_set_link_callback(netif, ethernetif_update_config);  // ← link callback
+netif_set_default(&netif);
+netif_set_up(&netif);</code></pre>
+
+<h3 id="sec4-2">4.2 <code>ethernetif_init()</code> 內部流程</h3>
+
+<pre><code>netif_add() → ethernetif_init()
+  │
+  ├── [if state==NULL] mem_malloc(struct ethernetif)  ← 配置 private data
+  │
+  ├── netif->output     = etharp_output               ← IP 封包輸出
+  ├── netif->linkoutput = low_level_output             ← L2 封包輸出
+  ├── netif->name[0]    = 'd',  name[1] = 'm'         ← "dm" netif
+  │
+  └── low_level_init()
+        │
+        ├── dm9051_core_default_config(&config)
+        │     mac_addr = netif->hwaddr
+        │     interrupt_mode = POLL or IRQ (由 DM9051_MH2030A_USE_IRQ 決定)
+        │     flow_control = 0
+        │
+        ├── dm9051_mh2030a_default_config(&port_config)
+        │     transport = POLLING or DMA (由 DM9051_MH2030A_USE_DMA 決定)
+        │     irq_mode  = EXTI or OFF (由 DM9051_MH2030A_USE_IRQ 決定)
+        │
+        ├── dm9051_mh2030a_hal_bind(&eth->hal, &port_config)  ← 綁定 HAL vtable
+        │
+        ├── [if IRQ] dm9051_mh2030a_irq_attach_device(&eth->dev)
+        │
+        ├── dm9051_core_open(&eth->dev, &core_config, &eth->hal)
+        │     ├── hal->ops->reset()
+        │     ├── dm9051_core_probe()        ← VID/PID/CHIPR check
+        │     ├── dm9051_core_init_device()  ← Reset + register init
+        │     ├── dm9051_core_set_par()      ← MAC
+        │     └── dm9051_core_start_receive()← RX enable
+        │
+        ├── active_mac = dm9051_core_mac(&eth->dev)  ← 回讀有效 MAC
+        └── netif flags |= NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_ETHERNET</code></pre>
+
+<h3 id="sec4-3">4.3 Netif 註冊流程圖</h3>
+
+<div class="figure-card" data-svg="svg/sequence_01.svg" data-modal-id="modalSeq1">
+  <div class="figure-header">Figure 2 — Netif Registration Sequence</div>
+  <div class="figure-body">
+    <object data="svg/sequence_01.svg" type="image/svg+xml" style="max-width:100%;height:auto;">Netif Registration Sequence</object>
+  </div>
+  <div class="figure-footer">
+    <ul>
+      <li>APP: platform_init(), lwip_init()</li>
+      <li>ETHIF: netif_add(), low_level_init()</li>
+      <li>CORE: dm9051_core_open() — reset, probe, init device</li>
+      <li>DM: VID=0x0A46, PID=0x9051</li>
+      <li>Final: netif_set_up(), HTTP server start</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 5 -->
+<!-- ============================================================ -->
+<h2 id="sec5">5. API 對應分析</h2>
+
+<h3 id="sec5-1">5.1 lwIP Stack API 與 Adapter 對應</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>lwIP 角色</th><th>Adapter API</th><th>Core Driver API</th><th>說明</th></tr>
+</thead>
+<tbody>
+<tr><td>Init</td><td><code>ethernetif_init()</code> → <code>low_level_init()</code></td><td><code>dm9051_core_open()</code></td><td>硬體初始化 + netif 綁定</td></tr>
+<tr><td>RX frame</td><td><code>ethernetif_input()</code> → <code>low_level_input()</code></td><td><code>dm9051_core_receive()</code></td><td>讀取 RX frame → pbuf</td></tr>
+<tr><td>TX frame</td><td><code>low_level_output()</code></td><td><code>dm9051_core_send()</code></td><td>pbuf chain → tx_buf → TX FIFO</td></tr>
+<tr><td>Link poll</td><td><code>ethernetif_link_poll()</code></td><td><code>dm9051_core_link_is_up()</code></td><td>讀 NSR bit 6</td></tr>
+<tr><td>Link callback</td><td><code>ethernetif_update_config()</code></td><td><code>dm9051_core_link_is_up()</code></td><td>由 <code>netif_set_link_callback</code> 觸發</td></tr>
+<tr><td>TX linkoutput</td><td><code>netif->linkoutput</code> → <code>low_level_output</code></td><td><code>dm9051_core_send()</code></td><td>lwIP TX 進入點</td></tr>
+<tr><td>L3 output</td><td><code>netif->output</code> → <code>etharp_output</code></td><td>—</td><td>lwIP ARP 處理後 call linkoutput</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="sec5-2">5.2 API 入口對比</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>使用場景</th><th>建議 API</th><th>複雜度</th></tr>
+</thead>
+<tbody>
+<tr><td>自訂 netif + 自行管理 IP</td><td><code>netif_add()</code> + <code>ethernetif_init()</code> + <code>ethernetif_input()</code></td><td>高</td></tr>
+<tr><td>完整 demo (含 HTTP server)</td><td><code>main_dm9051_lwip_example.c</code> 範例</td><td>低 (複製貼上)</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 6 -->
+<!-- ============================================================ -->
+<h2 id="sec6">6. RX 封包流程</h2>
+
+<h3 id="sec6-1">6.1 完整 RX 路徑</h3>
+
+<pre><code>[Main Loop]                              [main_dm9051_lwip_example.c:158]
+    │
+    ├── lwip_link_poll_wrapper()         ← link 狀態監測 (500ms, 內部呼叫 ethernetif_link_poll)
+    │
+    └── ethernetif_input(&g_dm9051_netif)
+            │
+            └── p = low_level_input(netif)
+                │
+                ├── dm9051_core_receive(&eth->dev, eth->rx_buf, 1514)
+                │   └── dm9051_core_rx_ready()       ← read MRCMDX × 2
+                │   └── dm9051_core_rx_header()       ← read_mem(header, 4)
+                │   └── dm9051_core_read_mem(buf, len)← read_mem(rx_buf, len)
+                │       *** COPY #1: SPI FIFO → eth->rx_buf (連續 buffer) ***
+                │   └── write_reg(ISR, ISR_CLEAR_RX)
+                │
+                ├── [len == 0] → return NULL
+                ├── [len > eth->rx_buf size] → drop, return NULL
+                ├── [if ETHERNETIF_RX_STRIP_FCS] len -= 4
+                ├── [len < 14] → drop, return NULL
+                │
+                └── p = pbuf_alloc(PBUF_RAW, len, PBUF_POOL)
+                    │
+                    ├── [alloc fail] → drop, return NULL
+                    │
+                    └── pbuf_take(p, eth->rx_buf, len)  ← 複製 rx_buf → pbuf
+                        *** COPY #2: eth->rx_buf → pbuf chain ***
+                        │
+                        └── [fail] → pbuf_free(p), return NULL
+                        │
+                        return p    ← 成功回傳 pbuf
+            │
+            ├── [p == NULL] → return ERR_INPROGRESS
+            │
+            ├── [if link down] → netif_set_link_up(netif)
+            │
+            └── netif->input(p, netif)   ← ethernet_input(p, netif)
+                └── etharp_input()       ← ARP or IP dispatcher
+                    ├── [ARP] → process ARP
+                    └── [IP]  → ip4_input() → tcp_input() / udp_input()
+                                └── application callback (e.g., httpd)</code></pre>
+
+<h3 id="sec6-2">6.2 RX 封包複製分析</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>步驟</th><th>複製方向</th><th>次數</th><th>Buffer</th></tr>
+</thead>
+<tbody>
+<tr><td>SPI FIFO → <code>eth->rx_buf</code></td><td>RX DMA copy</td><td>1</td><td><code>rx_buf[1514]</code> (連續)</td></tr>
+<tr><td><code>rx_buf</code> → <code>pbuf</code> chain</td><td>Memory copy</td><td>1</td><td>lwIP managed pbuf</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>總計</strong>: 2 次完整複製 (1 SPI + 1 memory copy)。</p>
+
+<p><strong>Zero-copy 限制</strong>: DM9051 SPI <code>read_mem</code> 需要連續目標 buffer，無法直接讀入 pbuf chain 的非連續片段。<code>rx_buf</code> 中介 buffer 是必需的 — 先 SPI 讀入連續 buffer，再用 <code>pbuf_take</code> 複製到 pbuf chain。</p>
+
+<h3 id="sec6-3">6.3 RX 流程</h3>
+
+<div class="figure-card" data-svg="svg/sequence_02.svg" data-modal-id="modalSeq2">
+  <div class="figure-header">Figure 3 — lwIP RX Packet Flow</div>
+  <div class="figure-body">
+    <object data="svg/sequence_02.svg" type="image/svg+xml" style="max-width:100%;height:auto;">RX Packet Flow</object>
+  </div>
+  <div class="figure-footer">
+    <ul>
+      <li>RX IRQ Trigger</li>
+      <li>ISR Event Set</li>
+      <li>Main Loop Poll</li>
+      <li>dm9051_core_receive()</li>
+      <li>netif->input()</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 7 -->
+<!-- ============================================================ -->
+<h2 id="sec7">7. TX 封包流程</h2>
+
+<h3 id="sec7-1">7.1 完整 TX 路徑</h3>
+
+<pre><code>Application 產生回應 (TCP callback)
+    │
+    ├── tcp_write(pcb, data, len)              ← 寫入 TCP send buffer
+    ├── tcp_output(pcb)                        ← 觸發傳送
+    │   └── ip4_output_if() → etharp_output()  ← ARP resolve
+    │       ├── [ARP cache miss] → etharp_request() → low_level_output()
+    │       │                                    ← 先發 ARP request
+    │       └── [ARP cache hit] → etharp_output()
+    │           └── netif->linkoutput(p)        ← low_level_output()
+    │
+    └── low_level_output(netif, p)
+        │
+        ├── [if link down] → return ERR_RTE
+        ├── [if p->tot_len > tx_buf size] → return ERR_BUF
+        │
+        ├── pbuf_copy_partial(p, eth->tx_buf, p->tot_len, 0)
+        │   *** COPY #1: pbuf chain → eth->tx_buf (連續 buffer) ***
+        │
+        └── dm9051_core_send(&eth->dev, eth->tx_buf, p->tot_len)
+            ├── dm9051_core_bus_acquire()
+            ├── dm9051_core_tx_set_len(hal, len)    ← TXPLL, TXPLH
+            ├── dm9051_core_write_mem(hal, buf, len)
+            │   └── hal->ops->write_mem(ctx, buf, len)
+            │       *** COPY #2: eth->tx_buf → SPI TX FIFO ***
+            ├── write_reg(hal, TCR, TCR_TXREQ)      ← 觸發 TX
+            ├── [if TX_WAIT_DONE] dm9051_core_tx_wait_done(hal)
+            │   └── busy-poll TCR_TXREQ (max 100ms)
+            └── dm9051_core_bus_release()</code></pre>
+
+<h3 id="sec7-2">7.2 TX 封包複製分析</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>步驟</th><th>複製方向</th><th>次數</th><th>Buffer</th></tr>
+</thead>
+<tbody>
+<tr><td>lwIP pbuf chain → <code>eth->tx_buf</code></td><td>Memory copy</td><td>1</td><td><code>tx_buf[1514]</code> (連續)</td></tr>
+<tr><td><code>tx_buf</code> → SPI TX FIFO</td><td>SPI DMA copy</td><td>1</td><td>SPI transaction</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>總計</strong>: 2 次完整複製 (1 memory copy + 1 SPI)。</p>
+
+<p><strong>Zero-copy 限制</strong>: lwIP pbuf 可能為 chain (非連續)，DM9051 SPI <code>write_mem</code> 需要連續 source buffer。<code>tx_buf</code> 中介 buffer 是必需的 — 先用 <code>pbuf_copy_partial</code> 攤平到連續 buffer，再進行 SPI write。</p>
+
+<h3 id="sec7-3">7.3 TX 流程</h3>
+
+<div class="figure-card" data-svg="svg/sequence_03.svg" data-modal-id="modalSeq3">
+  <div class="figure-header">Figure 4 — lwIP TX Packet Flow</div>
+  <div class="figure-body">
+    <object data="svg/sequence_03.svg" type="image/svg+xml" style="max-width:100%;height:auto;">TX Packet Flow</object>
+  </div>
+  <div class="figure-footer">
+    <ul>
+      <li>tcp_write() / tcp_output()</li>
+      <li>ARP cache lookup (miss → ARP request first)</li>
+      <li>pbuf_copy_partial → tx_buf (COPY #1)</li>
+      <li>dm9051_core_send() → SPI write (COPY #2)</li>
+      <li>TCR TXREQ + busy poll wait</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 8 -->
+<!-- ============================================================ -->
+<h2 id="sec8">8. Link Up/Down 處理機制</h2>
+
+<h3 id="sec8-1">8.1 硬體 Link 狀態偵測</h3>
+
+<pre><code class="language-c">dm9051_core_link_is_up(&eth->dev)
+  └── read_reg(hal, NSR, &nsr)                // Network Status Register
+      └── return (nsr & NSR_LINKST) != 0;    // bit 6: LINKST</code></pre>
+
+<h3 id="sec8-2">8.2 兩種 Link 更新路徑</h3>
+
+<h4>路徑 A: <code>ethernetif_link_poll()</code> (應用層輪詢)</h4>
+
+<pre><code class="language-c">// ethernetif.c — 應用層定期呼叫 (建議 100-500ms)
+ethernetif_link_poll(netif)
+  ├── eth = (struct ethernetif *)netif->state
+  ├── link_up = dm9051_core_link_is_up(&eth->dev)
+  │
+  ├── [link_up && !netif_is_link_up] → netif_set_link_up(netif)
+  │   └── 觸發 link callback: ethernetif_update_config()
+  │
+  └── [!link_up && netif_is_link_up] → netif_set_link_down(netif)
+      └── 觸發 link callback: ethernetif_update_config()</code></pre>
+
+<h4>路徑 B: <code>ethernetif_update_config()</code> (lwIP Link Callback + PHY 輪詢)</h4>
+
+<pre><code class="language-c">// ethernetif.c — 由 netif_set_link_callback 註冊
+// 每當 netif_set_link_up/down 被呼叫時觸發，同時也實際輪詢 PHY 硬體
+ethernetif_update_config(netif)
+  ├── eth = (struct ethernetif *)netif->state
+  ├── link_up = dm9051_core_link_is_up(&eth->dev)   // 真正讀取 NSR bit 6
+  │
+  ├── [link_up && !netif_is_link_up] → netif_set_link_up(netif)
+  └── [!link_up && netif_is_link_up] → netif_set_link_down(netif)</code></pre>
+
+<h3 id="sec8-3">8.3 Link Detection 在 Main Loop 中的位置</h3>
+
+<pre><code class="language-c">// main_dm9051_lwip_example.c
+int main(void)
+{
+    platform_init();
+    network_init();
+
+    while (1) {
+        lwip_link_poll_wrapper(&g_dm9051_netif);   // 500ms link poll (內部 ethernetif_link_poll)
+        ethernetif_input(&g_dm9051_netif);          // RX 輪詢
+        sys_check_timeouts();                       // lwIP timer
+        lwip_web2403v2_freelw_poll();              // 應用層 hook
+    }
+}</code></pre>
+
+<h3 id="sec8-4">8.4 Link 狀態變化流程圖</h3>
+
+<div class="figure-card" data-svg="svg/sequence_04.svg" data-modal-id="modalSeq4">
+  <div class="figure-header">Figure 5 — Link Status Change Flow</div>
+  <div class="figure-body">
+    <object data="svg/sequence_04.svg" type="image/svg+xml" style="max-width:100%;height:auto;">Link Status Change</object>
+  </div>
+  <div class="figure-footer">
+    <ul>
+      <li>500ms interval polling</li>
+      <li>dm9051_core_link_is_up() → read NSR bit 6</li>
+      <li>netif_set_link_up/down() → callback</li>
+      <li>low_level_output returns ERR_RTE when link down</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 9 -->
+<!-- ============================================================ -->
+<h2 id="sec9">9. ISR 與 Main Loop 分工</h2>
+
+<h3 id="sec9-1">9.1 中斷模式 (<code>DM9051_MH2030A_USE_IRQ=1</code>)</h3>
+
+<pre><code>[DM9051 INT Pin] (硬體中斷)
+    │
+    ▼
+[EXTI ISR]                                     [ports/mh2030a/dm9051_hal_mh2030a_int.c]
+    │
+    ├── 清除 EXTI pending bit
+    ├── hal->ops->irq_disable()                ← 關閉 EXTI (防止巢狀中斷)
+    │
+    └── dm9051_core_interrupt_set(dev, irq_line)
+        └── dev->runtime.interrupt_event = 1   ← 設定 event flag
+
+    *** ISR 結束 — 不進行任何 SPI 操作 ***</code></pre>
+
+<pre><code>[Main Loop]                                    [main_dm9051_lwip_example.c]
+    │
+    ├── lwip_link_poll_wrapper(netif)          ← 500ms link 監測 (內部 ethernetif_link_poll)
+    │
+    ├── [if IRQ mode: interrupt_event flag]
+    │     └── ethernetif_input(netif)          ← 進入 RX 處理
+    │
+    ├── sys_check_timeouts()                   ← lwIP timer 處理
+    │
+    └── lwip_web2403v2_freelw_poll()           ← 應用層 hook</code></pre>
+
+<h3 id="sec9-2">9.2 Polling 模式 (<code>DM9051_MH2030A_USE_IRQ=0</code>)</h3>
+
+<pre><code>[Main Loop]
+    │
+    ├── lwip_link_poll_wrapper(netif)
+    │
+    ├── ethernetif_input(netif)               ← 每次 loop 都輪詢 RX (polling)
+    │     └── low_level_input(netif)          ← 直接讀取 DM9051 RX FIFO
+    │
+    ├── sys_check_timeouts()
+    │
+    └── lwip_web2403v2_freelw_poll()</code></pre>
+
+<h3 id="sec9-3">9.3 ISR / Main Loop 分工表格</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>項目</th><th>ISR Context</th><th>Main Loop Context</th><th>說明</th></tr>
+</thead>
+<tbody>
+<tr><td>SPI 操作</td><td>❌ 禁止</td><td>✅ 唯一執行者</td><td>DM9051 SPI 僅在 main loop 中操作</td></tr>
+<tr><td><code>dm9051_core_receive()</code></td><td>❌ 禁止</td><td>✅ 透過 <code>ethernetif_input()</code></td><td>RX 流程完全在主迴圈</td></tr>
+<tr><td><code>dm9051_core_send()</code></td><td>❌ 禁止</td><td>✅ 透過 <code>low_level_output()</code></td><td>TX 由 lwIP callback 在主迴圈觸發</td></tr>
+<tr><td><code>interrupt_event</code> flag</td><td>✅ 寫入 (volatile)</td><td>✅ 讀取/清除</td><td>ISR 只設 flag，main loop 消費</td></tr>
+<tr><td>EXTI/NVIC 控制</td><td>❌ 禁止 re-enable</td><td>✅ 透過 <code>interrupt_reset()</code></td><td>ISR 關閉 IRQ，main loop 重新啟用</td></tr>
+<tr><td>lwIP <code>netif->input()</code></td><td>❌ 禁止</td><td>✅ 在 <code>ethernetif_input()</code> 中</td><td>pbuf 操作不使用 critical section</td></tr>
+<tr><td><code>sys_check_timeouts()</code></td><td>❌ 禁止</td><td>✅ 主迴圈呼叫</td><td>lwIP timer 需要可重入 context</td></tr>
+<tr><td><code>pbuf_alloc()</code> / <code>pbuf_free()</code></td><td>❌ 禁止</td><td>✅ 在 <code>low_level_input/output</code></td><td>pbuf pool 操作非 ISR-safe (NO_SYS=1)</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 10 -->
+<!-- ============================================================ -->
+<h2 id="sec10">10. PBUF 使用分析</h2>
+
+<h3 id="sec10-1">10.1 pbuf 類型使用</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>pbuf 類型</th><th>使用位置</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td><code>PBUF_RAW</code></td><td><code>low_level_input()</code></td><td>RX: <code>pbuf_alloc(PBUF_RAW, len, PBUF_POOL)</code></td></tr>
+<tr><td><code>PBUF_RAW</code></td><td><code>low_level_output()</code></td><td>TX: 由 lwIP 的 etharp 層傳入</td></tr>
+<tr><td><code>PBUF_POOL</code></td><td><code>low_level_input()</code></td><td>RX: 使用 pool 分配 (避免 heap fragmentation)</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="sec10-2">10.2 各類 pbuf 說明</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>類型</th><th>特性</th><th>在本專案的使用</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>PBUF_POOL</strong></td><td>固定大小的 pbuf pool, 分配快速, 無碎片</td><td>RX: 每次 <code>low_level_input</code> 分配一個 pool pbuf 鏈來裝載 Ethernet frame</td></tr>
+<tr><td><strong>PBUF_RAM</strong></td><td>heap 分配的 pbuf, 大小可變</td><td>TX: lwIP 內部 TCP 輸出使用 RAM pbuf</td></tr>
+<tr><td><strong>PBUF_REF</strong></td><td>參考外部 buffer, 不複製</td><td>未使用</td></tr>
+<tr><td><strong>PBUF_ROM</strong></td><td>參考 ROM 資料, 不複製</td><td>未使用</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="sec10-3">10.3 Pool 配置</h3>
+
+<pre><code class="language-c">// lwipopts.h
+#define PBUF_POOL_SIZE      8       // 最多 8 個 pool pbuf
+#define PBUF_POOL_BUFSIZE   1536    // 每個 1536 bytes (可容納最大 Ethernet frame)</code></pre>
+
+<ul>
+<li>Pool 能同時容納最多 <strong>8 個 RX frame</strong> (約 12KB)</li>
+<li>當應用層處理速度 &lt; RX 到達率時，pool 耗盡會導致 <code>pbuf_alloc()</code> 回傳 NULL → frame drop</li>
+<li>Pool buffer size (1536) &gt; 實際 MTU (1500) + header (14) = 1514，足夠容納完整 frame</li>
+</ul>
+
+<h3 id="sec10-4">10.4 Copy 分析</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>操作</th><th>複製存在？</th><th>說明</th></tr>
+</thead>
+<tbody>
+<tr><td>RX: SPI → rx_buf</td><td>✅ Copy</td><td>DM9051 SPI <code>read_mem</code> 需要連續 buffer</td></tr>
+<tr><td>RX: rx_buf → pbuf</td><td>✅ Copy</td><td><code>pbuf_take()</code> 將連續 buffer 複製到 pbuf chain</td></tr>
+<tr><td>RX: Zero-copy</td><td>❌ 不可行</td><td>DM9051 SPI 無法直接寫入非連續 pbuf chain</td></tr>
+<tr><td>TX: pbuf → tx_buf</td><td>✅ Copy</td><td><code>pbuf_copy_partial()</code> 攤平 pbuf chain 到連續 buffer</td></tr>
+<tr><td>TX: tx_buf → SPI FIFO</td><td>✅ Copy</td><td>DM9051 SPI <code>write_mem</code> 需要連續 source</td></tr>
+<tr><td>TX: Zero-copy</td><td>❌ 不可行</td><td>同上理由</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 11 -->
+<!-- ============================================================ -->
+<h2 id="sec11">11. Memory 與效能分析</h2>
+
+<h3 id="sec11-1">11.1 Memory Usage</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>項目</th><th>大小</th><th>位置</th><th>說明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>eth->rx_buf</code></td><td>1514 bytes</td><td><code>struct ethernetif</code> (heap)</td><td>RX 連續 buffer</td></tr>
+<tr><td><code>eth->tx_buf</code></td><td>1514 bytes</td><td><code>struct ethernetif</code> (heap)</td><td>TX 連續 buffer</td></tr>
+<tr><td><code>struct ethernetif</code></td><td>~80 bytes</td><td>heap (mem_malloc)</td><td>netif private data + dev + hal</td></tr>
+<tr><td>lwIP heap (<code>MEM_SIZE</code>)</td><td>12 KB</td><td>BSS/heap</td><td>TCP segments, pbuf RAM, etc.</td></tr>
+<tr><td>pbuf pool (<code>PBUF_POOL_SIZE</code>)</td><td>8 × 1536 = 12 KB</td><td>BSS/heap</td><td>RX pbuf pool</td></tr>
+<tr><td>TCP send buffer</td><td>4 × MSS = ~5840 bytes</td><td>lwIP heap</td><td><code>TCP_SND_BUF</code></td></tr>
+<tr><td>TCP receive window</td><td>2 × MSS = ~2920 bytes</td><td>lwIP heap</td><td><code>TCP_WND</code></td></tr>
+<tr><td>DM9051 internal SRAM</td><td>32 KB</td><td>DM9051 晶片內部</td><td>RX/TX FIFO</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="sec11-2">11.2 SPI 傳輸效能</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>操作</th><th>約略 SPI clock count</th><th>@18MHz SPI 耗時</th><th>@36MHz SPI 耗時</th></tr>
+</thead>
+<tbody>
+<tr><td>Read Reg (2 bytes)</td><td>16 clocks</td><td>~0.89μs</td><td>~0.44μs</td></tr>
+<tr><td>Write Reg (2 bytes)</td><td>16 clocks</td><td>~0.89μs</td><td>~0.44μs</td></tr>
+<tr><td>Read Mem frame (1518 bytes)</td><td>12144 clocks</td><td>~675μs</td><td>~337μs</td></tr>
+<tr><td>Write Mem frame (1518 bytes)</td><td>12144 clocks</td><td>~675μs</td><td>~337μs</td></tr>
+<tr><td>Copy: pbuf → tx_buf (1514B)</td><td>—</td><td>~5-10μs (CPU)</td><td>~5-10μs (CPU)</td></tr>
+<tr><td>Copy: rx_buf → pbuf (1514B)</td><td>—</td><td>~5-10μs (CPU)</td><td>~5-10μs (CPU)</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="sec11-3">11.3 TX Wait Busy Poll 效能</h3>
+
+<pre><code class="language-c">// dm9051_core_tx_wait_done() — tight polling loop
+do {
+    status = read_reg(hal, DM9051_TCR, &tcr);
+    if ((tcr & DM9051_TCR_TXREQ) == 0) return DM9051_OK;
+    --timeout;
+} while (timeout != 0);   // timeout = 100000 iterations</code></pre>
+
+<p>當 <code>TX_WAIT_POLL_DELAY_US = 0</code> 時，每次 TX 完成前 CPU 被完全佔用。在 120MHz Cortex-M0 上，每次 loop ~15 cycle，最壞情況 ~12.5ms 的 busy wait。</p>
+
+<h3 id="sec11-4">11.4 CPU Loading 估算 (滿載 100Mbps)</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>步驟</th><th>每 frame 耗時</th><th>每秒 8127 frames (64B)</th><th>每秒 812 frames (1518B)</th></tr>
+</thead>
+<tbody>
+<tr><td>SPI RX transfer (1518B @36MHz)</td><td>~337μs</td><td>2.74s</td><td>0.27s</td></tr>
+<tr><td>SPI TX transfer (1518B @36MHz)</td><td>~337μs</td><td>2.74s</td><td>0.27s</td></tr>
+<tr><td>Memory copy (pbuf ↔ tx_buf)</td><td>~10μs</td><td>0.08s</td><td>0.01s</td></tr>
+<tr><td>lwIP stack processing</td><td>~50-200μs</td><td>0.4-1.6s</td><td>0.04-0.16s</td></tr>
+<tr><td><strong>Total per frame</strong></td><td><strong>~734-884μs</strong></td><td><strong>5.96-7.16s</strong></td><td><strong>0.59-0.71s</strong></td></tr>
+<tr><td><strong>CPU loading</strong></td><td></td><td><strong>~85%</strong> (64B)</td><td><strong>~8%</strong> (1518B)</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="info-box info">
+  注意: 上述為粗略估算。64B 小封包的 CPU loading 最高，大封包則較低。DMA 模式可降低 SPI transfer 的 CPU loading。
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 12 -->
+<!-- ============================================================ -->
+<h2 id="sec12">12. lwIP Timer 機制</h2>
+
+<h3 id="sec12-1">12.1 Timer 處理流程</h3>
+
+<pre><code class="language-c">// main_dm9051_lwip_example.c — main loop
+while (1) {
+    lwip_link_poll_wrapper(netif);  // 內部 ethernetif_link_poll()
+    ethernetif_input(netif);
+    sys_check_timeouts();           // ← lwIP 內部 timer 推進
+    lwip_web2403v2_freelw_poll();
+}</code></pre>
+
+<h3 id="sec12-2">12.2 Timer 類型</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>Timer</th><th>間隔</th><th>用途</th><th>觸發方式</th></tr>
+</thead>
+<tbody>
+<tr><td>TCP fast timer</td><td>250ms</td><td>TCP delayed ACK, FIN_WAIT2</td><td><code>sys_check_timeouts()</code></td></tr>
+<tr><td>TCP slow timer</td><td>500ms</td><td>TCP retransmission, keepalive</td><td><code>sys_check_timeouts()</code></td></tr>
+<tr><td>ARP timer</td><td>5s</td><td>ARP cache cleanup, pending retry</td><td><code>sys_check_timeouts()</code></td></tr>
+<tr><td>DHCP coarse timer</td><td>60s</td><td>DHCP renew/rebind (未啟用)</td><td><code>sys_check_timeouts()</code></td></tr>
+<tr><td>HTTPD timer</td><td>500ms</td><td>HTTP server timeout</td><td><code>sys_check_timeouts()</code></td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="sec12-3">12.3 sys_now() 實作</h3>
+
+<pre><code class="language-c">// port/sys_arch.c
+u32_t lwip_sys_now = 0;          // 1ms tick count
+
+u32_t sys_now(void)
+{
+    return lwip_sys_now;
+}
+
+// SysTick_Handler (每 1ms)
+void SysTick_Handler(void)
+{
+    lwip_sys_now++;
+}</code></pre>
+
+<ul>
+<li>SysTick 設定為 1ms 中斷 (<code>SystemCoreClock / 1000</code>)</li>
+<li><code>sys_now()</code> 提供 milliseconds 時間戳</li>
+<li>不同於 uIP 使用 10ms tick，lwIP 需要 1ms 精度以支援 TCP RTT 計算</li>
+</ul>
+
+<!-- ============================================================ -->
+<!-- SECTION 13 -->
+<!-- ============================================================ -->
+<h2 id="sec13">13. 與 uIP Adapter 的差異比較</h2>
+
+<h3 id="sec13-1">13.1 架構差異</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>比較項目</th><th>uIP Adapter</th><th>lwIP Adapter</th></tr>
+</thead>
+<tbody>
+<tr><td>Stack 版本</td><td>uIP 1.0</td><td>lwIP 2.1.2</td></tr>
+<tr><td>Buffer model</td><td>單一 <code>uip_buf[UIP_BUFSIZE]</code> global</td><td>pbuf chain (可非連續)</td></tr>
+<tr><td>TX 路徑</td><td>同步: <code>uip_send()</code> → adapter 直接 TX</td><td>非同步: <code>tcp_write()</code> → <code>tcp_output()</code> → callback</td></tr>
+<tr><td>RX 路徑</td><td><code>dm9051_uip_input()</code> 直接寫入 <code>uip_buf</code></td><td><code>low_level_input()</code> → <code>pbuf_alloc()</code> → <code>netif->input()</code></td></tr>
+<tr><td>中斷處理</td><td><code>interrupt_take()</code> + <code>interrupt_reset()</code></td><td>相同模式, 但由 <code>ethernetif_input()</code> 處理</td></tr>
+<tr><td>Link callback</td><td>無 — 應用層手動 <code>dm9051_core_link_is_up()</code></td><td><code>netif_set_link_callback()</code> + <code>ethernetif_update_config()</code></td></tr>
+<tr><td>init callback</td><td><code>dm9051_uip_stack_init()</code> 集中式</td><td><code>netif_add()</code> + <code>ethernetif_init()</code> 標準化</td></tr>
+<tr><td>Periodics</td><td>手動: <code>uip_periodic()</code>, <code>uip_arp_timer()</code></td><td>自動: <code>sys_check_timeouts()</code> 驅動內部 timer</td></tr>
+<tr><td>ARP 處理</td><td>Adapter 層手動判斷 ethertype</td><td>lwIP <code>ethernet_input()</code> → <code>etharp_input()</code> 自動處理</td></tr>
+<tr><td>Checksum</td><td>軟體 checksum</td><td>軟體 checksum (DM9051 無 offload)</td></tr>
+<tr><td>API 風格</td><td>自訂 <code>dm9051_uip_*()</code></td><td>標準 lwIP netif 介面 + 相容包裝層</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="sec13-2">13.2 RAM 需求比較</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>項目</th><th>uIP</th><th>lwIP</th></tr>
+</thead>
+<tbody>
+<tr><td>Buffer</td><td><code>uip_buf[1200]</code> = 1.2KB</td><td>pbuf pool: 8 × 1536 = 12KB</td></tr>
+<tr><td>TCP connections</td><td><code>UIP_CONNS</code> = 10</td><td><code>MEMP_NUM_TCP_PCB</code> = 4</td></tr>
+<tr><td>TCP segments</td><td>無 (直接使用 uip_buf)</td><td><code>MEMP_NUM_TCP_SEG</code> = 16</td></tr>
+<tr><td>Send buffer</td><td>無 (立即傳送)</td><td><code>TCP_SND_BUF</code> = 4×MSS = ~5.7KB</td></tr>
+<tr><td>Heap</td><td>無動態分配</td><td><code>MEM_SIZE</code> = 12KB</td></tr>
+<tr><td>Total RAM (min)</td><td><strong>~2-3KB</strong></td><td><strong>~30-40KB</strong></td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="sec13-3">13.3 效能差異</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>指標</th><th>uIP</th><th>lwIP</th></tr>
+</thead>
+<tbody>
+<tr><td>RX copy 次數</td><td>1 次 (SPI → uip_buf)</td><td>2 次 (SPI → rx_buf → pbuf)</td></tr>
+<tr><td>TX copy 次數</td><td>1 次 (uip_buf → SPI)</td><td>2 次 (pbuf → tx_buf → SPI)</td></tr>
+<tr><td>TCP throughput (預估)</td><td>~2-3 Mbps</td><td>~5-10 Mbps (因 sliding window)</td></tr>
+<tr><td>Multi-connection</td><td>有限 (輪詢式)</td><td>完整 (callback 驅動)</td></tr>
+<tr><td>封包處理 latency</td><td>較低 (同步)</td><td>較高 (非同步)</td></tr>
+<tr><td>CPU loading</td><td>較低</td><td>較高 (pbuf 管理 + timer)</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="sec13-4">13.4 核心設計模式差異</h3>
+
+<pre><code>uIP Adapter 設計:
+  [Main Loop] → dm9051_uip_stack_poll()
+       ├── dm9051_uip_input()           // Blocking: 讀取 frame 到 uip_buf
+       ├── uip_arp_ipin()               // 手動 ARP 處理
+       ├── uip_input()                  // 同步 TCP/IP 處理
+       └── dm9051_uip_output()          // 同步傳送回應
+
+lwIP Adapter 設計:
+  [Main Loop] → ethernetif_input()
+             └── low_level_input()      // 讀取 frame → pbuf
+             └── netif->input(p)        // 非同步餵入 lwIP
+                   └── etharp_input()
+                         └── tcp_input() // callback 驅動, 延遲 TX</code></pre>
+
+<!-- ============================================================ -->
+<!-- SECTION 14 -->
+<!-- ============================================================ -->
+<h2 id="sec14">14. 函式呼叫關係圖</h2>
+
+<h3 id="sec14-1">14.1 整體呼叫圖</h3>
+
+<div class="figure-card" data-svg="svg/flow_01.svg" data-modal-id="modalFlow1">
+  <div class="figure-header">Figure 6 — Overall Function Call Graph</div>
+  <div class="figure-body">
+    <object data="svg/flow_01.svg" type="image/svg+xml" style="max-width:100%;height:auto;">Function Call Graph</object>
+  </div>
+  <div class="figure-footer">
+    <ul>
+      <li>Application: main() + HTTP server</li>
+      <li>lwIP Port: ethernetif.c, sys_arch.c, cc.h</li>
+      <li>lwIP Stack: tcp.c, udp.c, ip.c, etharp.c, pbuf.c</li>
+      <li>DM9051 Core: dm9051_core.c</li>
+      <li>HAL: dm9051_hal.h vtable</li>
+      <li>Platform: ports/mh2030a/</li>
+    </ul>
+  </div>
+</div>
+
+<h3 id="sec14-2">14.2 RX/TX 完整呼叫鏈</h3>
+
+<pre><code>===== RX 路徑 =====
+main()
+  └── ethernetif_input(netif)               [ethernetif.c]
+              └── low_level_input(netif)
+                    ├── dm9051_core_receive(dev, rx_buf, 1514)
+                    │     ├── dm9051_core_bus_acquire()
+                    │     ├── dm9051_core_rx_ready()     ← hal->ops->read_reg(MRCMDX) × 2
+                    │     ├── dm9051_core_rx_header()    ← hal->ops->read_mem(header, 4)
+                    │     ├── hal->ops->read_mem(buf, len)   ← SPI read
+                    │     ├── hal->ops->write_reg(ISR, clear)
+                    │     └── dm9051_core_bus_release()
+                    ├── pbuf_alloc(PBUF_RAW, len, PBUF_POOL)
+                    ├── pbuf_take(p, rx_buf, len)
+                    └── return p
+              └── netif->input(p, netif)    ← ethernet_input()
+                    └── etharp_input()
+                          ├── [ARP] → arp process
+                          └── [IP]  → ip4_input() → tcp_input()
+                                └── application callback (httpd)
+
+===== TX 路徑 =====
+Application callback (httpd)
+  └── tcp_write(pcb, data, len)
+  └── tcp_output(pcb)
+        └── ip4_output_if() → etharp_output()
+              └── netif->linkoutput(p)      ← low_level_output()
+                    ├── pbuf_copy_partial(p, tx_buf, tot_len, 0)
+                    ├── dm9051_core_send(dev, tx_buf, tot_len)
+                    │     ├── dm9051_core_bus_acquire()
+                    │     ├── hal->ops->write_reg(TXPLL/L)    ← set length
+                    │     ├── hal->ops->write_mem(buf, len)   ← SPI write
+                    │     ├── hal->ops->write_reg(TCR, TXREQ) ← trigger TX
+                    │     ├── [TX_WAIT_DONE] busy poll TCR_TXREQ
+                    │     └── dm9051_core_bus_release()
+                    └── return ERR_OK</code></pre>
+
+<h3 id="sec14-3">14.3 Init 呼叫鏈</h3>
+
+<pre><code>===== 完整 Init 路徑 =====
+main()
+  ├── platform_init()
+  │     ├── mh2030a_uip_board_init(115200)  ← board init
+  │     └── SysTick_Config(1ms)              ← lwIP sys_now() tick
+  │
+  └── network_init()
+        ├── lwip_init()                      ← lwIP stack init (only once)
+        ├── netif_add(&netif, &ip, &mask, &gw,
+        │             NULL,
+        │             ethernetif_init,        ← 直接註冊標準 netif init
+        │             ethernet_input)
+        │     └── ethernetif_init(netif)
+        │           ├── mem_malloc(struct ethernetif)
+        │           └── low_level_init(netif)
+        │                 ├── dm9051_core_default_config()
+        │                 ├── dm9051_mh2030a_default_config()
+        │                 ├── dm9051_mh2030a_hal_bind()  ← HAL vtable binding
+        │                 ├── [IRQ] dm9051_mh2030a_irq_attach_device()
+        │                 ├── dm9051_core_open()
+        │                 ├── netif->hwaddr ← dm9051_core_mac()
+        │                 └── netif->flags |= BCAST | ETHARP | ETHERNET
+        │
+        ├── netif_set_default(&netif)
+        ├── lwip_link_poll_wrapper()         ← initial link poll (內部 ethernetif_link_poll)
+        ├── netif_set_up(&netif)
+        │
+        └── lwip_web2403v2_freelw_init(&netif)
+              └── httpd_init_with_netif(netif)</code></pre>
+
+<!-- ============================================================ -->
+<!-- SECTION 15 -->
+<!-- ============================================================ -->
+<h2 id="sec15">15. 設計模式分析</h2>
+
+<h3 id="sec15-1">15.1 Adapter Pattern (物件配接器)</h3>
+
+<pre><code>uIP Adapter:
+  [uIP Stack] ←→ [dm9051_uip.c] ←→ [DM9051 Core]
+   (已知介面)      (配接轉換)       (目標介面)
+
+lwIP Adapter:
+  [lwIP Stack] ←→ [ethernetif.c] ←→ [DM9051 Core]
+   (netif vtable)   (netif_init/    (Core API)
+                    input/output)</code></pre>
+
+<p><strong>兩種 adapter 都是 Adapter Pattern 的實例</strong>：
+uIP: 直接包裝 core API (自訂函式名稱)；lwIP: 標準 netif vtable 實作 (ethernetif_init/input/output)</p>
+
+<h3 id="sec15-2">15.2 Layered Architecture</h3>
+
+<pre><code>uIP:  Application → Adapter → Core → HAL → Port → MCU
+lwIP: Application → ethernetif → Core → HAL → Port → MCU
+                         └→ [lwIP Stack] ←── ethernetif_input()</code></pre>
+
+<p>兩種架構都嚴格遵守單向依賴：
+<strong>Core 層不認識任何 stack</strong> (不 include uIP/lwIP header)
+<strong>Stack 層不認識 DM9051</strong> (不 include core header)
+<strong>Adapter 是唯一同時認識 stack 和 DM9051 的層</strong></p>
+
+<h3 id="sec15-3">15.3 Dependency Inversion</h3>
+
+<pre><code class="language-c">// HAL 介面 (抽象)
+typedef struct dm9051_hal_ops {
+    int (*read_reg)(void *ctx, uint8_t reg, uint8_t *val);
+    int (*write_reg)(void *ctx, uint8_t reg, uint8_t val);
+    int (*read_mem)(void *ctx, uint8_t *buf, uint16_t len);
+    int (*write_mem)(void *ctx, const uint8_t *buf, uint16_t len);
+    // ...
+} dm9051_hal_ops_t;
+
+// Core 依賴抽象 (dm9051_hal_ops_t)，不依賴具體實作
+// Port 實作抽象 (dm9051_hal_mh2030a_spi1.c)，不影響 core</code></pre>
+
+<h3 id="sec15-4">15.4 共同設計模式</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>模式</th><th>uIP</th><th>lwIP</th><th>共用？</th></tr>
+</thead>
+<tbody>
+<tr><td>Adapter Pattern</td><td>✅ <code>dm9051_uip_input/output</code></td><td>✅ <code>low_level_input/output</code></td><td>是 (獨立實作)</td></tr>
+<tr><td>Layered Architecture</td><td>✅ Core ↔ HAL ↔ Port</td><td>✅ 完全相同</td><td>是 (共享架構)</td></tr>
+<tr><td>Dependency Inversion</td><td>✅ 透過 <code>dm9051_hal_ops_t</code></td><td>✅ 完全相同</td><td>是 (共享 HAL)</td></tr>
+<tr><td>Vtable Strategy</td><td>✅ <code>dm9051_hal_ops</code></td><td>✅ 相同 vtable</td><td>是 (完全共享)</td></tr>
+<tr><td>Busy-wait TX</td><td>✅ <code>dm9051_core_tx_wait_done</code></td><td>✅ 相同實作</td><td>是 (共享 Core)</td></tr>
+<tr><td>Deferred ISR</td><td>✅ flag-only ISR</td><td>✅ 相同模式</td><td>是 (共享機制)</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 16 -->
+<!-- ============================================================ -->
+<h2 id="sec16">16. 重複代碼與重構建議</h2>
+
+<h3 id="sec16-1">16.1 重複代碼分析</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>重複區域</th><th>檔案</th><th>說明</th><th>建議</th></tr>
+</thead>
+<tbody>
+<tr><td><code>dm9051_uip_mh2030a_smoke_open()</code> vs <code>low_level_init()</code></td><td>uIP demo vs ethernetif.c</td><td>兩者都做 <code>core_open()</code> + <code>hal_bind()</code></td><td>共用一個 init helper</td></tr>
+<tr><td><code>dm9051_uip_stack_init()</code> vs 應用層 <code>network_init()</code></td><td>uIP adapter vs lwIP demo</td><td>兩者都做 netif config + mac 設定</td><td>可共用 stack 初始化工廠</td></tr>
+<tr><td><code>dm9051_hal_mh2030a_spi1.h</code> (new port) vs <code>port/mh2030a/dm9051_hal_mh2030a.h</code> (old port)</td><td>兩套 port 實作</td><td>新版是 <code>ports/</code>, 舊版是 <code>port/</code> (不同 directory)</td><td>舊版應移除, 統一使用 <code>ports/mh2030a/</code></td></tr>
+<tr><td>中斷處理: <code>dm9051_core_interrupt_set/take/reset</code></td><td>Core API</td><td>uIP/lwIP 共用同一組</td><td>無重複 (Core 層)</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="sec16-2">16.2 具體重構建議</h3>
+
+<h4>建議 1: 建立共用 Adapter Init Helper</h4>
+
+<pre><code class="language-c">// 新增: adapters/common/dm9051_adapter_helper.h
+// 提供 stack 無關的 init 輔助函式
+
+typedef struct dm9051_adapter_config {
+    const uint8_t *mac_addr;
+    uint8_t transport;     // POLLING / DMA
+    uint8_t irq_mode;      // OFF / EXTI
+    // ...
+} dm9051_adapter_config_t;
+
+// 共用: 建立 HAL + core_open
+int dm9051_adapter_core_init(dm9051_device_t *dev,
+                             dm9051_hal_t *hal,
+                             const dm9051_adapter_config_t *cfg);</code></pre>
+
+<h4>建議 2: 移除重複的 port 目錄</h4>
+
+<pre><code>目前路徑:
+  ModuleDemo/DM9051A/port/mh2030a/           ← 舊版 (待移除)
+  ModuleDemo/DM9051A/dm9051_driver/ports/mh2030a/  ← 新版 (使用中)
+
+建議:
+  - 確認新 port 滿足所有 target 需求後，移除舊版 port/
+  - 統一 include path 到 dm9051_driver/ports/mh2030a/</code></pre>
+
+<h4>建議 3: 統一 adapter error code</h4>
+
+<pre><code class="language-c">// uIP adapter 使用:
+//   DM9051_OK (0), DM9051_ERR (-1)
+
+// lwIP adapter 使用:
+//   ERR_OK (0), ERR_IF (-1), ERR_RTE (-2), ...
+
+// 建議: adapter 層做 error code 翻譯，而非直接傳遞 core error</code></pre>
+
+<h4>建議 4: 消除兩層包裝 (dm9051_lwip.c + ethernetif.c)</h4>
+
+<p><code>dm9051_lwip.c</code> / <code>dm9051_lwip.h</code> 已移除 (commit <code>546d242</code>)，應用層直接呼叫 <code>ethernetif_init()</code>、<code>ethernetif_input()</code>、<code>ethernetif_link_poll()</code>。</p>
+
+<h3 id="sec16-3">16.3 建議目錄結構 (當前狀態)</h3>
+
+<pre><code>adapters/
+├── common/                          ← 尚未實作: 共用 adapter 工具
+│   ├── dm9051_adapter_helper.c
+│   └── dm9051_adapter_helper.h
+│
+├── uip/                             ← uIP adapter (現有)
+│   ├── dm9051_uip.c
+│   ├── dm9051_uip.h
+│   ├── dm9051_uip_stack.c
+│   └── dm9051_uip_stack.h
+│
+└── lwip/                            ← lwIP 組態 (僅 lwipopts.h)
+    └── lwipopts.h                   ← lwIP 配置
+                                    ← dm9051_lwip.c/h 已移除</code></pre>
+
+<!-- ============================================================ -->
+<!-- SECTION 17 -->
+<!-- ============================================================ -->
+<h2 id="sec17">17. 總結</h2>
+
+<h3 id="sec17-1">17.1 lwIP Adapter 設計特點</h3>
+
+<ol>
+<li><strong>標準化</strong>: 遵循 lwIP 標準 <code>netif</code> 介面，與 STM32Cube / NXP MCU 的 ethernetif 風格一致</li>
+<li><strong>簡潔單層</strong>: <code>dm9051_lwip.c/h</code> 相容包裝層已移除，僅存 <code>ethernetif.c/h</code> 單層架構</li>
+<li><strong>雙模式 API</strong>: 標準介面 (自行管理 netif) + 輔助 API (內部靜態 netif)，適合不同開發階段</li>
+<li><strong>pbuf 管理</strong>: 完整利用 lwIP pbuf chain 與 pool 機制，但需要額外 copy</li>
+<li><strong>非同步 TX</strong>: 透過 TCP callback 驅動，不同於 uIP 的同步模式</li>
+</ol>
+
+<h3 id="sec17-2">17.2 與 uIP Adapter 的權衡</h3>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>選用依據</th><th>選 uIP</th><th>選 lwIP</th></tr>
+</thead>
+<tbody>
+<tr><td>RAM 限制 (&lt; 4KB)</td><td>✅ 較佳</td><td>❌ 需 30-40KB</td></tr>
+<tr><td>多連線需求</td><td>❌ 有限</td><td>✅ 完整 TCP 管理</td></tr>
+<tr><td>傳送吞吐量</td><td>❌ stop-and-wait</td><td>✅ sliding window</td></tr>
+<tr><td>程式碼複雜度</td><td>✅ 簡單直接</td><td>❌ 較複雜</td></tr>
+<tr><td>移植簡易度</td><td>✅ 自訂 API</td><td>❌ 需理解 lwIP netif</td></tr>
+<tr><td>僅 HTTP server</td><td>✅ 足夠</td><td>✅ 更佳</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3 id="sec17-3">17.3 關鍵限制</h3>
+
+<ul>
+<li><strong>DM9051 SPI 需要連續 buffer</strong> → 無法達成 zero-copy，每個 frame 至少 2 次複製</li>
+<li><strong>NO_SYS=1 bare-metal</strong> → 所有 lwIP 操作在主迴圈順序執行，無 preemption</li>
+<li><strong>TX busy wait</strong> → TX 完成前 CPU 被佔用 (最長 ~12.5ms)</li>
+</ul>
+
+<h3 id="sec17-4">17.4 lwIP Adapter API 一覽表</h3>
+
+<div class="table-responsive api-table">
+<table>
+<thead>
+<tr><th>功能</th><th>API</th><th>說明</th></tr>
+</thead>
+<tbody>
+<tr><td>init</td><td><code>ethernetif_init()</code></td><td>netif_add init callback，初始化硬體</td></tr>
+<tr><td>RX poll</td><td><code>ethernetif_input()</code></td><td>輪詢 DM9051 RX 並餵入 lwIP</td></tr>
+<tr><td>link poll</td><td><code>ethernetif_link_poll()</code></td><td>定期輪詢 PHY link 狀態 (建議 100-500ms)</td></tr>
+<tr><td>link callback</td><td><code>ethernetif_update_config()</code></td><td>透過 <code>netif_set_link_callback</code> 註冊</td></tr>
+</tbody>
+</table>
+</div>
+
+</main>
+
+<!-- ======== SVG MODALS ======== -->
+<div class="modal fade" id="modalSeq1" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Figure 2 — Netif Registration Sequence</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalSeq2" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Figure 3 — lwIP RX Packet Flow</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalSeq3" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Figure 4 — lwIP TX Packet Flow</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalSeq4" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Figure 5 — Link Status Change Flow</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalFlow1" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Figure 1/6 — Architecture &amp; Function Call Graph</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== SCRIPTS ======== -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/c.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+<script src="assets/js/theme.js"></script>
+<script src="assets/js/toc.js"></script>
+<script src="assets/js/search.js"></script>
+<script src="assets/js/svg_modal.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize syntax highlighting
+  hljs.highlightAll();
+
+  // Copy button for code blocks
+  document.querySelectorAll('pre code').forEach(function(block) {
+    var container = block.parentElement;
+    var btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.textContent = 'Copy';
+    container.appendChild(btn);
+
+    btn.addEventListener('click', function() {
+      var code = block.textContent;
+      navigator.clipboard.writeText(code).then(function() {
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(function() {
+          btn.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 2000);
+      }).catch(function() {
+        btn.textContent = 'Failed';
+        setTimeout(function() {
+          btn.textContent = 'Copy';
+        }, 2000);
+      });
+    });
+  });
+
+  // Sync mobile sidebar with desktop
+  var desktopNav = document.getElementById('sidebarNav');
+  var mobileNav = document.getElementById('sidebarNavMobile');
+  if (desktopNav && mobileNav) {
+    var observer = new MutationObserver(function() {
+      mobileNav.innerHTML = desktopNav.innerHTML;
+      mobileNav.querySelectorAll('.nav-item[data-target]').forEach(function(item) {
+        item.addEventListener('click', function(e) {
+          e.preventDefault();
+          var target = document.getElementById(this.getAttribute('data-target'));
+          if (target) {
+            var offset = 70;
+            var top = target.getBoundingClientRect().top + window.pageYOffset - offset;
+            window.scrollTo({ top: top, behavior: 'smooth' });
+            var offcanvas = bootstrap.Offcanvas.getInstance(document.getElementById('sidebarOffcanvas'));
+            if (offcanvas) offcanvas.hide();
+          }
+        });
+      });
+    });
+    observer.observe(desktopNav, { childList: true, subtree: true });
+    mobileNav.innerHTML = desktopNav.innerHTML;
+  }
+
+  // Update highlight.js theme on mode switch
+  var themeLink = document.getElementById('hljsTheme');
+  function updateHLJSTheme() {
+    var theme = document.documentElement.getAttribute('data-theme');
+    themeLink.href = theme === 'dark'
+      ? 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css'
+      : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+  }
+  updateHLJSTheme();
+  var origToggle = window.toggleTheme;
+  window.toggleTheme = function() {
+    origToggle();
+    updateHLJSTheme();
+  };
+});
+</script>
+</body>
+</html>

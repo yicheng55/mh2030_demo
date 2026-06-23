@@ -1,0 +1,28 @@
+sequenceDiagram
+    participant APP as main()
+    participant LWIP as lwIP Stack
+    participant ETHIF as ethernetif.c
+    participant CORE as Core Driver
+    participant DM as DM9051 HW
+
+    APP->>APP: platform_init()<br/>board init, SysTick
+    APP->>LWIP: lwip_init()
+    Note over LWIP: TCP/IP init<br/>pbuf pool init<br/>netif list init
+
+    APP->>ETHIF: netif_add(..., ethernetif_init, ethernet_input)
+    ETHIF->>ETHIF: mem_malloc(struct ethernetif)
+    ETHIF->>ETHIF: netif->output = etharp_output
+    ETHIF->>ETHIF: netif->linkoutput = low_level_output
+
+    ETHIF->>ETHIF: low_level_init(netif)
+    ETHIF->>CORE: dm9051_core_open()
+    CORE->>DM: reset, probe, init device
+    DM-->>CORE: VID=0x0A46, PID=0x9051
+    CORE-->>ETHIF: OK
+    ETHIF-->>APP: ERR_OK (netif_add returns netif)
+
+    APP->>LWIP: netif_set_link_callback(netif, ethernetif_update_config)
+    APP->>LWIP: netif_set_default(netif)
+    APP->>LWIP: netif_set_up(netif)
+    APP->>APP: lwip_web2403v2_freelw_init()<br/>HTTP server start
+

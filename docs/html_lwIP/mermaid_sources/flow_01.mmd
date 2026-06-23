@@ -1,0 +1,43 @@
+graph TD
+    subgraph "Application"
+        MAIN["main_dm9051_lwip_example.c<br/>main()"]
+        HTTPD["lwip_web2403v2_freelw.c<br/>HTTP server"]
+    end
+
+    subgraph "lwIP Netif Port (middlewares/.../port/)"
+        ETHIF_H["ethernetif.h<br/>struct ethernetif"]
+        ETHIF_C["ethernetif.c<br/>ethernetif_init<br/>ethernetif_input<br/>low_level_init<br/>low_level_input<br/>low_level_output<br/>ethernetif_update_config<br/>ethernetif_link_poll"]
+        SYS_ARCH["sys_arch.c<br/>sys_now()<br/>sys_jiffies()"]
+        CC_H["arch/cc.h<br/>packed struct, endian"]
+    end
+
+    subgraph "lwIP TCP/IP Stack"
+        LWIP_STACK["lwIP 2.1.2 core<br/>tcp.c, udp.c, ip.c<br/>etharp.c, pbuf.c<br/>netif.c, timeouts.c"]
+    end
+
+    subgraph "DM9051 Core + HAL + Port"
+        CORE["dm9051_core.c<br/>dm9051_core_open<br/>dm9051_core_receive<br/>dm9051_core_send<br/>dm9051_core_link_is_up"]
+        HAL_H["dm9051_hal.h<br/>struct dm9051_hal_ops"]
+        HAL_PORT["ports/mh2030a/<br/>dm9051_hal_mh2030a_*.c"]
+        MCU_LIB["MH20xxLib<br/>SPI, GPIO, EXTI"]
+    end
+
+    MAIN --> ETHIF_C
+    MAIN --> HTTPD
+    MAIN --> SYS_ARCH
+
+    ETHIF_C --> CORE
+    ETHIF_C --> HAL_PORT
+    ETHIF_C --> LWIP_STACK
+
+    HTTPD --> LWIP_STACK
+
+    CORE --> HAL_H
+    HAL_PORT --> MCU_LIB
+    HAL_PORT --> HAL_H
+
+    SYS_ARCH --> LWIP_STACK
+
+    ETHIF_H --> CORE
+    ETHIF_H --> HAL_H
+

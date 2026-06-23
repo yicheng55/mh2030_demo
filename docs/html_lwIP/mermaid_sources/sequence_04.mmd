@@ -1,0 +1,30 @@
+sequenceDiagram
+    participant APP as main()<br/>while(1)
+    participant ETHIF as ethernetif.c
+    participant CORE as dm9051_core.c
+    participant DM as DM9051 HW
+    participant LWIP as lwIP Stack
+
+    Note over APP: 500ms interval
+    APP->>ETHIF: ethernetif_link_poll(netif)
+    ETHIF->>CORE: dm9051_core_link_is_up(&eth->dev)
+    CORE->>DM: read_reg(NSR)
+    DM-->>CORE: NSR value (bit 6 = LINKST)
+
+    alt LINK changed from DOWN → UP
+        CORE-->>ETHIF: link_up = 1
+        ETHIF->>LWIP: netif_set_link_up(netif)
+        LWIP->>LWIP: callback: ethernetif_update_config(netif)
+        LWIP->>LWIP: netif flags |= NETIF_FLAG_LINK_UP
+        Note over LWIP: lwIP now allows TX/RX
+    else LINK changed from UP → DOWN
+        CORE-->>ETHIF: link_up = 0
+        ETHIF->>LWIP: netif_set_link_down(netif)
+        LWIP->>LWIP: callback: ethernetif_update_config(netif)
+        LWIP->>LWIP: netif flags &= ~NETIF_FLAG_LINK_UP
+        Note over APP,TX: low_level_output returns ERR_RTE<br/>until link is up again
+    else no change
+        CORE-->>ETHIF: link_up same as before
+        Note over ETHIF: no lwIP action
+    end
+
