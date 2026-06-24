@@ -1,7 +1,7 @@
 # DM9051 lwIP Adapter Layer 深度分析
 
 > **專案**: MH2030_Demo  
-> **MCU**: AT32F403A/AT32F407 (MH20xx, ARM Cortex-M0 via MH20xxLib)  
+> **MCU**: MH2030A (MH20xx, ARM Cortex-M0 via MH20xxLib)  
 > **Ethernet**: DM9051 (SPI 介面)  
 > **TCP/IP Stack**: lwIP 2.1.2  
 > **RTOS**: Bare-metal (NO_SYS=1)
@@ -20,11 +20,11 @@
 ┌──────────────────────────────────────────────────────────────────┐
 │                     Application Layer                            │
 │  main_dm9051_lwip_example.c                                      │
-│  lwip_web2403v2_freelw (HTTP server)                            │
+│  lwip_web2403v2_freelw (HTTP server)                             │
 └──────────────────────────┬───────────────────────────────────────┘
                            │
 ┌──────────────────────────▼───────────────────────────────────────┐
-│                    lwIP TCP/IP Stack                              │
+│                    lwIP TCP/IP Stack                             │
 │  (middlewares/3rd_party/lwip-2.1.2/)                             │
 │  tcp.c, udp.c, ip.c, etharp.c                                    │
 │  pbuf chain model, raw callback API                              │
@@ -33,43 +33,42 @@
                            │
 ┌──────────────────────────▼───────────────────────────────────────┐
 │             標準 lwIP Netif 移植層 (唯一 Adapter)                 │
-│                                                                   │
+│                                                                  │
 │  (middlewares/3rd_party/lwip-2.1.2/port/)                        │
 │  ethernetif.h / ethernetif.c                                     │
-│  ethernetif_init() — netif_add callback (init HW)               │
-│  ethernetif_input() — RX poll + feed lwIP                       │
-│  ethernetif_link_poll() — PHY link status polling               │
-│  ethernetif_update_config() — link change callback              │
-
+│  ethernetif_init() — netif_add callback (init HW)                │
+│  ethernetif_input() — RX poll + feed lwIP                        │
+│  ethernetif_link_poll() — PHY link status polling                │
+│  ethernetif_update_config() — link change callback               │
 └──────────────────────────┬───────────────────────────────────────┘
                            │
 ┌──────────────────────────▼───────────────────────────────────────┐
-│                    DM9051 Core Driver                             │
+│                    DM9051 Core Driver                            │
 │  (core/src/dm9051_core.c, core/inc/dm9051_core.h)                │
 │  dm9051_core_open(), dm9051_core_receive(),                      │
 │  dm9051_core_send(), dm9051_core_link_is_up()                    │
 └──────────────────────────┬───────────────────────────────────────┘
                            │
 ┌──────────────────────────▼───────────────────────────────────────┐
-│                    HAL Abstraction Layer                          │
+│                    HAL Abstraction Layer                         │
 │  (hal/inc/dm9051_hal.h)                                          │
-│  struct dm9051_hal_ops { read_reg, write_reg, read_mem,         │
+│  struct dm9051_hal_ops { read_reg, write_reg, read_mem,          │
 │    write_mem, reset, delay_ms, delay_us,                         │
-│    irq_enable, irq_disable, enter_critical, exit_critical }     │
+│    irq_enable, irq_disable, enter_critical, exit_critical }      │
 └──────────────────────────┬───────────────────────────────────────┘
                            │
 ┌──────────────────────────▼───────────────────────────────────────┐
-│                    MH2030A Platform Port                          │
+│                    MH2030A Platform Port                         │
 │  (ports/mh2030a/)                                                │
-│  dm9051_hal_mh2030a_spi1.c      -- SPI polling implementation   │
+│  dm9051_hal_mh2030a_spi1.c      -- SPI polling implementation    │
 │  dm9051_hal_mh2030a_spi1_dma.c  -- SPI DMA implementation        │
-│  dm9051_hal_mh2030a_int.c       -- EXTI/IRQ handling            │
-│  delay.c / mh2030a_board.c      -- Delay / Board setup          │
+│  dm9051_hal_mh2030a_int.c       -- EXTI/IRQ handling             │
+│  delay.c / mh2030a_board.c      -- Delay / Board setup           │
 └──────────────────────────┬───────────────────────────────────────┘
                            │
 ┌──────────────────────────▼───────────────────────────────────────┐
-│                    MCU HAL / Peripheral Layer                     │
-│  (MH20xxLib / AT32F403A_407 Standard Peripheral Library)         │
+│                    MCU HAL / Peripheral Layer                    │
+│  (MH20xxLib / MH2030A Standard Peripheral Library)               │
 │  CMSIS: core_cm0.h (Cortex-M0)                                   │
 └──────────────────────────────────────────────────────────────────┘
 ```
@@ -881,16 +880,57 @@ void SysTick_Handler(void)
 | Checksum | 軟體 checksum | 軟體 checksum (DM9051 無 offload) |
 | API 風格 | 自訂 `dm9051_uip_*()` | 標準 lwIP netif 介面 + 相容包裝層 |
 
-### 13.2 RAM 需求比較
+### 13.2 RAM/ROM 記憶體需求比較
 
-| 項目 | uIP | lwIP |
-|------|-----|------|
-| Buffer | `uip_buf[1200]` = 1.2KB | pbuf pool: 8 × 1536 = 12KB |
-| TCP connections | `UIP_CONNS` = 10 | `MEMP_NUM_TCP_PCB` = 4 |
-| TCP segments | 無 (直接使用 uip_buf) | `MEMP_NUM_TCP_SEG` = 16 |
-| Send buffer | 無 (立即傳送) | `TCP_SND_BUF` = 4×MSS = ~5.7KB |
-| Heap | 無動態分配 | `MEM_SIZE` = 12KB |
-| Total RAM (min) | **~2-3KB** | **~30-40KB** |
+#### 實際建置大小 (Keil ARMCC V5.06, MH2030A)
+
+| 項目 | uIP | lwIP (含 HTTPD) |
+|------|-----|-----------------|
+| Code | 36,520 bytes | 58,688 bytes |
+| RO-data | 27,416 bytes | 27,576 bytes |
+| **總 ROM (Code + RO-data)** | **63,936 bytes (~62 KB)** | **86,264 bytes (~84 KB)** |
+| RW-data | 324 bytes | 244 bytes |
+| ZI-data | 8,780 bytes | 28,844 bytes |
+| **總 RAM (RW-data + ZI-data)** | **9,104 bytes (~9 KB)** | **29,088 bytes (~28 KB)** |
+
+#### ROM 使用分析
+
+| 貢獻者 | uIP | lwIP |
+|--------|-----|------|
+| DM9051 Core + HAL + Port | ~4-6 KB | ~4-6 KB (共用) |
+| TCP/IP Stack 本體 | ~8-10 KB (uIP 1.0) | ~25-30 KB (lwIP 2.1.2 core) |
+| HTTP Server + 應用 | ~15-18 KB | ~18-22 KB (lwIP_web2403v2_freelw) |
+| MH20xxLib 週邊庫 | ~15-18 KB | ~15-18 KB (共用) |
+| lwIP port 層 (ethernetif, sys_arch) | — | ~2-3 KB |
+
+lwIP 的 HTTP server (`lwip_web2403v2_freelw`) 本身貢獻約 18-22 KB ROM，若移除可降至 ~64-66 KB。
+
+#### RAM 使用分析
+
+| 貢獻者 | uIP | lwIP |
+|--------|-----|------|
+| lwIP `MEM_SIZE` heap | — | 12,288 bytes |
+| lwIP pbuf pool (8 × 1536) | — | 12,288 bytes |
+| lwIP TCP descriptors + segments | — | ~2-3 KB |
+| uIP `uip_buf` + ARP table | ~1.5 KB | — |
+| Stack + driver ZI (BSS) + RW | ~7.6 KB | ~2.2 KB |
+| **總 RAM** | **~9 KB** | **~28 KB** |
+
+> 注意：uIP demo 不含 HTTP server 動態頁面 RAM，lwIP HTTPD 會額外消耗 heap 中的 TCP segment buffer。
+
+#### 記憶體優化建議
+
+| 優化項 | lwIP 調整方式 | 預估節省 |
+|--------|--------------|---------|
+| 減少 pbuf pool | `PBUF_POOL_SIZE` 8→4 | -6 KB RAM |
+| 縮小 heap | `MEM_SIZE` 12288→8192 | -4 KB RAM |
+| 減少 TCP segment | `MEMP_NUM_TCP_SEG` 16→8 | ~-1.5 KB RAM |
+| 移除 HTTPD (純 core) | 取消編譯 `apps/lwip_web2403v2_freelw` | **-18~22 KB ROM**, -2~4 KB RAM |
+| 關閉 lwIP 除錯 | `LWIP_DBG_TYPES_ON` 0 | ~-2 KB ROM |
+| 關閉 checksum gen (用 HW) | `CHECKSUM_GEN_IP/UDP/TCP` 0 | ~-1 KB ROM |
+| 降低 TCP window | `TCP_WND` 2×MSS→1×MSS | ~-1.5 KB RAM |
+| 減少 listen PCB | `MEMP_NUM_TCP_PCB_LISTEN` 4→2 | ~-40 bytes RAM |
+| 減少 RX burst (uIP) | `DM9051_UIP_RX_BURST_MAX` 8→4 | — (僅減少 stack) |
 
 ### 13.3 效能差異
 

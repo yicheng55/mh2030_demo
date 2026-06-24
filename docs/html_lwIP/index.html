@@ -18,7 +18,7 @@
   </button>
   <div class="brand">
     DM9051 lwIP Adapter Analysis
-    <small>MH2030 Demo / AT32F403A / DM9051A</small>
+    <small>MH2030 Demo / MH2030A / DM9051A</small>
   </div>
   <button id="themeToggle" class="theme-switch" onclick="toggleTheme()">
     <i class="bi bi-moon-fill"></i> Dark
@@ -55,7 +55,7 @@
 
 <div class="info-box info">
   <strong>專案</strong>: MH2030_Demo &nbsp;|&nbsp;
-  <strong>MCU</strong>: AT32F403A/AT32F407 (MH20xx, ARM Cortex-M0 via MH20xxLib) &nbsp;|&nbsp;
+  <strong>MCU</strong>: MH2030A (MH20xx, ARM Cortex-M0 via MH20xxLib) &nbsp;|&nbsp;
   <strong>Ethernet</strong>: DM9051 (SPI 介面) &nbsp;|&nbsp;
   <strong>TCP/IP Stack</strong>: lwIP 2.1.2 &nbsp;|&nbsp;
   <strong>RTOS</strong>: Bare-metal (NO_SYS=1)
@@ -109,7 +109,7 @@
 <line x1="300" y1="390" x2="300" y2="408" stroke="#64748b" stroke-width="1.5" fill="none" marker-end="url(#a1-lw)"/>
 <rect x="100" y="410" width="400" height="42" fill="url(#g7-lw)" stroke="#1e293b" rx="6" ry="6" stroke-width="1.5"/>
 <text x="300" y="429" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">MCU HAL / Peripheral Layer</text>
-<text x="300" y="443" text-anchor="middle" fill="#cbd5e1" font-size="9">MH20xxLib / AT32F403A_407 StdPeriph / CMSIS Cortex-M0</text>
+<text x="300" y="443" text-anchor="middle" fill="#cbd5e1" font-size="9">MH20xxLib / MH2030A StdPeriph / CMSIS Cortex-M0</text>
 </svg>
 </div>
 
@@ -937,20 +937,82 @@ void SysTick_Handler(void)
 </table>
 </div>
 
-<h3 id="sec13-2">13.2 RAM 需求比較</h3>
+<h3 id="sec13-2">13.2 RAM/ROM 記憶體需求比較</h3>
+
+<h4>實際建置大小 (Keil ARMCC V5.06, MH2030A)</h4>
 
 <div class="table-responsive">
 <table>
 <thead>
-<tr><th>項目</th><th>uIP</th><th>lwIP</th></tr>
+<tr><th>項目</th><th>uIP</th><th>lwIP (含 HTTPD)</th></tr>
 </thead>
 <tbody>
-<tr><td>Buffer</td><td><code>uip_buf[1200]</code> = 1.2KB</td><td>pbuf pool: 8 × 1536 = 12KB</td></tr>
-<tr><td>TCP connections</td><td><code>UIP_CONNS</code> = 10</td><td><code>MEMP_NUM_TCP_PCB</code> = 4</td></tr>
-<tr><td>TCP segments</td><td>無 (直接使用 uip_buf)</td><td><code>MEMP_NUM_TCP_SEG</code> = 16</td></tr>
-<tr><td>Send buffer</td><td>無 (立即傳送)</td><td><code>TCP_SND_BUF</code> = 4×MSS = ~5.7KB</td></tr>
-<tr><td>Heap</td><td>無動態分配</td><td><code>MEM_SIZE</code> = 12KB</td></tr>
-<tr><td>Total RAM (min)</td><td><strong>~2-3KB</strong></td><td><strong>~30-40KB</strong></td></tr>
+<tr><td>Code</td><td>36,520 bytes</td><td>58,688 bytes</td></tr>
+<tr><td>RO-data</td><td>27,416 bytes</td><td>27,576 bytes</td></tr>
+<tr><td><strong>總 ROM (Code + RO-data)</strong></td><td><strong>63,936 bytes (~62 KB)</strong></td><td><strong>86,264 bytes (~84 KB)</strong></td></tr>
+<tr><td>RW-data</td><td>324 bytes</td><td>244 bytes</td></tr>
+<tr><td>ZI-data</td><td>8,780 bytes</td><td>28,844 bytes</td></tr>
+<tr><td><strong>總 RAM (RW-data + ZI-data)</strong></td><td><strong>9,104 bytes (~9 KB)</strong></td><td><strong>29,088 bytes (~28 KB)</strong></td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>ROM 使用分析</h4>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>貢獻者</th><th>uIP</th><th>lwIP</th></tr>
+</thead>
+<tbody>
+<tr><td>DM9051 Core + HAL + Port</td><td>~4-6 KB</td><td>~4-6 KB (共用)</td></tr>
+<tr><td>TCP/IP Stack 本體</td><td>~8-10 KB (uIP 1.0)</td><td>~25-30 KB (lwIP 2.1.2 core)</td></tr>
+<tr><td>HTTP Server + 應用</td><td>~15-18 KB</td><td>~18-22 KB (lwip_web2403v2_freelw)</td></tr>
+<tr><td>MH20xxLib 週邊庫</td><td>~15-18 KB</td><td>~15-18 KB (共用)</td></tr>
+<tr><td>lwIP port 層 (ethernetif, sys_arch)</td><td>—</td><td>~2-3 KB</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>lwIP 的 HTTP server (<code>lwip_web2403v2_freelw</code>) 本身貢獻約 18-22 KB ROM，若移除可降至 ~64-66 KB。</p>
+
+<h4>RAM 使用分析</h4>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>貢獻者</th><th>uIP</th><th>lwIP</th></tr>
+</thead>
+<tbody>
+<tr><td>lwIP <code>MEM_SIZE</code> heap</td><td>—</td><td>12,288 bytes</td></tr>
+<tr><td>lwIP pbuf pool (8 × 1536)</td><td>—</td><td>12,288 bytes</td></tr>
+<tr><td>lwIP TCP descriptors + segments</td><td>—</td><td>~2-3 KB</td></tr>
+<tr><td>uIP <code>uip_buf</code> + ARP table</td><td>~1.5 KB</td><td>—</td></tr>
+<tr><td>Stack + driver ZI (BSS) + RW</td><td>~7.6 KB</td><td>~2.2 KB</td></tr>
+<tr><td><strong>總 RAM</strong></td><td><strong>~9 KB</strong></td><td><strong>~28 KB</strong></td></tr>
+</tbody>
+</table>
+</div>
+
+<blockquote>注意：uIP demo 不含 HTTP server 動態頁面 RAM，lwIP HTTPD 會額外消耗 heap 中的 TCP segment buffer。</blockquote>
+
+<h4>記憶體優化建議</h4>
+
+<div class="table-responsive">
+<table>
+<thead>
+<tr><th>優化項</th><th>lwIP 調整方式</th><th>預估節省</th></tr>
+</thead>
+<tbody>
+<tr><td>減少 pbuf pool</td><td><code>PBUF_POOL_SIZE</code> 8→4</td><td>-6 KB RAM</td></tr>
+<tr><td>縮小 heap</td><td><code>MEM_SIZE</code> 12288→8192</td><td>-4 KB RAM</td></tr>
+<tr><td>減少 TCP segment</td><td><code>MEMP_NUM_TCP_SEG</code> 16→8</td><td>~-1.5 KB RAM</td></tr>
+<tr><td>移除 HTTPD (純 core)</td><td>取消編譯 <code>apps/lwip_web2403v2_freelw</code></td><td><strong>-18~22 KB ROM</strong>, -2~4 KB RAM</td></tr>
+<tr><td>關閉 lwIP 除錯</td><td><code>LWIP_DBG_TYPES_ON</code> 0</td><td>~-2 KB ROM</td></tr>
+<tr><td>關閉 checksum gen (用 HW)</td><td><code>CHECKSUM_GEN_IP/UDP/TCP</code> 0</td><td>~-1 KB ROM</td></tr>
+<tr><td>降低 TCP window</td><td><code>TCP_WND</code> 2×MSS→1×MSS</td><td>~-1.5 KB RAM</td></tr>
+<tr><td>減少 listen PCB</td><td><code>MEMP_NUM_TCP_PCB_LISTEN</code> 4→2</td><td>~-40 bytes RAM</td></tr>
+<tr><td>減少 RX burst (uIP)</td><td><code>DM9051_UIP_RX_BURST_MAX</code> 8→4</td><td>— (僅減少 stack)</td></tr>
 </tbody>
 </table>
 </div>
