@@ -27,6 +27,9 @@ target, so Keil treats it as included.
 | `MH2030A_DM9051_uIP` | `USE_STDPERIPH_DRIVER,MH2030A_UIP_PORT` | default(1) | 0 | default(1) | uIP polling. |
 | `MH2030A_DM9051_uIP_dma` | `USE_STDPERIPH_DRIVER,MH2030A_UIP_PORT,MH2030A_DM9051_SPI_DMA` | 0 | default(1) | 1 | uIP SPI DMA. |
 | `MH2030A_DM9051_uIP_int` | `USE_STDPERIPH_DRIVER,MH2030A_UIP_PORT,DMPLUG_INT` | default(1) | 0 | default(1) | uIP interrupt + polling SPI. |
+| `MH2203_DM9051_uIP` | `USE_STDPERIPH_DRIVER,MH2203_UIP_PORT` | port/mh2203 polling SPI | 0 | port/mh2203 IRQ(off) | MH2203 uIP polling. |
+| `MH2203_DM9051_uIP_dma` | `USE_STDPERIPH_DRIVER,MH2203_UIP_PORT,MH2203_DM9051_SPI_DMA` | 0 | port/mh2203 DMA SPI | port/mh2203 IRQ(off) | MH2203 uIP DMA. |
+| `MH2203_DM9051_uIP_int` | `USE_STDPERIPH_DRIVER,MH2203_UIP_PORT,MH2203_DM9051_IRQ_EXTI` | default(1) | 0 | default(1) | MH2203 uIP interrupt. |
 
 ## Observations
 
