@@ -34,7 +34,9 @@ objects
 *.coproj
 *.elf
 *.axf
+*.lnp
 *.out
+*.dbgconfig
 
 # Hex & Binary files
 *.hex
@@ -76,7 +78,7 @@ Release/
 settings/
 
 # Keil MDK / uVision
-# *.uvproj
+*.uvproj
 # *.uvprojx
 *.scvd
 *.sct
