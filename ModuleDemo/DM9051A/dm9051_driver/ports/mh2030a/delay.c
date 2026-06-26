@@ -1,4 +1,6 @@
 #include "delay.h"
+#include "mh20xx.h"
+#include "core_cm0.h"
 
 static uint8_t us_number = 0;
 static uint16_t ms_number = 0;
