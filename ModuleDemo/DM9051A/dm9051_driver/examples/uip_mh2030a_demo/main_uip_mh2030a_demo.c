@@ -2,6 +2,7 @@
 #include "mh2030a_uip_clock.h"
 #include "dm9051_uip_mh2030a_smoke.h"
 
+#include "../../core/inc/dm9051_core.h"
 #include "../../adapters/uip/dm9051_uip.h"
 #include "../../adapters/uip/dm9051_uip_stack.h"
 #include "app_call.h"

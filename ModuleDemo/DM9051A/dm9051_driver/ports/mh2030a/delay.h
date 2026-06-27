@@ -8,6 +8,7 @@
 extern "C" {
 #endif
 
+void Delay_Init(void);
 void Delay_Ms(uint16_t ms);
 void Delay_Us(uint32_t us);
 

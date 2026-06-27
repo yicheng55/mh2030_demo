@@ -107,7 +107,7 @@ MH2030A Platform Port (ports/mh2030a/ — SPI1, DMA, IRQ, delay, board)
 - AGENTS.md 與 CLAUDE.md 需保持一致（同步鏡像）
 - 繁體中文註解與文件
 - 命名慣例：`snake_case`，前綴 `dm9051_`、`mh2030a_`、`uip_`、`ethernetif_`
-- `.uvprojx` 和 `.uvoptx` 納入版控（但 `.uvguix.*` 排除）
+- `.uvprojx` 納入版控（但 `.uvguix.*` 和 `.uvoptx` 排除）
 - lwIP 為 `NO_SYS=1` 裸機模式，無 RTOS
 - `core/` 和 `hal/` 不能引入 uIP / lwIP / MH2030A header
 - `adapters/` 不能引入 MH2030A SPI / GPIO / IRQ header
