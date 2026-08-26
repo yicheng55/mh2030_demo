@@ -22,9 +22,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifndef DM9051_TX_WAIT_DONE
-#define DM9051_TX_WAIT_DONE 1
-#endif
+/* DM9051_TX_WAIT_DONE is defined (with its default) in dm9051_core.h,
+ * which is included above — keep the single source of truth there. */
 
 #ifndef DM9051_TX_WAIT_TIMEOUT_US
 #define DM9051_TX_WAIT_TIMEOUT_US 100000u
